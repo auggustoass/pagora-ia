@@ -40,7 +40,7 @@ export function StatusCard({
         </div>
       </div>
       <div className="space-y-1">
-        <p className="font-bold text-lg">{value}</p>
+        <p className="font-bold text-xl">{value}</p>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
     </div>;
