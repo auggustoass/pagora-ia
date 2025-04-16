@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Plus, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -68,7 +67,6 @@ export function ChatAssistant() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     
-    // Processar a mensagem do usuário e gerar uma resposta
     processUserMessage(input);
   };
   
@@ -76,7 +74,6 @@ export function ChatAssistant() {
     setIsLoading(true);
     
     try {
-      // Obter informações do contexto para melhorar a resposta
       let context = '';
       
       try {
@@ -102,7 +99,6 @@ export function ChatAssistant() {
         console.error('Error fetching context data:', error);
       }
       
-      // Chamar a edge function para processar a mensagem
       const { data, error } = await supabase.functions.invoke('process-chat', {
         body: { message: userInput, context },
       });
@@ -154,7 +150,6 @@ export function ChatAssistant() {
       
       setMessages(prev => [...prev, userMessage]);
       
-      // Processar a sugestão selecionada
       processUserMessage(suggestion);
     }, 100);
     
