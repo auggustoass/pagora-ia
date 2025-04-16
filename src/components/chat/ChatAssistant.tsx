@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
-import { Send, Bot, User, Plus, RefreshCw } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Bot, User, Plus, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Message {
   id: string;
@@ -41,6 +43,17 @@ export function ChatAssistant() {
       timestamp: new Date(),
     }
   ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
   
   const handleSendMessage = () => {
     if (!input.trim()) return;
@@ -60,62 +73,72 @@ export function ChatAssistant() {
   };
   
   const processUserMessage = async (userInput: string) => {
-    const lowerInput = userInput.toLowerCase();
+    setIsLoading(true);
     
-    // Simulação simples de processamento de linguagem natural
-    // Em uma implementação real, isso seria feito com uma API de IA
-    
-    setTimeout(async () => {
-      let responseContent = '';
+    try {
+      // Obter informações do contexto para melhorar a resposta
+      let context = '';
       
-      // Verificar o status das cobranças
-      if (lowerInput.includes('status') || lowerInput.includes('cobranças') || lowerInput.includes('faturas')) {
-        try {
-          const { data: pendentes, error: errorPendentes } = await supabase
-            .from('faturas')
-            .select('*')
-            .eq('status', 'pendente');
-            
-          const { data: aprovadas, error: errorAprovadas } = await supabase
-            .from('faturas')
-            .select('*')
-            .eq('status', 'aprovado');
-            
-          const { data: rejeitadas, error: errorRejeitadas } = await supabase
-            .from('faturas')
-            .select('*')
-            .eq('status', 'rejeitado');
-            
-          if (errorPendentes || errorAprovadas || errorRejeitadas) throw new Error();
+      try {
+        const { data: pendentes, error: errorPendentes } = await supabase
+          .from('faturas')
+          .select('*')
+          .eq('status', 'pendente');
           
-          responseContent = `Você tem ${pendentes?.length || 0} faturas pendentes, ${aprovadas?.length || 0} faturas aprovadas e ${rejeitadas?.length || 0} faturas rejeitadas. Gostaria de ver mais detalhes sobre alguma delas?`;
-        } catch (error) {
-          console.error('Error fetching invoices:', error);
-          responseContent = 'Não foi possível verificar o status das suas cobranças no momento. Por favor, tente novamente mais tarde.';
+        const { data: aprovadas, error: errorAprovadas } = await supabase
+          .from('faturas')
+          .select('*')
+          .eq('status', 'aprovado');
+          
+        const { data: rejeitadas, error: errorRejeitadas } = await supabase
+          .from('faturas')
+          .select('*')
+          .eq('status', 'rejeitado');
+          
+        if (!errorPendentes && !errorAprovadas && !errorRejeitadas) {
+          context = `Há ${pendentes?.length || 0} faturas pendentes, ${aprovadas?.length || 0} faturas aprovadas e ${rejeitadas?.length || 0} faturas rejeitadas no sistema.`;
         }
-      } 
-      // Cadastrar novo cliente
-      else if (lowerInput.includes('cadastrar') && lowerInput.includes('cliente')) {
-        responseContent = 'Para cadastrar um novo cliente, preciso das seguintes informações: nome completo, e-mail, WhatsApp com DDD e DDI, e CPF ou CNPJ. Você pode fornecer esses dados?';
-      } 
-      // Gerar nova fatura
-      else if (lowerInput.includes('gerar') && lowerInput.includes('fatura')) {
-        responseContent = 'Para gerar uma nova fatura, preciso saber: o cliente (você pode informar o nome ou e-mail), valor, data de vencimento e descrição do serviço ou produto.';
+      } catch (error) {
+        console.error('Error fetching context data:', error);
       }
-      // Resposta genérica
-      else {
-        responseContent = 'Não entendi completamente o que você precisa. Posso ajudar com cadastro de clientes, geração de faturas ou consulta de status das cobranças.';
+      
+      // Chamar a edge function para processar a mensagem
+      const { data, error } = await supabase.functions.invoke('process-chat', {
+        body: { message: userInput, context },
+      });
+      
+      if (error) {
+        throw new Error(error.message);
       }
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: responseContent,
+        content: data.response || 'Desculpe, não consegui processar sua solicitação.',
         sender: 'assistant',
         timestamp: new Date(),
       };
       
       setMessages(prev => [...prev, assistantMessage]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error processing message:', error);
+      
+      toast({
+        title: "Erro",
+        description: "Houve um problema ao processar sua mensagem. Tente novamente.",
+        variant: "destructive",
+      });
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.',
+        sender: 'assistant',
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleSuggestionClick = (suggestion: string) => {
@@ -150,44 +173,61 @@ export function ChatAssistant() {
             <p className="text-xs text-muted-foreground">Sempre online</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="text-muted-foreground hover:text-white"
+          onClick={() => {
+            setMessages([
+              {
+                id: '1',
+                content: 'Olá! Sou o assistente virtual do PAGORA. Como posso ajudar você hoje?',
+                sender: 'assistant',
+                timestamp: new Date(),
+              }
+            ]);
+          }}
+        >
           <RefreshCw size={18} />
         </Button>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
-        {messages.map((message) => (
-          <div 
-            key={message.id} 
-            className={cn(
-              "flex items-start gap-3 max-w-[85%] animate-fade-in",
-              message.sender === 'assistant' ? "mr-auto" : "ml-auto flex-row-reverse"
-            )}
-          >
+      <ScrollArea className="flex-1 p-4 space-y-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
             <div 
+              key={message.id} 
               className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                message.sender === 'assistant' ? "bg-pagora-purple" : "bg-pagora-blue"
+                "flex items-start gap-3 max-w-[85%] animate-fade-in",
+                message.sender === 'assistant' ? "mr-auto" : "ml-auto flex-row-reverse"
               )}
             >
-              {message.sender === 'assistant' ? <Bot size={18} /> : <User size={18} />}
+              <div 
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                  message.sender === 'assistant' ? "bg-pagora-purple" : "bg-pagora-blue"
+                )}
+              >
+                {message.sender === 'assistant' ? <Bot size={18} /> : <User size={18} />}
+              </div>
+              <div 
+                className={cn(
+                  "rounded-2xl px-4 py-3",
+                  message.sender === 'assistant' 
+                    ? "bg-white/5 border border-white/10" 
+                    : "bg-pagora-blue text-white"
+                )}
+              >
+                <p className="text-sm">{message.content}</p>
+                <p className="text-xs mt-1 opacity-70">
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
             </div>
-            <div 
-              className={cn(
-                "rounded-2xl px-4 py-3",
-                message.sender === 'assistant' 
-                  ? "bg-white/5 border border-white/10" 
-                  : "bg-pagora-blue text-white"
-              )}
-            >
-              <p className="text-sm">{message.content}</p>
-              <p className="text-xs mt-1 opacity-70">
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
       
       <div className="p-4 border-t border-white/10">
         <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-thin">
@@ -218,13 +258,15 @@ export function ChatAssistant() {
                 handleSendMessage();
               }
             }}
+            disabled={isLoading}
           />
           <Button 
             type="button"
             onClick={handleSendMessage}
             className="bg-pagora-purple hover:bg-pagora-purple/90"
+            disabled={isLoading}
           >
-            <Send size={18} />
+            {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
           </Button>
         </div>
       </div>
