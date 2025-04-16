@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Send, Robot, User, Plus, RefreshCw } from 'lucide-react';
+import { Send, Bot, User, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -44,7 +43,6 @@ export function ChatAssistant() {
   const handleSendMessage = () => {
     if (!input.trim()) return;
     
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       content: input,
@@ -55,7 +53,6 @@ export function ChatAssistant() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     
-    // Simulate assistant response
     setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -71,7 +68,6 @@ export function ChatAssistant() {
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
     
-    // Optional: auto-send the suggestion
     setTimeout(() => {
       const userMessage: Message = {
         id: Date.now().toString(),
@@ -82,7 +78,6 @@ export function ChatAssistant() {
       
       setMessages(prev => [...prev, userMessage]);
       
-      // Simulate assistant response based on suggestion
       setTimeout(() => {
         let responseContent = '';
         
@@ -113,7 +108,7 @@ export function ChatAssistant() {
       <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-full bg-pagora-purple flex items-center justify-center">
-            <Robot size={18} />
+            <Bot size={18} />
           </div>
           <div>
             <h3 className="font-medium">Assistente PAGORA</h3>
@@ -140,7 +135,7 @@ export function ChatAssistant() {
                 message.sender === 'assistant' ? "bg-pagora-purple" : "bg-pagora-blue"
               )}
             >
-              {message.sender === 'assistant' ? <Robot size={18} /> : <User size={18} />}
+              {message.sender === 'assistant' ? <Bot size={18} /> : <User size={18} />}
             </div>
             <div 
               className={cn(
