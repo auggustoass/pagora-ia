@@ -1,9 +1,9 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Clock, CheckCircle, XCircle, Wallet } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { InvoiceTable } from './InvoiceTable';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Tabs,
   TabsContent,
@@ -15,6 +15,83 @@ import { InvoiceForm } from '../forms/InvoiceForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export function Dashboard() {
+  const [stats, setStats] = useState({
+    total: 0,
+    pendentes: 0,
+    aprovadas: 0,
+    totalRecebido: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        
+        const { count: total, error: errorTotal } = await supabase
+          .from('faturas')
+          .select('*', { count: 'exact', head: true });
+        
+        const { count: pendentes, error: errorPendentes } = await supabase
+          .from('faturas')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pendente');
+        
+        const { count: aprovadas, error: errorAprovadas } = await supabase
+          .from('faturas')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'aprovado');
+        
+        const { data: faturasAprovadas, error: errorValor } = await supabase
+          .from('faturas')
+          .select('valor')
+          .eq('status', 'aprovado');
+        
+        if (errorTotal || errorPendentes || errorAprovadas || errorValor) throw new Error();
+        
+        const totalRecebido = faturasAprovadas?.reduce((sum, item) => sum + Number(item.valor), 0) || 0;
+        
+        setStats({
+          total: total || 0,
+          pendentes: pendentes || 0,
+          aprovadas: aprovadas || 0,
+          totalRecebido
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchStats();
+    
+    const subscription = supabase
+      .channel('table-db-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'faturas' 
+        }, 
+        () => {
+          fetchStats();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -57,28 +134,28 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatusCard 
           title="Total de Faturas" 
-          value="12" 
+          value={loading ? "..." : String(stats.total)} 
           icon={<FileText className="h-4 w-4" />}
         />
         <StatusCard 
           title="Faturas Pendentes" 
-          value="5" 
+          value={loading ? "..." : String(stats.pendentes)} 
           icon={<Clock className="h-4 w-4" />}
           variant="pending" 
-          description="+2 nos últimos 7 dias"
+          description="Aguardando pagamento"
         />
         <StatusCard 
           title="Faturas Aprovadas" 
-          value="6" 
+          value={loading ? "..." : String(stats.aprovadas)} 
           icon={<CheckCircle className="h-4 w-4" />}
           variant="success" 
-          description="+3 nos últimos 7 dias"
+          description="Pagamentos confirmados"
         />
         <StatusCard 
           title="Total Recebido" 
-          value="R$ 3.450,50" 
+          value={loading ? "..." : formatCurrency(stats.totalRecebido)} 
           icon={<Wallet className="h-4 w-4" />}
-          description="Últimos 30 dias"
+          description="Valor total recebido"
         />
       </div>
       

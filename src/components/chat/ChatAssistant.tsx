@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { Send, Bot, User, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -53,10 +55,61 @@ export function ChatAssistant() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     
-    setTimeout(() => {
+    // Processar a mensagem do usuário e gerar uma resposta
+    processUserMessage(input);
+  };
+  
+  const processUserMessage = async (userInput: string) => {
+    const lowerInput = userInput.toLowerCase();
+    
+    // Simulação simples de processamento de linguagem natural
+    // Em uma implementação real, isso seria feito com uma API de IA
+    
+    setTimeout(async () => {
+      let responseContent = '';
+      
+      // Verificar o status das cobranças
+      if (lowerInput.includes('status') || lowerInput.includes('cobranças') || lowerInput.includes('faturas')) {
+        try {
+          const { data: pendentes, error: errorPendentes } = await supabase
+            .from('faturas')
+            .select('*')
+            .eq('status', 'pendente');
+            
+          const { data: aprovadas, error: errorAprovadas } = await supabase
+            .from('faturas')
+            .select('*')
+            .eq('status', 'aprovado');
+            
+          const { data: rejeitadas, error: errorRejeitadas } = await supabase
+            .from('faturas')
+            .select('*')
+            .eq('status', 'rejeitado');
+            
+          if (errorPendentes || errorAprovadas || errorRejeitadas) throw new Error();
+          
+          responseContent = `Você tem ${pendentes?.length || 0} faturas pendentes, ${aprovadas?.length || 0} faturas aprovadas e ${rejeitadas?.length || 0} faturas rejeitadas. Gostaria de ver mais detalhes sobre alguma delas?`;
+        } catch (error) {
+          console.error('Error fetching invoices:', error);
+          responseContent = 'Não foi possível verificar o status das suas cobranças no momento. Por favor, tente novamente mais tarde.';
+        }
+      } 
+      // Cadastrar novo cliente
+      else if (lowerInput.includes('cadastrar') && lowerInput.includes('cliente')) {
+        responseContent = 'Para cadastrar um novo cliente, preciso das seguintes informações: nome completo, e-mail, WhatsApp com DDD e DDI, e CPF ou CNPJ. Você pode fornecer esses dados?';
+      } 
+      // Gerar nova fatura
+      else if (lowerInput.includes('gerar') && lowerInput.includes('fatura')) {
+        responseContent = 'Para gerar uma nova fatura, preciso saber: o cliente (você pode informar o nome ou e-mail), valor, data de vencimento e descrição do serviço ou produto.';
+      }
+      // Resposta genérica
+      else {
+        responseContent = 'Não entendi completamente o que você precisa. Posso ajudar com cadastro de clientes, geração de faturas ou consulta de status das cobranças.';
+      }
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'Estou processando sua solicitação. Em um sistema completo, eu usaria a API do OpenAI e do Supabase para responder adequadamente às suas perguntas e executar ações no banco de dados.',
+        content: responseContent,
         sender: 'assistant',
         timestamp: new Date(),
       };
@@ -78,26 +131,8 @@ export function ChatAssistant() {
       
       setMessages(prev => [...prev, userMessage]);
       
-      setTimeout(() => {
-        let responseContent = '';
-        
-        if (suggestion.includes('novo cliente')) {
-          responseContent = 'Para cadastrar um novo cliente, preciso das seguintes informações: nome completo, e-mail, WhatsApp com DDD e DDI, e CPF ou CNPJ. Você pode fornecer esses dados?';
-        } else if (suggestion.includes('gerar fatura')) {
-          responseContent = 'Para gerar uma nova fatura, preciso saber: o cliente (você pode informar o nome ou e-mail), valor, data de vencimento e descrição do serviço ou produto.';
-        } else if (suggestion.includes('status')) {
-          responseContent = 'Você tem 3 faturas pendentes, 1 fatura aprovada e 0 faturas rejeitadas. Gostaria de ver mais detalhes sobre alguma delas?';
-        }
-        
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          content: responseContent,
-          sender: 'assistant',
-          timestamp: new Date(),
-        };
-        
-        setMessages(prev => [...prev, assistantMessage]);
-      }, 1000);
+      // Processar a sugestão selecionada
+      processUserMessage(suggestion);
     }, 100);
     
     setInput('');

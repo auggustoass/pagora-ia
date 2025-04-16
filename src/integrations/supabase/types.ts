@@ -9,7 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      faturas: {
+        Row: {
+          cpf_cnpj: string
+          created_at: string
+          descricao: string
+          email: string
+          id: string
+          nome: string
+          pix_url: string | null
+          qrcode: string | null
+          status: string
+          valor: number
+          vencimento: string
+          whatsapp: string
+        }
+        Insert: {
+          cpf_cnpj: string
+          created_at?: string
+          descricao: string
+          email: string
+          id?: string
+          nome: string
+          pix_url?: string | null
+          qrcode?: string | null
+          status?: string
+          valor: number
+          vencimento: string
+          whatsapp: string
+        }
+        Update: {
+          cpf_cnpj?: string
+          created_at?: string
+          descricao?: string
+          email?: string
+          id?: string
+          nome?: string
+          pix_url?: string | null
+          qrcode?: string | null
+          status?: string
+          valor?: number
+          vencimento?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

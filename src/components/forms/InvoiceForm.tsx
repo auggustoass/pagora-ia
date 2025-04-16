@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Form,
   FormControl,
@@ -32,12 +32,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Mock data for clients - will be replaced with actual data from Supabase
-const mockClients = [
-  { id: '1', nome: 'João Silva', email: 'joao@email.com' },
-  { id: '2', nome: 'Maria Souza', email: 'maria@email.com' },
-  { id: '3', nome: 'Carlos Oliveira', email: 'carlos@email.com' },
-];
+interface Client {
+  id: string;
+  nome: string;
+  email: string;
+}
 
 // Form validation schema
 const formSchema = z.object({
@@ -55,6 +54,37 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function InvoiceForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  
+  // Carrega a lista de clientes do Supabase
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('faturas')
+          .select('id, nome, email')
+          .order('nome');
+          
+        if (error) throw error;
+        
+        // Remove duplicates based on email
+        const uniqueClients = data.reduce((acc: Client[], current) => {
+          const x = acc.find(item => item.email === current.email);
+          if (!x) {
+            return acc.concat([current]);
+          } else {
+            return acc;
+          }
+        }, []);
+        
+        setClients(uniqueClients);
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+      }
+    };
+    
+    fetchClients();
+  }, []);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -69,18 +99,32 @@ export function InvoiceForm() {
     setIsLoading(true);
     
     try {
-      // Here we would use Supabase to insert the data
-      console.log('Submitting invoice data:', values);
+      // Encontrar detalhes do cliente
+      const client = clients.find(c => c.id === values.clientId);
       
-      // Find client details
-      const client = mockClients.find(c => c.id === values.clientId);
+      if (!client) {
+        throw new Error('Cliente não encontrado');
+      }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Inserir fatura no Supabase
+      const { error } = await supabase
+        .from('faturas')
+        .insert({
+          nome: client.nome,
+          email: client.email,
+          whatsapp: '', // Precisamos buscar esses dados
+          cpf_cnpj: '', // Precisamos buscar esses dados
+          valor: parseFloat(values.valor),
+          vencimento: values.vencimento.toISOString().split('T')[0],
+          descricao: values.descricao,
+          status: 'pendente'
+        });
+        
+      if (error) throw error;
       
       toast({
         title: 'Fatura gerada com sucesso',
-        description: `Fatura no valor de R$ ${values.valor} criada para ${client?.nome}.`,
+        description: `Fatura no valor de R$ ${values.valor} criada para ${client.nome}.`,
       });
       
       form.reset();
@@ -116,7 +160,7 @@ export function InvoiceForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {mockClients.map((client) => (
+                    {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.nome} ({client.email})
                       </SelectItem>

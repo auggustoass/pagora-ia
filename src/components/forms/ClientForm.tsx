@@ -7,6 +7,7 @@ import { User, Mail, Phone, CreditCard } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Form,
   FormControl,
@@ -43,11 +44,21 @@ export function ClientForm() {
     setIsLoading(true);
     
     try {
-      // Here we would use Supabase to insert the data
-      console.log('Submitting client data:', values);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Inserir os dados do cliente na tabela faturas do Supabase
+      const { error } = await supabase
+        .from('faturas')
+        .insert({
+          nome: values.nome,
+          email: values.email,
+          whatsapp: values.whatsapp,
+          cpf_cnpj: values.cpf_cnpj,
+          valor: 0, // Valor default, já que estamos apenas cadastrando o cliente
+          vencimento: new Date().toISOString().split('T')[0], // Data atual como default
+          descricao: 'Cadastro de cliente',
+          status: 'pendente'
+        });
+        
+      if (error) throw error;
       
       toast({
         title: 'Cliente cadastrado com sucesso',

@@ -1,9 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Clock, Ban, Search, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,40 +22,6 @@ export interface Invoice {
   descricao: string;
   status: 'pendente' | 'aprovado' | 'rejeitado';
 }
-
-// Mock data for now - will be replaced with actual data from Supabase
-const mockInvoices: Invoice[] = [
-  {
-    id: '1',
-    nome: 'João Silva',
-    email: 'joao@email.com',
-    whatsapp: '+5511987654321',
-    valor: 299.90,
-    vencimento: '2025-04-20',
-    descricao: 'Mensalidade Abril',
-    status: 'pendente',
-  },
-  {
-    id: '2',
-    nome: 'Maria Souza',
-    email: 'maria@email.com',
-    whatsapp: '+5521987654321',
-    valor: 149.90,
-    vencimento: '2025-04-15',
-    descricao: 'Consultoria',
-    status: 'aprovado',
-  },
-  {
-    id: '3',
-    nome: 'Carlos Oliveira',
-    email: 'carlos@email.com',
-    whatsapp: '+5531987654321',
-    valor: 450.00,
-    vencimento: '2025-04-10',
-    descricao: 'Projeto de Design',
-    status: 'rejeitado',
-  },
-];
 
 // Status badge component
 interface StatusBadgeProps {
@@ -94,16 +60,67 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
 export function InvoiceTable() {
   const [filter, setFilter] = useState<Invoice['status'] | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filter invoices based on status and search term
-  const filteredInvoices = mockInvoices.filter(invoice => {
-    const matchesFilter = filter === 'all' || invoice.status === filter;
+  // Busca dados do Supabase
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setIsLoading(true);
+        
+        let query = supabase
+          .from('faturas')
+          .select('*')
+          .order('vencimento', { ascending: false });
+          
+        if (filter !== 'all') {
+          query = query.eq('status', filter);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        setInvoices(data as Invoice[]);
+      } catch (error) {
+        console.error('Error fetching invoices:', error);
+        setInvoices([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchInvoices();
+    
+    // Configurar escuta em tempo real para atualizações
+    const subscription = supabase
+      .channel('table-db-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'faturas' 
+        }, 
+        () => {
+          fetchInvoices();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [filter]);
+
+  // Filter invoices based on search term
+  const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = 
       invoice.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
       invoice.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.descricao.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesFilter && matchesSearch;
+    return matchesSearch;
   });
 
   // Format currency for display
@@ -172,40 +189,48 @@ export function InvoiceTable() {
             </tr>
           </thead>
           <tbody>
-            {filteredInvoices.length > 0 ? (
-              filteredInvoices.map((invoice) => (
-                <tr key={invoice.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium">{invoice.nome}</p>
-                      <p className="text-sm text-muted-foreground">{invoice.email}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-sm">{invoice.descricao}</p>
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    {formatCurrency(invoice.valor)}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {formatDate(invoice.vencimento)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={invoice.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-white">
-                      Detalhes
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            ) : (
+            {isLoading ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  Nenhuma fatura encontrada.
+                  Carregando...
                 </td>
               </tr>
+            ) : (
+              filteredInvoices.length > 0 ? (
+                filteredInvoices.map((invoice) => (
+                  <tr key={invoice.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="font-medium">{invoice.nome}</p>
+                        <p className="text-sm text-muted-foreground">{invoice.email}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm">{invoice.descricao}</p>
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      {formatCurrency(invoice.valor)}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {formatDate(invoice.vencimento)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={invoice.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-white">
+                        Detalhes
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    Nenhuma fatura encontrada.
+                  </td>
+                </tr>
+              )
             )}
           </tbody>
         </table>
