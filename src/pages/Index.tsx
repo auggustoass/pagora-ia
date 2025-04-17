@@ -4,7 +4,7 @@ import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ChatAssistant } from '@/components/chat/ChatAssistant';
 const Index = () => {
   return <Layout>
-      <div className="grid grid-cols-1 lg:grid-cols-3 ">
+      <div className="grid grid-cols-1 ">
         <div className="lg:col-span-2">
           <Dashboard />
         </div>
