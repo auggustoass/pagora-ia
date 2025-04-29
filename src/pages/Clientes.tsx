@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Plus, Search, UserCog } from 'lucide-react';
@@ -108,18 +107,20 @@ const Clientes = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
-          <p className="text-muted-foreground">Gerencie seus clientes e visualize informações de contato.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-glow">
+            <span className="text-gradient">Clientes</span>
+          </h1>
+          <p className="text-muted-foreground mt-1">Gerencie seus clientes e visualize informações de contato.</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder="Pesquisar clientes..."
-              className="pl-9 bg-white/5 border-white/10 w-full"
+              className="pl-9 bg-white/5 border-white/10 w-full focus:ring-1 focus:ring-pagora-purple/50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -127,7 +128,7 @@ const Clientes = () => {
           
           <Dialog open={newClientDialogOpen} onOpenChange={setNewClientDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-pagora-purple hover:bg-pagora-purple/90 w-full sm:w-auto">
+              <Button className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80 hover:opacity-90 w-full sm:w-auto btn-hover-fx">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Cliente
               </Button>
@@ -141,10 +142,10 @@ const Clientes = () => {
           </Dialog>
         </div>
         
-        <div className="glass-card overflow-hidden">
+        <div className="glass-card overflow-hidden bg-black/20">
           <Table>
             <TableHeader>
-              <TableRow className="border-white/10 bg-white/5">
+              <TableRow className="border-white/10 bg-black/30">
                 <TableHead className="text-muted-foreground">Nome</TableHead>
                 <TableHead className="text-muted-foreground">E-mail</TableHead>
                 <TableHead className="text-muted-foreground">WhatsApp</TableHead>
@@ -170,7 +171,7 @@ const Clientes = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="text-muted-foreground hover:text-white"
+                        className="text-muted-foreground hover:text-white hover:bg-white/10"
                         onClick={() => handleEditClient(client.id)}
                       >
                         <UserCog className="w-4 h-4 mr-1" />

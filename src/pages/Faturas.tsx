@@ -35,16 +35,18 @@ const Faturas = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="space-y-8 animate-fade-in">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Faturas</h1>
-            <p className="text-muted-foreground">Visualize e gerencie todas as suas faturas.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-glow">
+              <span className="text-gradient">Faturas</span>
+            </h1>
+            <p className="text-muted-foreground mt-1">Visualize e gerencie todas as suas faturas.</p>
           </div>
           
           <Dialog open={newInvoiceDialogOpen} onOpenChange={setNewInvoiceDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-pagora-orange hover:bg-pagora-orange/90">
+              <Button className="bg-gradient-to-r from-pagora-orange to-pagora-orange/80 hover:opacity-90 btn-hover-fx">
                 <Plus className="w-4 h-4 mr-2" />
                 Gerar Fatura
               </Button>

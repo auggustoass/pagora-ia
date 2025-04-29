@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, CheckCircle, XCircle, Wallet } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Wallet } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { InvoiceTable } from './InvoiceTable';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientForm } from '../forms/ClientForm';
 import { InvoiceForm } from '../forms/InvoiceForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
 export function Dashboard() {
   const [stats, setStats] = useState({
     total: 0,
@@ -16,6 +18,7 @@ export function Dashboard() {
     totalRecebido: 0
   });
   const [loading, setLoading] = useState(true);
+  
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -71,23 +74,28 @@ export function Dashboard() {
       subscription.unsubscribe();
     };
   }, []);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
   };
-  return <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Gerencie suas cobranças e acompanhe pagamentos.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-glow">
+            <span className="text-gradient">Dashboard</span>
+          </h1>
+          <p className="text-muted-foreground mt-1">Gerencie suas cobranças e acompanhe pagamentos em tempo real.</p>
         </div>
         
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="bg-pagora-purple hover:bg-pagora-purple/90">
+              <Button className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80 hover:bg-pagora-purple/90 btn-hover-fx">
                 Novo Cliente
               </Button>
             </DialogTrigger>
@@ -101,7 +109,7 @@ export function Dashboard() {
           
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="bg-pagora-orange hover:bg-pagora-orange/90">
+              <Button className="bg-gradient-to-r from-pagora-orange to-pagora-orange/80 hover:bg-pagora-orange/90 btn-hover-fx">
                 Gerar Fatura
               </Button>
             </DialogTrigger>
@@ -115,29 +123,58 @@ export function Dashboard() {
         </div>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatusCard title="Total de Faturas" value={loading ? "..." : String(stats.total)} icon={<FileText className="h-4 w-4" />} />
-        <StatusCard title="Faturas Pendentes" value={loading ? "..." : String(stats.pendentes)} icon={<Clock className="h-4 w-4" />} variant="pending" description="Aguardando pagamento" />
-        <StatusCard title="Faturas Aprovadas" value={loading ? "..." : String(stats.aprovadas)} icon={<CheckCircle className="h-4 w-4" />} variant="success" description="Pagamentos confirmados" />
-        <StatusCard title="Total Recebido" value={loading ? "..." : formatCurrency(stats.totalRecebido)} icon={<Wallet className="h-4 w-4" />} description="Valor total recebido" />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <StatusCard 
+          title="Total de Faturas" 
+          value={loading ? "..." : String(stats.total)} 
+          icon={<FileText className="h-5 w-5" />} 
+          className="floating pulse-glow" 
+        />
+        <StatusCard 
+          title="Faturas Pendentes" 
+          value={loading ? "..." : String(stats.pendentes)} 
+          icon={<Clock className="h-5 w-5" />} 
+          variant="pending" 
+          description="Aguardando pagamento" 
+          className="floating" 
+          style={{ animationDelay: "0.5s" }}
+        />
+        <StatusCard 
+          title="Faturas Aprovadas" 
+          value={loading ? "..." : String(stats.aprovadas)} 
+          icon={<CheckCircle className="h-5 w-5" />} 
+          variant="success" 
+          description="Pagamentos confirmados" 
+          className="floating" 
+          style={{ animationDelay: "1s" }}
+        />
+        <StatusCard 
+          title="Total Recebido" 
+          value={loading ? "..." : formatCurrency(stats.totalRecebido)} 
+          icon={<Wallet className="h-5 w-5" />} 
+          description="Valor total recebido" 
+          className="floating" 
+          style={{ animationDelay: "1.5s" }}
+        />
       </div>
       
-      <Tabs defaultValue="faturas" className="py-[52px]">
-        <TabsList className="bg-white/5 border-white/10">
-          <TabsTrigger value="faturas">Faturas</TabsTrigger>
-          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+      <Tabs defaultValue="faturas" className="py-6">
+        <TabsList className="bg-black/20 border border-white/10">
+          <TabsTrigger value="faturas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pagora-purple/60 data-[state=active]:to-pagora-blue/60 data-[state=active]:text-white">Faturas</TabsTrigger>
+          <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pagora-purple/60 data-[state=active]:to-pagora-blue/60 data-[state=active]:text-white">Clientes</TabsTrigger>
         </TabsList>
-        <TabsContent value="faturas" className="pt-6">
+        <TabsContent value="faturas" className="pt-6 animate-fade-in">
           <InvoiceTable />
         </TabsContent>
-        <TabsContent value="clientes" className="pt-6">
-          <div className="glass-card p-6">
-            <h3 className="text-lg font-medium mb-4">Lista de Clientes</h3>
+        <TabsContent value="clientes" className="pt-6 animate-fade-in">
+          <div className="glass-card p-6 bg-black/20">
+            <h3 className="text-lg font-medium mb-4 text-gradient">Lista de Clientes</h3>
             <p className="text-muted-foreground">
               Funcionalidade em desenvolvimento. Aqui serão listados todos os seus clientes cadastrados.
             </p>
           </div>
         </TabsContent>
       </Tabs>
-    </div>;
+    </div>
+  );
 }

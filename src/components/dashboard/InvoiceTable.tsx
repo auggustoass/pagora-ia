@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Check, Clock, Ban, Search, Filter, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,17 +35,17 @@ interface InvoiceTableProps {
 const StatusBadge = ({ status }: StatusBadgeProps) => {
   const statusConfig = {
     pendente: {
-      color: 'bg-pagora-pending/20 text-pagora-pending',
+      color: 'bg-pagora-pending/20 text-pagora-pending border border-pagora-pending/30',
       icon: <Clock className="w-3 h-3" />,
       label: 'Pendente'
     },
     aprovado: {
-      color: 'bg-pagora-success/20 text-pagora-success',
+      color: 'bg-pagora-success/20 text-pagora-success border border-pagora-success/30',
       icon: <Check className="w-3 h-3" />,
       label: 'Aprovado'
     },
     rejeitado: {
-      color: 'bg-pagora-error/20 text-pagora-error',
+      color: 'bg-pagora-error/20 text-pagora-error border border-pagora-error/30',
       icon: <Ban className="w-3 h-3" />,
       label: 'Rejeitado'
     }
@@ -55,7 +54,7 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
   const config = statusConfig[status];
 
   return (
-    <div className={cn('flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium', config.color)}>
+    <div className={cn('flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium', config.color)}>
       {config.icon}
       <span>{config.label}</span>
     </div>
@@ -149,13 +148,13 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
   };
 
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="glass-card overflow-hidden animate-fade-in bg-black/20">
       <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row justify-between gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="Pesquisar faturas..."
-            className="pl-9 bg-white/5 border-white/10 w-full sm:w-64"
+            className="pl-9 bg-white/5 border-white/10 w-full sm:w-64 focus:ring-1 focus:ring-pagora-purple/50"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -163,24 +162,24 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="border-white/10 bg-white/5">
+            <Button variant="outline" className="border-white/10 bg-white/5 btn-hover-fx">
               <Filter className="w-4 h-4 mr-2" />
               {filter === 'all' ? 'Todos' : 
                 filter === 'pendente' ? 'Pendentes' : 
                 filter === 'aprovado' ? 'Aprovados' : 'Rejeitados'}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setFilter('all')}>
+          <DropdownMenuContent className="bg-pagora-dark border-white/10">
+            <DropdownMenuItem onClick={() => setFilter('all')} className="hover:bg-white/10">
               Todos
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('pendente')}>
+            <DropdownMenuItem onClick={() => setFilter('pendente')} className="hover:bg-white/10">
               Pendentes
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('aprovado')}>
+            <DropdownMenuItem onClick={() => setFilter('aprovado')} className="hover:bg-white/10">
               Aprovados
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('rejeitado')}>
+            <DropdownMenuItem onClick={() => setFilter('rejeitado')} className="hover:bg-white/10">
               Rejeitados
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -190,7 +189,7 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/10 bg-white/5">
+            <tr className="border-b border-white/10 bg-black/30">
               <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Cliente</th>
               <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Descrição</th>
               <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Valor</th>
@@ -210,29 +209,29 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
               filteredInvoices.length > 0 ? (
                 filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-4">
                       <div>
                         <p className="font-medium">{invoice.nome}</p>
                         <p className="text-sm text-muted-foreground">{invoice.email}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-4">
                       <p className="text-sm">{invoice.descricao}</p>
                     </td>
-                    <td className="px-4 py-3 font-medium">
+                    <td className="px-4 py-4 font-medium">
                       {formatCurrency(invoice.valor)}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-4 text-sm">
                       {formatDate(invoice.vencimento)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-4">
                       <StatusBadge status={invoice.status} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-4">
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="text-muted-foreground hover:text-white"
+                        className="text-muted-foreground hover:text-white hover:bg-white/10"
                         onClick={() => handleEditClick(invoice.id)}
                       >
                         <Edit className="w-4 h-4 mr-1" />

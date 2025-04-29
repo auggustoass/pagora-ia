@@ -20,14 +20,17 @@ const NavItem = ({ icon, label, to, isActive = false }: NavItemProps) => (
     <Link 
       to={to}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all",
+        "flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all",
         isActive 
-          ? "bg-pagora-purple text-white" 
+          ? "bg-gradient-to-r from-pagora-purple to-pagora-purple/70 text-white" 
           : "text-muted-foreground hover:bg-white/5 hover:text-white"
       )}
     >
       {icon}
       <span>{label}</span>
+      {isActive && (
+        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white"></span>
+      )}
     </Link>
   </li>
 );
@@ -36,46 +39,46 @@ export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
   
   return (
-    <div className={cn("w-64 border-r border-white/10 h-full flex flex-col", className)}>
+    <div className={cn("w-64 border-r border-white/10 h-full flex flex-col bg-black/20 backdrop-blur-md", className)}>
       <div className="px-4 py-6">
-        <h2 className="text-2xl font-bold text-pagora-purple mb-1">PAGORA</h2>
+        <h2 className="text-2xl font-bold text-gradient text-glow mb-1">PAGORA</h2>
         <p className="text-xs text-muted-foreground">Assistente de Cobrança</p>
       </div>
       
       <nav className="flex-1 px-3 py-4">
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           <NavItem 
-            icon={<Home size={20} />} 
+            icon={<Home size={18} />} 
             label="Dashboard" 
             to="/"
             isActive={location.pathname === '/'} 
           />
           <NavItem 
-            icon={<Users size={20} />} 
+            icon={<Users size={18} />} 
             label="Clientes" 
             to="/clientes"
             isActive={location.pathname === '/clientes'} 
           />
           <NavItem 
-            icon={<FileText size={20} />} 
+            icon={<FileText size={18} />} 
             label="Faturas" 
             to="/faturas"
             isActive={location.pathname === '/faturas'} 
           />
           <NavItem 
-            icon={<PieChart size={20} />} 
+            icon={<PieChart size={18} />} 
             label="Relatórios" 
             to="/relatorios"
             isActive={location.pathname === '/relatorios'} 
           />
           <NavItem 
-            icon={<Settings size={20} />} 
+            icon={<Settings size={18} />} 
             label="Configurações" 
             to="/configuracoes"
             isActive={location.pathname === '/configuracoes'} 
           />
           <NavItem 
-            icon={<HelpCircle size={20} />} 
+            icon={<HelpCircle size={18} />} 
             label="Ajuda" 
             to="/ajuda"
             isActive={location.pathname === '/ajuda'} 
@@ -84,13 +87,13 @@ export function Sidebar({ className }: SidebarProps) {
       </nav>
       
       <div className="p-4 mt-auto">
-        <div className="glass-card p-4 text-center">
+        <div className="glass-card p-4 text-center bg-gradient-to-br from-black/40 to-black/10">
           <p className="text-sm text-muted-foreground mb-2">Precisa de ajuda?</p>
           <a 
             href="https://wa.me/5511998115159" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="bg-pagora-purple text-white px-4 py-2 rounded-md w-full block hover:bg-opacity-90 transition-all"
+            className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80 text-white px-4 py-2 rounded-md w-full block hover:opacity-90 transition-all btn-hover-fx"
           >
             <div className="flex items-center justify-center gap-2">
               <MessageSquare size={16} />

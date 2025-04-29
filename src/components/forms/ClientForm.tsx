@@ -92,13 +92,13 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
             name="nome"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nome Completo</FormLabel>
+                <FormLabel className="text-muted-foreground">Nome Completo</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input 
                       placeholder="Nome do cliente" 
-                      className="pl-10 bg-white/5 border-white/10" 
+                      className="pl-10 bg-white/5 border-white/10 focus:ring-1 focus:ring-pagora-purple/50" 
                       {...field} 
                     />
                   </div>
@@ -113,13 +113,13 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>E-mail</FormLabel>
+                <FormLabel className="text-muted-foreground">E-mail</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input 
                       placeholder="exemplo@email.com" 
-                      className="pl-10 bg-white/5 border-white/10" 
+                      className="pl-10 bg-white/5 border-white/10 focus:ring-1 focus:ring-pagora-purple/50" 
                       {...field} 
                     />
                   </div>
@@ -134,13 +134,13 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
             name="whatsapp"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>WhatsApp</FormLabel>
+                <FormLabel className="text-muted-foreground">WhatsApp</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input 
                       placeholder="+55 (00) 00000-0000" 
-                      className="pl-10 bg-white/5 border-white/10" 
+                      className="pl-10 bg-white/5 border-white/10 focus:ring-1 focus:ring-pagora-purple/50" 
                       {...field} 
                     />
                   </div>
@@ -155,13 +155,13 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
             name="cpf_cnpj"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>CPF ou CNPJ</FormLabel>
+                <FormLabel className="text-muted-foreground">CPF ou CNPJ</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input 
                       placeholder="000.000.000-00" 
-                      className="pl-10 bg-white/5 border-white/10" 
+                      className="pl-10 bg-white/5 border-white/10 focus:ring-1 focus:ring-pagora-purple/50" 
                       {...field} 
                     />
                   </div>
@@ -174,7 +174,7 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
         
         <Button 
           type="submit" 
-          className="w-full bg-pagora-purple hover:bg-pagora-purple/90"
+          className="w-full bg-gradient-to-r from-pagora-purple to-pagora-purple/80 hover:opacity-90 btn-hover-fx"
           disabled={isLoading}
         >
           {isLoading ? 'Cadastrando...' : 'Cadastrar Cliente'}
