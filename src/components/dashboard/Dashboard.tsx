@@ -128,7 +128,7 @@ export function Dashboard() {
           title="Total de Faturas" 
           value={loading ? "..." : String(stats.total)} 
           icon={<FileText className="h-5 w-5" />} 
-          className="floating pulse-glow" 
+          className="pulse-glow" 
         />
         <StatusCard 
           title="Faturas Pendentes" 
@@ -136,8 +136,6 @@ export function Dashboard() {
           icon={<Clock className="h-5 w-5" />} 
           variant="pending" 
           description="Aguardando pagamento" 
-          className="floating" 
-          style={{ animationDelay: "0.5s" }}
         />
         <StatusCard 
           title="Faturas Aprovadas" 
@@ -145,16 +143,12 @@ export function Dashboard() {
           icon={<CheckCircle className="h-5 w-5" />} 
           variant="success" 
           description="Pagamentos confirmados" 
-          className="floating" 
-          style={{ animationDelay: "1s" }}
         />
         <StatusCard 
           title="Total Recebido" 
           value={loading ? "..." : formatCurrency(stats.totalRecebido)} 
           icon={<Wallet className="h-5 w-5" />} 
           description="Valor total recebido" 
-          className="floating" 
-          style={{ animationDelay: "1.5s" }}
         />
       </div>
       

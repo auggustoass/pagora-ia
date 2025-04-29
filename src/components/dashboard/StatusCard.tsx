@@ -3,7 +3,7 @@ import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-const statusCardVariants = cva("glass-card p-6 flex flex-col space-y-3 transition-all duration-300 hover:transform hover:-translate-y-1", {
+const statusCardVariants = cva("glass-card p-6 flex flex-col space-y-3 transition-all duration-300 hover:transform hover:-translate-y-1 hover-float", {
   variants: {
     variant: {
       default: "border-white/10 bg-gradient-to-br from-black/40 to-black/10",

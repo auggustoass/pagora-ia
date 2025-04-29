@@ -74,8 +74,14 @@
     @apply transition-all duration-200 hover:shadow-lg focus:ring-2 focus:ring-pagora-purple/50 focus:outline-none;
   }
   
+  /* Modified to be static without animation */
   .floating {
-    animation: float 6s ease-in-out infinite;
+    transform: translateY(0px);
+  }
+  
+  /* New class for hover floating effect */
+  .hover-float:hover {
+    animation: float 3s ease-in-out infinite;
   }
   
   .pulse-glow {
