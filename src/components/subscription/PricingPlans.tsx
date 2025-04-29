@@ -98,39 +98,86 @@ export function PricingPlans() {
     );
   }
 
+  // Function to get the color scheme for each plan
+  const getPlanColorScheme = (planName: string) => {
+    switch (planName) {
+      case 'Basic':
+        return {
+          gradientClass: 'from-purple-600 to-purple-400',
+          badgeClass: 'bg-purple-600',
+          hoverClass: 'hover:bg-purple-700'
+        };
+      case 'Pro':
+        return {
+          gradientClass: 'from-blue-600 to-blue-400',
+          badgeClass: 'bg-blue-600',
+          hoverClass: 'hover:bg-blue-700'
+        };
+      case 'Enterprise':
+        return {
+          gradientClass: 'from-yellow-600 to-yellow-400',
+          badgeClass: 'bg-yellow-600',
+          hoverClass: 'hover:bg-yellow-700'
+        };
+      default:
+        return {
+          gradientClass: 'from-pagora-purple to-pagora-purple/80',
+          badgeClass: 'bg-pagora-purple',
+          hoverClass: 'hover:bg-pagora-purple/90'
+        };
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {plans.map((plan) => (
-        <Card key={plan.id} className="glass-card flex flex-col hover-float">
-          <CardHeader>
-            <CardTitle>{plan.name}</CardTitle>
-            <CardDescription>{plan.description}</CardDescription>
-            <div className="mt-4">
-              <span className="text-4xl font-bold">R${plan.price}</span>
-              <span className="text-muted-foreground">/mês</span>
+      {plans.map((plan) => {
+        const colorScheme = getPlanColorScheme(plan.name);
+        
+        return (
+          <Card key={plan.id} className="glass-card flex flex-col hover-float relative overflow-hidden">
+            {/* Plan badge */}
+            <div className={`absolute top-0 right-0 p-2 px-4 text-white ${colorScheme.badgeClass}`}>
+              {plan.name === 'Basic' && '🟣'}
+              {plan.name === 'Pro' && '🔵'}
+              {plan.name === 'Enterprise' && '🟡'}
+              {' '}{plan.name}
             </div>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <ul className="space-y-2">
-              {plan.features.map((feature, index) => (
-                <li key={index} className="flex items-center">
-                  <Check className="h-5 w-5 text-pagora-success mr-2" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={() => handleSubscribe(plan.id)} 
-              className="w-full pagora-gradient" 
-              disabled={subscribing}
-            >
-              Começar Trial de 30 dias
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
+            
+            <CardHeader className="pt-16">
+              <CardTitle>{plan.name}</CardTitle>
+              <CardDescription>{plan.description}</CardDescription>
+              <div className="mt-4">
+                <span className="text-4xl font-bold">R${plan.price}</span>
+                <span className="text-muted-foreground">/mês</span>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <ul className="space-y-2">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-center">
+                    <Check className="h-5 w-5 text-pagora-success mr-2" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 text-sm text-muted-foreground flex items-center justify-center space-x-2">
+                <span>🔒 Sem contrato</span>
+                <span>|</span>
+                <span>✅ 30 dias grátis</span>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={() => handleSubscribe(plan.id)} 
+                className={`w-full bg-gradient-to-r ${colorScheme.gradientClass} ${colorScheme.hoverClass}`}
+                disabled={subscribing}
+              >
+                Começar Teste Gratuito
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      })}
     </div>
   );
 }

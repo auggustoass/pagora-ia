@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 import {
   Form,
   FormControl,
@@ -33,6 +34,7 @@ interface ClientFormProps {
 
 export function ClientForm({ onSuccess }: ClientFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -48,6 +50,10 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
     setIsLoading(true);
     
     try {
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
       // Inserir os dados na tabela clients do Supabase
       const { error } = await supabase
         .from('clients')
@@ -56,6 +62,7 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
           email: values.email,
           whatsapp: values.whatsapp,
           cpf_cnpj: values.cpf_cnpj,
+          user_id: user.id
         });
         
       if (error) throw error;

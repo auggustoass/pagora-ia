@@ -1,14 +1,24 @@
-
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, CheckCircle, Wallet } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Wallet, Search, UserCog } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { InvoiceTable } from './InvoiceTable';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientForm } from '../forms/ClientForm';
-import { InvoiceForm } from '../forms/InvoiceForm';
+import { ClientEditForm } from '../forms/ClientEditForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+interface Client {
+  id: string;
+  nome: string;
+  email: string;
+  whatsapp: string;
+  cpf_cnpj: string;
+}
 
 export function Dashboard() {
   const [stats, setStats] = useState({
@@ -18,51 +28,85 @@ export function Dashboard() {
     totalRecebido: 0
   });
   const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
+  const { user, isAdmin } = useAuth();
   
   useEffect(() => {
     const fetchStats = async () => {
+      if (!user) return;
+      
       try {
         setLoading(true);
+        let query = supabase.from('faturas');
+        
+        // If not admin, only show user's own invoices
+        if (!isAdmin) {
+          query = query.eq('user_id', user.id);
+        }
+        
         const {
           count: total,
           error: errorTotal
-        } = await supabase.from('faturas').select('*', {
+        } = await query.select('*', {
+          count: 'exact',
+          head: true
+        });
+        
+        // Apply similar user filtering to other queries
+        let pendingQuery = supabase.from('faturas').eq('status', 'pendente');
+        let approvedQuery = supabase.from('faturas').eq('status', 'aprovado');
+        let approvedValueQuery = supabase.from('faturas').eq('status', 'aprovado');
+        
+        if (!isAdmin) {
+          pendingQuery = pendingQuery.eq('user_id', user.id);
+          approvedQuery = approvedQuery.eq('user_id', user.id);
+          approvedValueQuery = approvedValueQuery.eq('user_id', user.id);
+        }
+        
+        const {
+          count: pendentes,
+          error: errorPendentes
+        } = await pendingQuery.select('*', {
           count: 'exact',
           head: true
         });
         const {
-          count: pendentes,
-          error: errorPendentes
-        } = await supabase.from('faturas').select('*', {
-          count: 'exact',
-          head: true
-        }).eq('status', 'pendente');
-        const {
           count: aprovadas,
           error: errorAprovadas
-        } = await supabase.from('faturas').select('*', {
+        } = await approvedQuery.select('*', {
           count: 'exact',
           head: true
-        }).eq('status', 'aprovado');
+        });
         const {
           data: faturasAprovadas,
           error: errorValor
-        } = await supabase.from('faturas').select('valor').eq('status', 'aprovado');
+        } = await approvedValueQuery.select('valor');
+        
         if (errorTotal || errorPendentes || errorAprovadas || errorValor) throw new Error();
+        
         const totalRecebido = faturasAprovadas?.reduce((sum, item) => sum + Number(item.valor), 0) || 0;
+        
         setStats({
           total: total || 0,
           pendentes: pendentes || 0,
           aprovadas: aprovadas || 0,
           totalRecebido
         });
+        
+        // Fetch clients for the clients tab
+        await fetchClients();
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
         setLoading(false);
       }
     };
+    
     fetchStats();
+    
     const subscription = supabase.channel('table-db-changes').on('postgres_changes', {
       event: '*',
       schema: 'public',
@@ -70,10 +114,32 @@ export function Dashboard() {
     }, () => {
       fetchStats();
     }).subscribe();
+    
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [user, isAdmin]);
+
+  const fetchClients = async () => {
+    if (!user) return;
+    
+    try {
+      let query = supabase.from('clients').select('*');
+      
+      // If not admin, only show user's own clients
+      if (!isAdmin) {
+        query = query.eq('user_id', user.id);
+      }
+      
+      const { data, error } = await query.order('nome');
+        
+      if (error) throw error;
+      
+      setClients(data || []);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -81,6 +147,26 @@ export function Dashboard() {
       currency: 'BRL'
     }).format(value);
   };
+  
+  const handleEditClient = (clientId: string) => {
+    setSelectedClientId(clientId);
+    setEditClientDialogOpen(true);
+  };
+
+  const handleEditClientSuccess = () => {
+    setEditClientDialogOpen(false);
+    setSelectedClientId(null);
+    fetchClients();
+  };
+
+  // Filter clients based on search term
+  const filteredClients = clients.filter(client => {
+    if (!searchTerm) return true;
+    
+    return client.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.cpf_cnpj.toLowerCase().includes(searchTerm.toLowerCase());
+  });
   
   return (
     <div className="space-y-8 animate-fade-in">
@@ -161,12 +247,87 @@ export function Dashboard() {
           <InvoiceTable />
         </TabsContent>
         <TabsContent value="clientes" className="pt-6 animate-fade-in">
-          <div className="glass-card p-6 bg-black/20">
-            <h3 className="text-lg font-medium mb-4 text-gradient">Lista de Clientes</h3>
-            <p className="text-muted-foreground">
-              Funcionalidade em desenvolvimento. Aqui serão listados todos os seus clientes cadastrados.
-            </p>
+          <div className="glass-card bg-black/20">
+            <div className="p-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-1 text-gradient">Lista de Clientes</h3>
+                  <p className="text-sm text-muted-foreground">Gerencie todos os seus contatos cadastrados</p>
+                </div>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Pesquisar clientes..."
+                    className="pl-9 bg-white/5 border-white/10 w-full"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/10 bg-black/30">
+                    <TableHead className="text-muted-foreground">Nome</TableHead>
+                    <TableHead className="text-muted-foreground">E-mail</TableHead>
+                    <TableHead className="text-muted-foreground">WhatsApp</TableHead>
+                    <TableHead className="text-muted-foreground">CPF/CNPJ</TableHead>
+                    <TableHead className="text-muted-foreground text-right"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        Carregando...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredClients.length > 0 ? (
+                    filteredClients.map((client) => (
+                      <TableRow key={client.id} className="border-white/5 hover:bg-white/5">
+                        <TableCell className="font-medium">{client.nome}</TableCell>
+                        <TableCell>{client.email}</TableCell>
+                        <TableCell>{client.whatsapp}</TableCell>
+                        <TableCell>{client.cpf_cnpj}</TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-muted-foreground hover:text-white hover:bg-white/10"
+                            onClick={() => handleEditClient(client.id)}
+                          >
+                            <UserCog className="w-4 h-4 mr-1" />
+                            Gerenciar
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        {searchTerm ? "Nenhum cliente encontrado com este termo." : "Nenhum cliente cadastrado."}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
+          
+          {/* Client Edit Dialog */}
+          <Dialog open={editClientDialogOpen} onOpenChange={setEditClientDialogOpen}>
+            <DialogContent className="sm:max-w-[425px] bg-pagora-dark border-white/10">
+              <DialogHeader>
+                <DialogTitle>Editar Cliente</DialogTitle>
+              </DialogHeader>
+              {selectedClientId && (
+                <ClientEditForm 
+                  clientId={selectedClientId} 
+                  onSuccess={handleEditClientSuccess} 
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>

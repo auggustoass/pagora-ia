@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Plus, Search, UserCog } from 'lucide-react';
@@ -6,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { ClientForm } from '@/components/forms/ClientForm';
 import { ClientEditForm } from '@/components/forms/ClientEditForm';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -37,22 +40,30 @@ const Clientes = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [newClientDialogOpen, setNewClientDialogOpen] = useState(false);
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
+  const { user, isAdmin } = useAuth();
 
   useEffect(() => {
     const fetchClients = async () => {
+      if (!user) return;
+      
       try {
         setIsLoading(true);
         
-        const { data, error } = await supabase
-          .from('clients')
-          .select('*')
-          .order('nome');
+        let query = supabase.from('clients').select('*');
+        
+        // If not admin, only show user's own clients
+        if (!isAdmin) {
+          query = query.eq('user_id', user.id);
+        }
+        
+        const { data, error } = await query.order('nome');
           
         if (error) throw error;
         
         setClients(data || []);
       } catch (error) {
         console.error('Error fetching clients:', error);
+        toast.error('Erro ao carregar clientes');
         setClients([]);
       } finally {
         setIsLoading(false);
@@ -79,7 +90,7 @@ const Clientes = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [user, isAdmin]);
 
   // Filter clients based on search term
   const filteredClients = clients.filter(client => {

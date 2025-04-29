@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 import {
   Form,
   FormControl,
@@ -35,6 +36,7 @@ interface ClientEditFormProps {
 export function ClientEditForm({ clientId, onSuccess }: ClientEditFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+  const { user } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -89,6 +91,10 @@ export function ClientEditForm({ clientId, onSuccess }: ClientEditFormProps) {
     setIsLoading(true);
     
     try {
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
       // Atualizar dados do cliente no Supabase
       const { error } = await supabase
         .from('clients')
@@ -97,6 +103,8 @@ export function ClientEditForm({ clientId, onSuccess }: ClientEditFormProps) {
           email: values.email,
           whatsapp: values.whatsapp,
           cpf_cnpj: values.cpf_cnpj,
+          updated_at: new Date().toISOString(),
+          // We don't update user_id to ensure ownership remains with original creator
         })
         .eq('id', clientId);
         
