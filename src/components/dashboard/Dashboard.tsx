@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientForm } from '../forms/ClientForm';
+import { InvoiceForm } from '../forms/InvoiceForm';
 import { ClientEditForm } from '../forms/ClientEditForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -44,7 +45,7 @@ export function Dashboard() {
         
         // If not admin, only show user's own invoices
         if (!isAdmin) {
-          query = query.eq('user_id', user.id);
+          query = query.filter('user_id', 'eq', user.id);
         }
         
         const {
@@ -56,14 +57,14 @@ export function Dashboard() {
         });
         
         // Apply similar user filtering to other queries
-        let pendingQuery = supabase.from('faturas').eq('status', 'pendente');
-        let approvedQuery = supabase.from('faturas').eq('status', 'aprovado');
-        let approvedValueQuery = supabase.from('faturas').eq('status', 'aprovado');
+        let pendingQuery = supabase.from('faturas').filter('status', 'eq', 'pendente');
+        let approvedQuery = supabase.from('faturas').filter('status', 'eq', 'aprovado');
+        let approvedValueQuery = supabase.from('faturas').filter('status', 'eq', 'aprovado');
         
         if (!isAdmin) {
-          pendingQuery = pendingQuery.eq('user_id', user.id);
-          approvedQuery = approvedQuery.eq('user_id', user.id);
-          approvedValueQuery = approvedValueQuery.eq('user_id', user.id);
+          pendingQuery = pendingQuery.filter('user_id', 'eq', user.id);
+          approvedQuery = approvedQuery.filter('user_id', 'eq', user.id);
+          approvedValueQuery = approvedValueQuery.filter('user_id', 'eq', user.id);
         }
         
         const {
@@ -128,7 +129,7 @@ export function Dashboard() {
       
       // If not admin, only show user's own clients
       if (!isAdmin) {
-        query = query.eq('user_id', user.id);
+        query = query.filter('user_id', 'eq', user.id);
       }
       
       const { data, error } = await query.order('nome');

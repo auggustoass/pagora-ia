@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { PieChart, BarChart3, Calendar } from 'lucide-react';
@@ -81,27 +80,37 @@ const Relatorios = () => {
       }
       
       // Query for status counts
-      let query = supabase.from('faturas')
-        .select('status, count(*)', { count: 'exact' })
+      const statusQuery = supabase
+        .from('faturas')
+        .select('status, count', { count: 'exact' })
         .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-        .group('status');
-      
+        .lte('created_at', endDate.toISOString());
+        
       // Apply user filter if not admin
+      let statusQueryFiltered = statusQuery;
       if (!isAdmin && user) {
-        query = query.eq('user_id', user.id);
+        statusQueryFiltered = statusQuery.filter('user_id', 'eq', user.id);
       }
       
-      const { data: statusCounts, error: statusError } = await query;
+      // Execute the query with group by using separate SQL query
+      const { data: statusCounts, error: statusError } = await supabase.rpc(
+        'get_invoice_status_counts', 
+        { 
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          user_filter: !isAdmin && user ? user.id : null
+        }
+      );
       
       if (statusError) {
+        console.error('Status error:', statusError);
         throw statusError;
       }
       
       // Format status data for the pie chart
-      const formattedStatusData = statusCounts?.map(item => ({
+      const formattedStatusData = statusCounts?.map((item: any) => ({
         status: item.status,
-        count: parseInt(item.count as unknown as string, 10)
+        count: parseInt(item.count, 10)
       })) || [];
       
       // Add missing statuses with count 0
@@ -119,11 +128,11 @@ const Relatorios = () => {
       // Query for monthly totals (approved invoices)
       let monthlyQuery = supabase.from('faturas')
         .select('created_at, valor')
-        .eq('status', 'aprovado')
+        .filter('status', 'eq', 'aprovado')
         .gte('created_at', new Date(startDate.getFullYear(), startDate.getMonth() - 6, 1).toISOString());
         
       if (!isAdmin && user) {
-        monthlyQuery = monthlyQuery.eq('user_id', user.id);
+        monthlyQuery = monthlyQuery.filter('user_id', 'eq', user.id);
       }
       
       const { data: monthlyValues, error: monthlyError } = await monthlyQuery;
