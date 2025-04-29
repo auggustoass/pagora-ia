@@ -1,10 +1,13 @@
+
 import React from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ChatAssistant } from '@/components/chat/ChatAssistant';
+
 const Index = () => {
-  return <Layout>
-      <div className="grid-2 grid-cols-1 ">
+  return (
+    <Layout>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Dashboard />
         </div>
@@ -12,6 +15,8 @@ const Index = () => {
           <ChatAssistant />
         </div>
       </div>
-    </Layout>;
+    </Layout>
+  );
 };
+
 export default Index;

@@ -1,11 +1,16 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Plus, RefreshCw, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Plus, RefreshCw, Loader2, UserPlus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
+import { ClientForm } from '../forms/ClientForm';
+import { InvoiceForm } from '../forms/InvoiceForm';
 
 interface Message {
   id: string;
@@ -24,7 +29,7 @@ const SuggestionButton = ({ label, icon, onClick }: SuggestionButtonProps) => (
   <Button 
     variant="outline" 
     size="sm" 
-    className="border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+    className="border-white/10 bg-white/5 hover:bg-white/10 transition-all dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
     onClick={onClick}
   >
     {icon && <span className="mr-2">{icon}</span>}
@@ -43,8 +48,11 @@ export function ChatAssistant() {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showClientDialog, setShowClientDialog] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,6 +82,70 @@ export function ChatAssistant() {
     setIsLoading(true);
     
     try {
+      // Check for special commands first
+      const lowerInput = userInput.toLowerCase();
+      
+      if (lowerInput.includes('cadastrar cliente') || lowerInput.includes('novo cliente')) {
+        setShowClientDialog(true);
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: 'Claro! Vou abrir o formulário para cadastrar um novo cliente.',
+          sender: 'assistant',
+          timestamp: new Date(),
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (lowerInput.includes('gerar fatura') || lowerInput.includes('nova fatura')) {
+        setShowInvoiceDialog(true);
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: 'Claro! Vou abrir o formulário para gerar uma nova fatura.',
+          sender: 'assistant',
+          timestamp: new Date(),
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (lowerInput.includes('ver faturas') || lowerInput.includes('listar faturas')) {
+        navigate('/faturas');
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: 'Redirecionando para a página de faturas onde você pode visualizar todas as suas faturas.',
+          sender: 'assistant',
+          timestamp: new Date(),
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (lowerInput.includes('ver clientes') || lowerInput.includes('listar clientes')) {
+        navigate('/clientes');
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: 'Redirecionando para a página de clientes onde você pode visualizar todos os seus clientes.',
+          sender: 'assistant',
+          timestamp: new Date(),
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Get context data from Supabase
       let context = '';
       
       try {
@@ -99,6 +171,7 @@ export function ChatAssistant() {
         console.error('Error fetching context data:', error);
       }
       
+      // Process with OpenAI
       const { data, error } = await supabase.functions.invoke('process-chat', {
         body: { message: userInput, context },
       });
@@ -158,7 +231,7 @@ export function ChatAssistant() {
   
   return (
     <div className="glass-card h-full flex flex-col">
-      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-white/10 dark:border-white/10 border-gray-200 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-full bg-pagora-purple flex items-center justify-center">
             <Bot size={18} />
@@ -209,7 +282,7 @@ export function ChatAssistant() {
                 className={cn(
                   "rounded-2xl px-4 py-3",
                   message.sender === 'assistant' 
-                    ? "bg-white/5 border border-white/10" 
+                    ? "bg-white/5 border border-white/10 dark:bg-white/5 dark:border-white/10"
                     : "bg-pagora-blue text-white"
                 )}
               >
@@ -224,17 +297,17 @@ export function ChatAssistant() {
         </div>
       </ScrollArea>
       
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/10 dark:border-white/10 border-gray-200">
         <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-thin">
           <SuggestionButton 
             label="Cadastrar novo cliente" 
-            icon={<Plus size={16} />}
-            onClick={() => handleSuggestionClick('Como faço para cadastrar um novo cliente?')}
+            icon={<UserPlus size={16} />}
+            onClick={() => handleSuggestionClick('Quero cadastrar um novo cliente')}
           />
           <SuggestionButton 
             label="Gerar fatura" 
-            icon={<Plus size={16} />}
-            onClick={() => handleSuggestionClick('Quero gerar uma nova fatura')}
+            icon={<FileText size={16} />}
+            onClick={() => handleSuggestionClick('Preciso gerar uma nova fatura')}
           />
           <SuggestionButton 
             label="Ver status das cobranças" 
@@ -247,7 +320,7 @@ export function ChatAssistant() {
             placeholder="Digite sua mensagem..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="bg-white/5 border-white/10"
+            className="bg-white/5 border-white/10 dark:bg-white/5 dark:border-white/10"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleSendMessage();
@@ -265,6 +338,26 @@ export function ChatAssistant() {
           </Button>
         </div>
       </div>
+      
+      {/* Client Registration Dialog */}
+      <Dialog open={showClientDialog} onOpenChange={setShowClientDialog}>
+        <DialogContent className="sm:max-w-[425px] bg-pagora-dark dark:bg-pagora-dark border-white/10 dark:border-white/10">
+          <DialogHeader>
+            <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
+          </DialogHeader>
+          <ClientForm />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Invoice Generation Dialog */}
+      <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
+        <DialogContent className="sm:max-w-[425px] bg-pagora-dark dark:bg-pagora-dark border-white/10 dark:border-white/10">
+          <DialogHeader>
+            <DialogTitle>Gerar Nova Fatura</DialogTitle>
+          </DialogHeader>
+          <InvoiceForm />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

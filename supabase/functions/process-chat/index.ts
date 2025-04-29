@@ -25,6 +25,15 @@ serve(async (req) => {
     - Geração de novas faturas (recolhendo cliente, valor, data de vencimento e descrição)
     - Consulta de status das cobranças (pendentes, aprovadas, rejeitadas)
     
+    Comandos especiais que você pode sugerir:
+    - "Cadastrar novo cliente" ou "Novo cliente" - Abre o formulário de cadastro de cliente
+    - "Gerar fatura" ou "Nova fatura" - Abre o formulário para gerar uma nova fatura
+    - "Ver faturas" ou "Listar faturas" - Redireciona para a página de faturas
+    - "Ver clientes" ou "Listar clientes" - Redireciona para a página de clientes
+    
+    Se o usuário disser algo como "preciso cadastrar um cliente", sugira usar o comando "Cadastrar novo cliente".
+    Se o usuário disser algo como "preciso emitir uma fatura", sugira usar o comando "Gerar fatura".
+    
     Seu tom deve ser profissional, mas amigável. Use português do Brasil.
     
     Contexto adicional: ${context || 'Nenhum contexto adicional fornecido'}`;
