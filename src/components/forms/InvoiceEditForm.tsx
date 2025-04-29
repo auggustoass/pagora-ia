@@ -12,6 +12,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 import {
   Form,
   FormControl,
@@ -65,6 +66,7 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
+  const { user } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -137,6 +139,15 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
   }, [invoiceId, form]);
   
   const onSubmit = async (values: FormValues) => {
+    if (!user) {
+      toast({
+        title: 'Erro',
+        description: 'Você precisa estar logado para editar faturas.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -159,7 +170,8 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
           vencimento: values.vencimento.toISOString().split('T')[0],
           descricao: values.descricao,
           status: values.status,
-          client_id: client.id
+          client_id: client.id,
+          // Mantemos o user_id existente, não atualizamos aqui
         })
         .eq('id', invoiceId);
         

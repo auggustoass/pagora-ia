@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ export interface Invoice {
   vencimento: string;
   descricao: string;
   status: 'pendente' | 'aprovado' | 'rejeitado';
+  user_id: string;
 }
 
 // Status badge component
@@ -66,21 +68,32 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, isAdmin } = useAuth();
 
   // Busca dados do Supabase
   useEffect(() => {
     const fetchInvoices = async () => {
+      if (!user) return;
+      
       try {
         setIsLoading(true);
         
         let query = supabase
           .from('faturas')
-          .select('*')
-          .order('vencimento', { ascending: false });
+          .select('*');
           
+        // Filter by user_id unless the user is an admin
+        if (!isAdmin) {
+          query = query.eq('user_id', user.id);
+        }
+          
+        // Apply status filter if not 'all'
         if (filter !== 'all') {
           query = query.eq('status', filter);
         }
+        
+        // Sort by date
+        query = query.order('vencimento', { ascending: false });
         
         const { data, error } = await query;
         
@@ -95,27 +108,30 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
       }
     };
     
-    fetchInvoices();
-    
-    // Configurar escuta em tempo real para atualizações
-    const subscription = supabase
-      .channel('table-db-changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'faturas' 
-        }, 
-        () => {
-          fetchInvoices();
-        }
-      )
-      .subscribe();
+    if (user) {
+      fetchInvoices();
       
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [filter]);
+      // Configure real-time subscription for updates
+      const subscription = supabase
+        .channel('table-db-changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'faturas',
+            filter: isAdmin ? undefined : `user_id=eq.${user.id}`
+          }, 
+          () => {
+            fetchInvoices();
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [filter, user, isAdmin]);
 
   // Filter invoices based on search term
   const filteredInvoices = invoices.filter(invoice => {
@@ -146,6 +162,10 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
       onEditInvoice(invoiceId);
     }
   };
+  
+  if (!user) {
+    return <div className="text-center py-4">Você precisa estar logado para visualizar faturas.</div>;
+  }
 
   return (
     <div className="glass-card overflow-hidden animate-fade-in bg-black/20">

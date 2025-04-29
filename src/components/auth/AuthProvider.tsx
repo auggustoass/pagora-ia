@@ -1,95 +1,78 @@
-
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  Session,
+  useSession,
+  useSupabaseClient,
+} from '@supabase/auth-helpers-react';
+import { Database } from '@/integrations/supabase/types';
 
 type AuthContextType = {
+  supabaseClient: any;
   session: Session | null;
-  user: User | null;
+  user: any | null;
   isLoading: boolean;
   isAdmin: boolean;
-  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const supabaseClient = useSupabaseClient<Database>();
+  const session = useSession();
+  const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
+    const fetchUser = async () => {
+      setIsLoading(true);
+      try {
         if (session?.user) {
-          setTimeout(() => {
-            checkAdminStatus(session.user.id);
-          }, 0);
+          setUser(session.user);
+
+          // Fetch user roles from the database
+          const { data: roles, error } = await supabaseClient
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id);
+
+          if (error) {
+            console.error('Error fetching user roles:', error);
+            setIsAdmin(false);
+          } else {
+            // Check if the user has the 'admin' role
+            const isAdminUser = roles?.some(role => role.role === 'admin');
+            setIsAdmin(isAdminUser);
+          }
         } else {
+          setUser(null);
           setIsAdmin(false);
         }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        checkAdminStatus(session.user.id);
-      }
-      
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAdminStatus = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.rpc('is_admin');
-      
-      if (error) {
-        console.error('Error checking admin status:', error);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
         setIsAdmin(false);
-        return;
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsAdmin(!!data);
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      setIsAdmin(false);
-    }
-  };
+    };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+    fetchUser();
+  }, [session, supabaseClient]);
 
-  const value = {
+  const value: AuthContextType = {
+    supabaseClient,
     session,
     user,
     isLoading,
     isAdmin,
-    signOut
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

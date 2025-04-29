@@ -48,6 +48,7 @@ export type Database = {
           pix_url: string | null
           qrcode: string | null
           status: string
+          user_id: string | null
           valor: number
           vencimento: string
           whatsapp: string
@@ -63,6 +64,7 @@ export type Database = {
           pix_url?: string | null
           qrcode?: string | null
           status?: string
+          user_id?: string | null
           valor: number
           vencimento: string
           whatsapp: string
@@ -78,6 +80,7 @@ export type Database = {
           pix_url?: string | null
           qrcode?: string | null
           status?: string
+          user_id?: string | null
           valor?: number
           vencimento?: string
           whatsapp?: string
@@ -91,6 +94,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mercado_pago_credentials: {
+        Row: {
+          access_token: string
+          created_at: string
+          public_key: string
+          updated_at: string
+          user_id: string
+          user_mercado_pago_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          public_key: string
+          updated_at?: string
+          user_id: string
+          user_mercado_pago_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          public_key?: string
+          updated_at?: string
+          user_id?: string
+          user_mercado_pago_id?: string
+        }
+        Relationships: []
       }
       plans: {
         Row: {

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 import {
   Form,
   FormControl,
@@ -40,55 +41,50 @@ const mercadoPagoSchema = z.object({
   public_key: z.string().min(5, {
     message: 'A Public Key é obrigatória',
   }),
-  user_id: z.string().min(1, {
+  user_mercado_pago_id: z.string().min(1, {
     message: 'O User ID é obrigatório',
   }),
 });
 
 type MercadoPagoFormValues = z.infer<typeof mercadoPagoSchema>;
 
-const SETTINGS_KEY = 'mercado_pago';
-
-// Define type for the settings response from Supabase
-interface SettingsResponse {
-  id: string;
-  value: MercadoPagoFormValues;
-  updated_at: string;
-}
-
 const Configuracoes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
+  const { user } = useAuth();
   
   const form = useForm<MercadoPagoFormValues>({
     resolver: zodResolver(mercadoPagoSchema),
     defaultValues: {
       access_token: '',
       public_key: '',
-      user_id: '',
+      user_mercado_pago_id: '',
     },
   });
 
   // Fetch existing Mercado Pago configuration from Supabase
   useEffect(() => {
     const fetchMercadoPagoConfig = async () => {
+      if (!user) return;
+
       try {
         const { data, error } = await supabase
-          .from('settings')
+          .from('mercado_pago_credentials')
           .select('*')
-          .eq('id', SETTINGS_KEY)
+          .eq('user_id', user.id)
           .single();
         
         if (error) {
-          console.error('Error fetching Mercado Pago config:', error);
+          if (error.code !== 'PGRST116') { // PGRST116 is "No rows found" error
+            console.error('Error fetching Mercado Pago config:', error);
+          }
           return;
         }
         
         if (data) {
-          const config = data.value as MercadoPagoFormValues;
-          form.setValue('access_token', config.access_token || '');
-          form.setValue('public_key', config.public_key || '');
-          form.setValue('user_id', config.user_id || '');
+          form.setValue('access_token', data.access_token || '');
+          form.setValue('public_key', data.public_key || '');
+          form.setValue('user_mercado_pago_id', data.user_mercado_pago_id || '');
           setIsConfigured(true);
         }
       } catch (error) {
@@ -97,21 +93,32 @@ const Configuracoes = () => {
     };
     
     fetchMercadoPagoConfig();
-  }, [form]);
+  }, [form, user]);
 
   const onSubmitMercadoPago = async (values: MercadoPagoFormValues) => {
+    if (!user) {
+      toast({
+        title: 'Erro',
+        description: 'Você precisa estar logado para salvar configurações.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
       const { error } = await supabase
-        .from('settings')
+        .from('mercado_pago_credentials')
         .upsert(
           {
-            id: SETTINGS_KEY,
-            value: values,
+            user_id: user.id,
+            access_token: values.access_token,
+            public_key: values.public_key,
+            user_mercado_pago_id: values.user_mercado_pago_id,
             updated_at: new Date().toISOString()
           },
-          { onConflict: 'id' }
+          { onConflict: 'user_id' }
         );
         
       if (error) throw error;
@@ -256,7 +263,7 @@ const Configuracoes = () => {
                     
                     <FormField
                       control={form.control}
-                      name="user_id"
+                      name="user_mercado_pago_id"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>User ID</FormLabel>

@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Eye } from 'lucide-react';
+import { Pencil, Trash2, Eye, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -37,6 +37,12 @@ interface Invoice {
   status: string;
   vencimento: string;
   created_at: string;
+  user_id: string | null;
+}
+
+interface User {
+  id: string;
+  email: string;
 }
 
 export function InvoicesList() {
@@ -45,10 +51,38 @@ export function InvoicesList() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<Partial<Invoice> | null>(null);
   const [viewMode, setViewMode] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     fetchInvoices();
+    fetchUsers();
   }, []);
+
+  async function fetchUsers() {
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id');
+
+      if (error) throw error;
+
+      if (profiles) {
+        // Fetch actual user emails from auth.users using the admin endpoint
+        const userEmails = await Promise.all(
+          profiles.map(async (profile) => {
+            const { data, error } = await supabase.auth.admin.getUserById(profile.id);
+            return {
+              id: profile.id,
+              email: data?.user?.email || 'Email não disponível'
+            };
+          })
+        );
+        setUsers(userEmails.filter(user => user.email !== 'Email não disponível'));
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  }
 
   async function fetchInvoices() {
     setLoading(true);
@@ -97,7 +131,8 @@ export function InvoicesList() {
           descricao: currentInvoice.descricao,
           valor: currentInvoice.valor,
           status: currentInvoice.status,
-          vencimento: currentInvoice.vencimento
+          vencimento: currentInvoice.vencimento,
+          user_id: currentInvoice.user_id
         })
         .eq('id', currentInvoice.id);
         
@@ -138,6 +173,12 @@ export function InvoicesList() {
     }).format(value);
   };
 
+  const getUserEmail = (userId: string | null) => {
+    if (!userId) return 'N/A';
+    const user = users.find(u => u.id === userId);
+    return user ? user.email : 'Usuário não encontrado';
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -154,6 +195,7 @@ export function InvoicesList() {
                 <TableHead>Cliente</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Usuário</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Data de Criação</TableHead>
                 <TableHead>Ações</TableHead>
@@ -162,7 +204,7 @@ export function InvoicesList() {
             <TableBody>
               {invoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={7} className="text-center">
                     Nenhuma fatura encontrada
                   </TableCell>
                 </TableRow>
@@ -179,6 +221,9 @@ export function InvoicesList() {
                       }`}>
                         {invoice.status}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      {getUserEmail(invoice.user_id)}
                     </TableCell>
                     <TableCell>
                       {format(new Date(invoice.vencimento), 'dd/MM/yyyy')}
@@ -323,22 +368,52 @@ export function InvoicesList() {
                 )}
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="vencimento">Vencimento</Label>
-              <Input 
-                id="vencimento" 
-                type="date"
-                value={currentInvoice?.vencimento 
-                  ? new Date(currentInvoice.vencimento).toISOString().split('T')[0] 
-                  : ''}
-                onChange={(e) => 
-                  setCurrentInvoice({ 
-                    ...currentInvoice, 
-                    vencimento: e.target.value
-                  })
-                }
-                readOnly={viewMode}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vencimento">Vencimento</Label>
+                <Input 
+                  id="vencimento" 
+                  type="date"
+                  value={currentInvoice?.vencimento 
+                    ? new Date(currentInvoice.vencimento).toISOString().split('T')[0] 
+                    : ''}
+                  onChange={(e) => 
+                    setCurrentInvoice({ 
+                      ...currentInvoice, 
+                      vencimento: e.target.value
+                    })
+                  }
+                  readOnly={viewMode}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user_id">Usuário</Label>
+                {viewMode ? (
+                  <Input 
+                    id="user_id" 
+                    value={getUserEmail(currentInvoice?.user_id || null)} 
+                    readOnly
+                  />
+                ) : (
+                  <Select
+                    value={currentInvoice?.user_id || ''}
+                    onValueChange={(value) => 
+                      setCurrentInvoice({ ...currentInvoice, user_id: value })
+                    }
+                  >
+                    <SelectTrigger id="user_id">
+                      <SelectValue placeholder="Selecione um usuário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>

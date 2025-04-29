@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 import {
   Form,
   FormControl,
@@ -62,6 +63,7 @@ interface InvoiceFormProps {
 export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
+  const { user } = useAuth();
   
   // Carrega a lista de clientes do Supabase
   useEffect(() => {
@@ -93,6 +95,15 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   });
   
   const onSubmit = async (values: FormValues) => {
+    if (!user) {
+      toast({
+        title: 'Erro',
+        description: 'Você precisa estar logado para criar faturas.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -115,7 +126,8 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           vencimento: values.vencimento.toISOString().split('T')[0],
           descricao: values.descricao,
           status: 'pendente',
-          client_id: client.id
+          client_id: client.id,
+          user_id: user.id
         });
         
       if (error) throw error;
