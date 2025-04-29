@@ -79,28 +79,14 @@ const Relatorios = () => {
           break;
       }
       
-      // Query for status counts
-      const statusQuery = supabase
-        .from('faturas')
-        .select('status, count', { count: 'exact' })
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-        
-      // Apply user filter if not admin
-      let statusQueryFiltered = statusQuery;
-      if (!isAdmin && user) {
-        statusQueryFiltered = statusQuery.filter('user_id', 'eq', user.id);
-      }
-      
-      // Execute the query with group by using separate SQL query
-      const { data: statusCounts, error: statusError } = await supabase.rpc(
-        'get_invoice_status_counts', 
-        { 
+      // Call the edge function to get the status counts
+      const { data: statusCountsData, error: statusError } = await supabase.functions.invoke('get_invoice_status_counts', {
+        body: { 
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
           user_filter: !isAdmin && user ? user.id : null
         }
-      );
+      });
       
       if (statusError) {
         console.error('Status error:', statusError);
@@ -108,14 +94,14 @@ const Relatorios = () => {
       }
       
       // Format status data for the pie chart
-      const formattedStatusData = statusCounts?.map((item: any) => ({
+      const formattedStatusData = statusCountsData?.map((item: any) => ({
         status: item.status,
         count: parseInt(item.count, 10)
       })) || [];
       
       // Add missing statuses with count 0
       const allStatuses = ['pendente', 'aprovado', 'cancelado'];
-      const existingStatuses = formattedStatusData.map(item => item.status);
+      const existingStatuses = formattedStatusData.map((item: StatusCount) => item.status);
       
       allStatuses.forEach(status => {
         if (!existingStatuses.includes(status)) {
@@ -128,11 +114,11 @@ const Relatorios = () => {
       // Query for monthly totals (approved invoices)
       let monthlyQuery = supabase.from('faturas')
         .select('created_at, valor')
-        .filter('status', 'eq', 'aprovado')
+        .eq('status', 'aprovado')
         .gte('created_at', new Date(startDate.getFullYear(), startDate.getMonth() - 6, 1).toISOString());
         
       if (!isAdmin && user) {
-        monthlyQuery = monthlyQuery.filter('user_id', 'eq', user.id);
+        monthlyQuery = monthlyQuery.eq('user_id', user.id);
       }
       
       const { data: monthlyValues, error: monthlyError } = await monthlyQuery;

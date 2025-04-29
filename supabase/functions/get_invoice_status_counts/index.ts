@@ -35,7 +35,7 @@ serve(async (req) => {
     // Build the query
     let query = supabaseClient
       .from('faturas')
-      .select('status, count')
+      .select('status, count(*)', { count: 'exact', head: false })
       .gte('created_at', start_date)
       .lte('created_at', end_date)
 
