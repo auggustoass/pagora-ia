@@ -47,6 +47,8 @@ const mercadoPagoSchema = z.object({
 
 type MercadoPagoFormValues = z.infer<typeof mercadoPagoSchema>;
 
+const SETTINGS_KEY = 'mercado_pago';
+
 const Configuracoes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
@@ -64,14 +66,16 @@ const Configuracoes = () => {
   useEffect(() => {
     const fetchMercadoPagoConfig = async () => {
       try {
-        // We'll store settings in the database in a table called "settings"
-        // This would need to be created first, but since we don't have direct access to the database
-        // we'll simulate this functionality for now
-        const { data: existingConfig } = await supabase
+        const { data: existingConfig, error } = await supabase
           .from('settings')
           .select('*')
-          .eq('key', 'mercado_pago')
-          .maybeSingle();
+          .eq('id', SETTINGS_KEY)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching Mercado Pago config:', error);
+          return;
+        }
         
         if (existingConfig) {
           const config = existingConfig.value;
@@ -92,19 +96,15 @@ const Configuracoes = () => {
     setIsLoading(true);
     
     try {
-      // Simulate storing the settings in Supabase
-      // In a real implementation, we would store this in a "settings" table
-      // after validating the credentials with Mercado Pago API
-      
       const { error } = await supabase
         .from('settings')
         .upsert(
           {
-            key: 'mercado_pago',
+            id: SETTINGS_KEY,
             value: values,
             updated_at: new Date().toISOString()
           },
-          { onConflict: 'key' }
+          { onConflict: 'id' }
         );
         
       if (error) throw error;
