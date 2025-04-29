@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,17 +51,30 @@ const formSchema = z.object({
     required_error: 'A data de vencimento é obrigatória',
   }),
   descricao: z.string().min(3, { message: 'A descrição deve ter pelo menos 3 caracteres' }),
+  status: z.enum(['pendente', 'aprovado', 'rejeitado']),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface InvoiceFormProps {
+interface InvoiceEditFormProps {
+  invoiceId: string;
   onSuccess?: () => void;
 }
 
-export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
+export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
+  
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      clientId: '',
+      valor: '',
+      descricao: '',
+      status: 'pendente',
+    },
+  });
   
   // Carrega a lista de clientes do Supabase
   useEffect(() => {
@@ -83,14 +96,45 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     fetchClients();
   }, []);
   
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      clientId: '',
-      valor: '',
-      descricao: '',
-    },
-  });
+  // Fetch invoice data
+  useEffect(() => {
+    const fetchInvoiceData = async () => {
+      setIsLoadingInitialData(true);
+      
+      try {
+        const { data: invoice, error } = await supabase
+          .from('faturas')
+          .select('*')
+          .eq('id', invoiceId)
+          .single();
+        
+        if (error) throw error;
+        
+        if (invoice) {
+          form.reset({
+            clientId: invoice.client_id || '',
+            valor: invoice.valor.toString(),
+            vencimento: parseISO(invoice.vencimento),
+            descricao: invoice.descricao,
+            status: invoice.status as 'pendente' | 'aprovado' | 'rejeitado',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching invoice data:', error);
+        toast({
+          title: 'Erro ao carregar dados da fatura',
+          description: 'Não foi possível carregar os dados da fatura. Tente novamente.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingInitialData(false);
+      }
+    };
+    
+    if (invoiceId) {
+      fetchInvoiceData();
+    }
+  }, [invoiceId, form]);
   
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
@@ -103,10 +147,10 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
         throw new Error('Cliente não encontrado');
       }
       
-      // Inserir fatura no Supabase
+      // Atualizar fatura no Supabase
       const { error } = await supabase
         .from('faturas')
-        .insert({
+        .update({
           nome: client.nome,
           email: client.email,
           whatsapp: client.whatsapp,
@@ -114,34 +158,37 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           valor: parseFloat(values.valor),
           vencimento: values.vencimento.toISOString().split('T')[0],
           descricao: values.descricao,
-          status: 'pendente',
+          status: values.status,
           client_id: client.id
-        });
+        })
+        .eq('id', invoiceId);
         
       if (error) throw error;
       
       toast({
-        title: 'Fatura gerada com sucesso',
-        description: `Fatura no valor de R$ ${values.valor} criada para ${client.nome}.`,
+        title: 'Fatura atualizada com sucesso',
+        description: `Fatura no valor de R$ ${values.valor} para ${client.nome} foi atualizada.`,
       });
-      
-      form.reset();
       
       // Execute callback if provided
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
-      console.error('Error creating invoice:', error);
+      console.error('Error updating invoice:', error);
       toast({
-        title: 'Erro ao gerar fatura',
-        description: 'Ocorreu um erro ao tentar gerar a fatura. Tente novamente.',
+        title: 'Erro ao atualizar fatura',
+        description: 'Ocorreu um erro ao tentar atualizar a fatura. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
+  
+  if (isLoadingInitialData) {
+    return <div className="text-center py-4">Carregando dados da fatura...</div>;
+  }
   
   return (
     <Form {...form}>
@@ -153,7 +200,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cliente</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="bg-white/5 border-white/10">
                       <div className="flex items-center">
@@ -223,7 +270,6 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) => date < new Date()}
                       initialFocus
                       className="pointer-events-auto"
                     />
@@ -254,6 +300,29 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
               </FormItem>
             )}
           />
+          
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="bg-white/5 border-white/10">
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="aprovado">Aprovado</SelectItem>
+                    <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
         
         <Button 
@@ -261,7 +330,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           className="w-full bg-pagora-purple hover:bg-pagora-purple/90"
           disabled={isLoading}
         >
-          {isLoading ? 'Gerando...' : 'Gerar Fatura'}
+          {isLoading ? 'Salvando...' : 'Salvar Alterações'}
         </Button>
       </form>
     </Form>

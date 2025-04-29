@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Check, Clock, Ban, Search, Filter } from 'lucide-react';
+import { Check, Clock, Ban, Search, Filter, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,10 @@ export interface Invoice {
 // Status badge component
 interface StatusBadgeProps {
   status: Invoice['status'];
+}
+
+interface InvoiceTableProps {
+  onEditInvoice?: (invoiceId: string) => void;
 }
 
 const StatusBadge = ({ status }: StatusBadgeProps) => {
@@ -57,7 +62,7 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
   );
 };
 
-export function InvoiceTable() {
+export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
   const [filter, setFilter] = useState<Invoice['status'] | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -135,6 +140,12 @@ export function InvoiceTable() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('pt-BR').format(date);
+  };
+
+  const handleEditClick = (invoiceId: string) => {
+    if (onEditInvoice) {
+      onEditInvoice(invoiceId);
+    }
   };
 
   return (
@@ -218,8 +229,14 @@ export function InvoiceTable() {
                       <StatusBadge status={invoice.status} />
                     </td>
                     <td className="px-4 py-3">
-                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-white">
-                        Detalhes
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-muted-foreground hover:text-white"
+                        onClick={() => handleEditClick(invoice.id)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Editar
                       </Button>
                     </td>
                   </tr>

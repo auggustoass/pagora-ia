@@ -5,6 +5,15 @@ import { Plus, Search, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import { ClientForm } from '@/components/forms/ClientForm';
+import { ClientEditForm } from '@/components/forms/ClientEditForm';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -26,6 +35,9 @@ const Clientes = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [newClientDialogOpen, setNewClientDialogOpen] = useState(false);
+  const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -80,6 +92,20 @@ const Clientes = () => {
     return matchesSearch;
   });
 
+  const handleNewClientSuccess = () => {
+    setNewClientDialogOpen(false);
+  };
+
+  const handleEditClientSuccess = () => {
+    setEditClientDialogOpen(false);
+    setSelectedClientId(null);
+  };
+
+  const handleEditClient = (clientId: string) => {
+    setSelectedClientId(clientId);
+    setEditClientDialogOpen(true);
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -99,10 +125,20 @@ const Clientes = () => {
             />
           </div>
           
-          <Button className="bg-pagora-purple hover:bg-pagora-purple/90 w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Cliente
-          </Button>
+          <Dialog open={newClientDialogOpen} onOpenChange={setNewClientDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-pagora-purple hover:bg-pagora-purple/90 w-full sm:w-auto">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Cliente
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] bg-pagora-dark border-white/10">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
+              </DialogHeader>
+              <ClientForm onSuccess={handleNewClientSuccess} />
+            </DialogContent>
+          </Dialog>
         </div>
         
         <div className="glass-card overflow-hidden">
@@ -131,7 +167,12 @@ const Clientes = () => {
                     <TableCell>{client.whatsapp}</TableCell>
                     <TableCell>{client.cpf_cnpj}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-white">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-muted-foreground hover:text-white"
+                        onClick={() => handleEditClient(client.id)}
+                      >
                         <UserCog className="w-4 h-4 mr-1" />
                         Gerenciar
                       </Button>
@@ -149,6 +190,21 @@ const Clientes = () => {
           </Table>
         </div>
       </div>
+      
+      {/* Edit Client Dialog */}
+      <Dialog open={editClientDialogOpen} onOpenChange={setEditClientDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-pagora-dark border-white/10">
+          <DialogHeader>
+            <DialogTitle>Editar Cliente</DialogTitle>
+          </DialogHeader>
+          {selectedClientId && (
+            <ClientEditForm 
+              clientId={selectedClientId} 
+              onSuccess={handleEditClientSuccess} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

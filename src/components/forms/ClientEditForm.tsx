@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -27,12 +27,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface ClientFormProps {
+interface ClientEditFormProps {
+  clientId: string;
   onSuccess?: () => void;
 }
 
-export function ClientForm({ onSuccess }: ClientFormProps) {
+export function ClientEditForm({ clientId, onSuccess }: ClientEditFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -44,44 +46,86 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
     },
   });
   
+  // Fetch client data
+  useEffect(() => {
+    const fetchClientData = async () => {
+      setIsLoadingInitialData(true);
+      
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', clientId)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          form.reset({
+            nome: data.nome,
+            email: data.email,
+            whatsapp: data.whatsapp,
+            cpf_cnpj: data.cpf_cnpj,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching client data:', error);
+        toast({
+          title: 'Erro ao carregar dados do cliente',
+          description: 'Não foi possível carregar os dados do cliente. Tente novamente.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingInitialData(false);
+      }
+    };
+    
+    if (clientId) {
+      fetchClientData();
+    }
+  }, [clientId, form]);
+  
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     
     try {
-      // Inserir os dados na tabela clients do Supabase
+      // Atualizar dados do cliente no Supabase
       const { error } = await supabase
         .from('clients')
-        .insert({
+        .update({
           nome: values.nome,
           email: values.email,
           whatsapp: values.whatsapp,
           cpf_cnpj: values.cpf_cnpj,
-        });
+        })
+        .eq('id', clientId);
         
       if (error) throw error;
       
       toast({
-        title: 'Cliente cadastrado com sucesso',
-        description: `${values.nome} foi adicionado à sua base de clientes.`,
+        title: 'Cliente atualizado com sucesso',
+        description: `Os dados de ${values.nome} foram atualizados.`,
       });
-      
-      form.reset();
       
       // Execute callback if provided
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
-      console.error('Error creating client:', error);
+      console.error('Error updating client:', error);
       toast({
-        title: 'Erro ao cadastrar cliente',
-        description: 'Ocorreu um erro ao tentar cadastrar o cliente. Tente novamente.',
+        title: 'Erro ao atualizar cliente',
+        description: 'Ocorreu um erro ao tentar atualizar o cliente. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
+  
+  if (isLoadingInitialData) {
+    return <div className="text-center py-4">Carregando dados do cliente...</div>;
+  }
   
   return (
     <Form {...form}>
@@ -177,7 +221,7 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
           className="w-full bg-pagora-purple hover:bg-pagora-purple/90"
           disabled={isLoading}
         >
-          {isLoading ? 'Cadastrando...' : 'Cadastrar Cliente'}
+          {isLoading ? 'Salvando...' : 'Salvar Alterações'}
         </Button>
       </form>
     </Form>
