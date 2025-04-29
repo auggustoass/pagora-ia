@@ -36,6 +36,8 @@ interface Client {
   id: string;
   nome: string;
   email: string;
+  whatsapp: string;
+  cpf_cnpj: string;
 }
 
 // Form validation schema
@@ -61,23 +63,13 @@ export function InvoiceForm() {
     const fetchClients = async () => {
       try {
         const { data, error } = await supabase
-          .from('faturas')
-          .select('id, nome, email')
+          .from('clients')
+          .select('id, nome, email, whatsapp, cpf_cnpj')
           .order('nome');
           
         if (error) throw error;
         
-        // Remove duplicates based on email
-        const uniqueClients = data.reduce((acc: Client[], current) => {
-          const x = acc.find(item => item.email === current.email);
-          if (!x) {
-            return acc.concat([current]);
-          } else {
-            return acc;
-          }
-        }, []);
-        
-        setClients(uniqueClients);
+        setClients(data || []);
       } catch (error) {
         console.error('Error fetching clients:', error);
       }
@@ -112,12 +104,13 @@ export function InvoiceForm() {
         .insert({
           nome: client.nome,
           email: client.email,
-          whatsapp: '', // Precisamos buscar esses dados
-          cpf_cnpj: '', // Precisamos buscar esses dados
+          whatsapp: client.whatsapp,
+          cpf_cnpj: client.cpf_cnpj,
           valor: parseFloat(values.valor),
           vencimento: values.vencimento.toISOString().split('T')[0],
           descricao: values.descricao,
-          status: 'pendente'
+          status: 'pendente',
+          client_id: client.id
         });
         
       if (error) throw error;

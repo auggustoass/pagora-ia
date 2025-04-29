@@ -9,8 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      clients: {
+        Row: {
+          cpf_cnpj: string
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          whatsapp: string
+        }
+        Insert: {
+          cpf_cnpj: string
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          whatsapp: string
+        }
+        Update: {
+          cpf_cnpj?: string
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       faturas: {
         Row: {
+          client_id: string | null
           cpf_cnpj: string
           created_at: string
           descricao: string
@@ -25,6 +53,7 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          client_id?: string | null
           cpf_cnpj: string
           created_at?: string
           descricao: string
@@ -39,6 +68,7 @@ export type Database = {
           whatsapp: string
         }
         Update: {
+          client_id?: string | null
           cpf_cnpj?: string
           created_at?: string
           descricao?: string
@@ -52,7 +82,15 @@ export type Database = {
           vencimento?: string
           whatsapp?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "faturas_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

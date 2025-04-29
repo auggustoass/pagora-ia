@@ -2,7 +2,7 @@
 import React from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/components/dashboard/Dashboard';
-import { ChatAssistant } from '@/components/chat/ChatAssistant';
+import { ConversationalChatAssistant } from '@/components/chat/ConversationalChatAssistant';
 
 const Index = () => {
   return (
@@ -12,7 +12,7 @@ const Index = () => {
           <Dashboard />
         </div>
         <div className="h-[calc(100vh-9rem)]">
-          <ChatAssistant />
+          <ConversationalChatAssistant />
         </div>
       </div>
     </Layout>
