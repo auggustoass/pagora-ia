@@ -49,6 +49,13 @@ type MercadoPagoFormValues = z.infer<typeof mercadoPagoSchema>;
 
 const SETTINGS_KEY = 'mercado_pago';
 
+// Define type for the settings response from Supabase
+interface SettingsResponse {
+  id: string;
+  value: MercadoPagoFormValues;
+  updated_at: string;
+}
+
 const Configuracoes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
@@ -66,7 +73,7 @@ const Configuracoes = () => {
   useEffect(() => {
     const fetchMercadoPagoConfig = async () => {
       try {
-        const { data: existingConfig, error } = await supabase
+        const { data, error } = await supabase
           .from('settings')
           .select('*')
           .eq('id', SETTINGS_KEY)
@@ -77,8 +84,8 @@ const Configuracoes = () => {
           return;
         }
         
-        if (existingConfig) {
-          const config = existingConfig.value;
+        if (data) {
+          const config = data.value as MercadoPagoFormValues;
           form.setValue('access_token', config.access_token || '');
           form.setValue('public_key', config.public_key || '');
           form.setValue('user_id', config.user_id || '');

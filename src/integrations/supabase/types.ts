@@ -92,6 +92,24 @@ export type Database = {
           },
         ]
       }
+      settings: {
+        Row: {
+          id: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          id: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          id?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
