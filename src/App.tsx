@@ -5,6 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { RequireAuth } from "@/components/auth/RequireAuth";
+
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Clientes from "./pages/Clientes";
@@ -12,6 +15,9 @@ import Faturas from "./pages/Faturas";
 import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
 import Ajuda from "./pages/Ajuda";
+import Auth from "./pages/Auth";
+import Planos from "./pages/Planos";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -21,18 +27,50 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/faturas" element={<Faturas />} />
-            <Route path="/relatorios" element={<Relatorios />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
-            <Route path="/ajuda" element={<Ajuda />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Protected routes */}
+              <Route path="/" element={
+                <RequireAuth>
+                  <Index />
+                </RequireAuth>
+              } />
+              <Route path="/clientes" element={
+                <RequireAuth>
+                  <Clientes />
+                </RequireAuth>
+              } />
+              <Route path="/faturas" element={
+                <RequireAuth>
+                  <Faturas />
+                </RequireAuth>
+              } />
+              <Route path="/relatorios" element={
+                <RequireAuth>
+                  <Relatorios />
+                </RequireAuth>
+              } />
+              <Route path="/configuracoes" element={
+                <RequireAuth>
+                  <Configuracoes />
+                </RequireAuth>
+              } />
+              <Route path="/ajuda" element={
+                <RequireAuth>
+                  <Ajuda />
+                </RequireAuth>
+              } />
+              <Route path="/planos" element={<Planos />} />
+              <Route path="/admin" element={<Admin />} />
+              
+              {/* 404 route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

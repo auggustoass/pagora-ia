@@ -2,12 +2,21 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { Navigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
+  requireAuth?: boolean;
 }
 
-export function Layout({ children }: LayoutProps) {
+export function Layout({ children, requireAuth = true }: LayoutProps) {
+  const { user, isLoading } = useAuth();
+
+  if (requireAuth && !user && !isLoading) {
+    return <Navigate to="/auth" replace />;
+  }
+
   return (
     <div className="flex min-h-screen bg-grid">
       <Sidebar />
