@@ -23,12 +23,6 @@ interface StatusCount {
   count: number;
 }
 
-// Define uma interface para o retorno da função de Edge Function
-interface InvoiceStatusCount {
-  status: string;
-  count: number;
-}
-
 const Relatorios = () => {
   // Estado para o filtro de usuário (admin apenas)
   const [userFilter, setUserFilter] = useState<string>('all');
@@ -62,21 +56,18 @@ const Relatorios = () => {
       const endDate = dateRange?.to || new Date();
       
       // Use a Edge Function para buscar os dados agrupados por status
-      const { data, error } = await supabase.functions.invoke<InvoiceStatusCount[]>(
-        'get_invoice_status_counts',
-        {
-          body: {
-            start_date: format(startDate, 'yyyy-MM-dd'),
-            end_date: format(addDays(endDate, 1), 'yyyy-MM-dd'), // Add 1 day to include the end date
-            user_filter: userFilter === 'all' ? null : userFilter
-          }
+      const { data, error } = await supabase.functions.invoke('get_invoice_status_counts', {
+        body: {
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(addDays(endDate, 1), 'yyyy-MM-dd'), // Add 1 day to include the end date
+          user_filter: userFilter === 'all' ? null : userFilter
         }
-      );
+      });
       
       if (error) throw error;
       
       if (data) {
-        setStatusData(data.map(item => ({
+        setStatusData(data.map((item: any) => ({
           status: item.status,
           count: item.count
         })));

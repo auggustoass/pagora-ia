@@ -35,7 +35,7 @@ serve(async (req) => {
     // Build the query with date range
     let query = supabaseClient
       .from('faturas')
-      .select('status, count(*)', { count: 'exact', head: false })
+      .select('status, count')
       .gte('created_at', start_date)
       .lte('created_at', end_date)
 
@@ -45,8 +45,7 @@ serve(async (req) => {
     }
 
     // Execute the query with group by
-    const { data, error } = await query.select('status, count')
-      .groupBy('status')
+    const { data, error } = await query.groupBy('status')
 
     if (error) {
       throw error
