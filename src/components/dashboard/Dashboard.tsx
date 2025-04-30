@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FileText, Clock, CheckCircle, Wallet, Search, UserCog } from 'lucide-react';
 import { StatusCard } from './StatusCard';
@@ -51,10 +52,7 @@ export function Dashboard() {
         const {
           count: total,
           error: errorTotal
-        } = await query.select('*', {
-          count: 'exact',
-          head: true
-        });
+        } = await query.count();
         
         // Apply similar user filtering to other queries
         let pendingQuery = supabase.from('faturas').select('*').eq('status', 'pendente');
@@ -70,17 +68,11 @@ export function Dashboard() {
         const {
           count: pendentes,
           error: errorPendentes
-        } = await pendingQuery.select('*', {
-          count: 'exact',
-          head: true
-        });
+        } = await pendingQuery.count();
         const {
           count: aprovadas,
           error: errorAprovadas
-        } = await approvedQuery.select('*', {
-          count: 'exact',
-          head: true
-        });
+        } = await approvedQuery.count();
         const {
           data: faturasAprovadas,
           error: errorValor
