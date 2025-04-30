@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FileText, Clock, CheckCircle, Wallet, Search, UserCog } from 'lucide-react';
 import { StatusCard } from './StatusCard';
@@ -42,21 +41,18 @@ export function Dashboard() {
       
       try {
         setLoading(true);
-        let query = supabase.from('faturas').select('*');
+        let query = supabase.from('faturas').select('*', { count: 'exact' });
         
         // If not admin, only show user's own invoices
         if (!isAdmin) {
           query = query.eq('user_id', user.id);
         }
         
-        const {
-          count: total,
-          error: errorTotal
-        } = await query.count();
+        const { data, count: total, error: errorTotal } = await query;
         
         // Apply similar user filtering to other queries
-        let pendingQuery = supabase.from('faturas').select('*').eq('status', 'pendente');
-        let approvedQuery = supabase.from('faturas').select('*').eq('status', 'aprovado');
+        let pendingQuery = supabase.from('faturas').select('*', { count: 'exact' }).eq('status', 'pendente');
+        let approvedQuery = supabase.from('faturas').select('*', { count: 'exact' }).eq('status', 'aprovado');
         let approvedValueQuery = supabase.from('faturas').select('valor').eq('status', 'aprovado');
         
         if (!isAdmin) {
@@ -65,18 +61,9 @@ export function Dashboard() {
           approvedValueQuery = approvedValueQuery.eq('user_id', user.id);
         }
         
-        const {
-          count: pendentes,
-          error: errorPendentes
-        } = await pendingQuery.count();
-        const {
-          count: aprovadas,
-          error: errorAprovadas
-        } = await approvedQuery.count();
-        const {
-          data: faturasAprovadas,
-          error: errorValor
-        } = await approvedValueQuery;
+        const { count: pendentes, error: errorPendentes } = await pendingQuery;
+        const { count: aprovadas, error: errorAprovadas } = await approvedQuery;
+        const { data: faturasAprovadas, error: errorValor } = await approvedValueQuery;
         
         if (errorTotal || errorPendentes || errorAprovadas || errorValor) throw new Error();
         
