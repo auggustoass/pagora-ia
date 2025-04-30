@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FileText, Clock, CheckCircle, Wallet, Search, UserCog } from 'lucide-react';
 import { StatusCard } from './StatusCard';
@@ -46,7 +45,7 @@ export function Dashboard() {
         
         // If not admin, only show user's own invoices
         if (!isAdmin) {
-          query = query.eq('user_id', user.id);
+          query = query.filter('user_id', 'eq', user.id);
         }
         
         const {
@@ -58,14 +57,14 @@ export function Dashboard() {
         });
         
         // Apply similar user filtering to other queries
-        let pendingQuery = supabase.from('faturas').eq('status', 'pendente');
-        let approvedQuery = supabase.from('faturas').eq('status', 'aprovado');
-        let approvedValueQuery = supabase.from('faturas').eq('status', 'aprovado');
+        let pendingQuery = supabase.from('faturas').filter('status', 'eq', 'pendente');
+        let approvedQuery = supabase.from('faturas').filter('status', 'eq', 'aprovado');
+        let approvedValueQuery = supabase.from('faturas').filter('status', 'eq', 'aprovado');
         
         if (!isAdmin) {
-          pendingQuery = pendingQuery.eq('user_id', user.id);
-          approvedQuery = approvedQuery.eq('user_id', user.id);
-          approvedValueQuery = approvedValueQuery.eq('user_id', user.id);
+          pendingQuery = pendingQuery.filter('user_id', 'eq', user.id);
+          approvedQuery = approvedQuery.filter('user_id', 'eq', user.id);
+          approvedValueQuery = approvedValueQuery.filter('user_id', 'eq', user.id);
         }
         
         const {
@@ -126,11 +125,11 @@ export function Dashboard() {
     if (!user) return;
     
     try {
-      let query = supabase.from('clients').select('*');
+      let query = supabase.from('clients');
       
       // If not admin, only show user's own clients
       if (!isAdmin) {
-        query = query.eq('user_id', user.id);
+        query = query.filter('user_id', 'eq', user.id);
       }
       
       const { data, error } = await query.order('nome');

@@ -114,11 +114,11 @@ const Relatorios = () => {
       // Query for monthly totals (approved invoices)
       let monthlyQuery = supabase.from('faturas')
         .select('created_at, valor')
-        .eq('status', 'aprovado')
+        .filter('status', 'eq', 'aprovado')
         .gte('created_at', new Date(startDate.getFullYear(), startDate.getMonth() - 6, 1).toISOString());
         
       if (!isAdmin && user) {
-        monthlyQuery = monthlyQuery.eq('user_id', user.id);
+        monthlyQuery = monthlyQuery.filter('user_id', 'eq', user.id);
       }
       
       const { data: monthlyValues, error: monthlyError } = await monthlyQuery;

@@ -41,11 +41,11 @@ serve(async (req) => {
 
     // Apply user filter if needed
     if (user_filter) {
-      query = query.eq('user_id', user_filter)
+      query = query.filter('user_id', 'eq', user_filter)
     }
 
-    // Execute the query
-    const { data, error } = await query.groupBy('status')
+    // Execute the query with group by clause
+    const { data, error } = await query.group('status')
 
     if (error) {
       throw error
