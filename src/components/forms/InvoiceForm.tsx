@@ -63,16 +63,24 @@ interface InvoiceFormProps {
 export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   
-  // Carrega a lista de clientes do Supabase
+  // Carrega a lista de clientes do Supabase, filtrando pelo usuário atual
   useEffect(() => {
     const fetchClients = async () => {
+      if (!user) return;
+      
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('clients')
-          .select('id, nome, email, whatsapp, cpf_cnpj')
-          .order('nome');
+          .select('id, nome, email, whatsapp, cpf_cnpj');
+          
+        // Se não for admin, mostrar apenas os clientes do usuário
+        if (!isAdmin) {
+          query = query.eq('user_id', user.id);
+        }
+        
+        const { data, error } = await query.order('nome');
           
         if (error) throw error;
         
@@ -83,7 +91,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     };
     
     fetchClients();
-  }, []);
+  }, [user, isAdmin]); // Adiciona isAdmin e user como dependências
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
