@@ -1,167 +1,134 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
-import { PieChart, BarChart3, Calendar } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/components/auth/AuthProvider';
-import { supabase } from '@/integrations/supabase/client';
 import { 
-  PieChart as RechartsPieChart, 
-  Pie, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
+  Card, CardContent, CardDescription, CardHeader, CardTitle 
+} from '@/components/ui/card';
+import { 
+  Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue 
+} from '@/components/ui/select';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { addDays, format, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
+import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
+
+// Cores para os gráficos
+const COLORS = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33'];
 
 interface StatusCount {
   status: string;
   count: number;
 }
 
-interface MonthlyTotal {
-  month: string;
-  total: number;
+// Define uma interface para o retorno da função de Edge Function
+interface InvoiceStatusCount {
+  status: string;
+  count: number;
 }
 
 const Relatorios = () => {
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '365d'>('30d');
+  // Estado para o filtro de usuário (admin apenas)
+  const [userFilter, setUserFilter] = useState<string>('all');
+  
+  // Estado para a data
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subMonths(new Date(), 1),
+    to: new Date()
+  });
+  
+  // Estado para os dados do gráfico
   const [statusData, setStatusData] = useState<StatusCount[]>([]);
-  const [monthlyData, setMonthlyData] = useState<MonthlyTotal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  
+  // Estado de carregamento
+  const [loading, setLoading] = useState<boolean>(true);
+  
+  // Auth context
   const { user, isAdmin } = useAuth();
 
-  // Colors for pie chart
-  const STATUS_COLORS = {
-    pendente: '#FFB547',
-    aprovado: '#10B981',
-    cancelado: '#EF4444'
-  };
-
-  // Mapping status to display names
-  const STATUS_NAMES = {
-    pendente: 'Pendente',
-    aprovado: 'Aprovado',
-    cancelado: 'Cancelado'
-  };
-
   useEffect(() => {
-    if (user) {
-      fetchReportData();
-    }
-  }, [user, timeRange, isAdmin]);
+    fetchData();
+  }, [dateRange, userFilter, user]);
 
-  const fetchReportData = async () => {
-    setLoading(true);
+  const fetchData = async () => {
+    if (!user) return;
     
     try {
-      // Calculate date range based on selection
-      const endDate = new Date();
-      const startDate = new Date();
+      setLoading(true);
+      const startDate = dateRange?.from || new Date();
+      const endDate = dateRange?.to || new Date();
       
-      switch(timeRange) {
-        case '7d':
-          startDate.setDate(endDate.getDate() - 7);
-          break;
-        case '30d':
-          startDate.setDate(endDate.getDate() - 30);
-          break;
-        case '90d':
-          startDate.setDate(endDate.getDate() - 90);
-          break;
-        case '365d':
-          startDate.setDate(endDate.getDate() - 365);
-          break;
-      }
-      
-      // Call the edge function to get the status counts
-      const { data: statusCountsData, error: statusError } = await supabase.functions.invoke('get_invoice_status_counts', {
-        body: { 
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          user_filter: !isAdmin && user ? user.id : null
+      // Use a Edge Function para buscar os dados agrupados por status
+      const { data, error } = await supabase.functions.invoke<InvoiceStatusCount[]>(
+        'get_invoice_status_counts',
+        {
+          body: {
+            start_date: format(startDate, 'yyyy-MM-dd'),
+            end_date: format(addDays(endDate, 1), 'yyyy-MM-dd'), // Add 1 day to include the end date
+            user_filter: userFilter === 'all' ? null : userFilter
+          }
         }
-      });
+      );
       
-      if (statusError) {
-        console.error('Status error:', statusError);
-        throw statusError;
+      if (error) throw error;
+      
+      if (data) {
+        setStatusData(data.map(item => ({
+          status: item.status,
+          count: item.count
+        })));
       }
-      
-      // Format status data for the pie chart
-      const formattedStatusData = statusCountsData?.map((item: any) => ({
-        status: item.status,
-        count: parseInt(item.count, 10)
-      })) || [];
-      
-      // Add missing statuses with count 0
-      const allStatuses = ['pendente', 'aprovado', 'cancelado'];
-      const existingStatuses = formattedStatusData.map((item: StatusCount) => item.status);
-      
-      allStatuses.forEach(status => {
-        if (!existingStatuses.includes(status)) {
-          formattedStatusData.push({ status, count: 0 });
-        }
-      });
-      
-      setStatusData(formattedStatusData);
       
       // Query for monthly totals (approved invoices)
       let monthlyQuery = supabase.from('faturas')
         .select('created_at, valor')
-        .filter('status', 'eq', 'aprovado')
+        .eq('status', 'aprovado')
         .gte('created_at', new Date(startDate.getFullYear(), startDate.getMonth() - 6, 1).toISOString());
         
       if (!isAdmin && user) {
-        monthlyQuery = monthlyQuery.filter('user_id', 'eq', user.id);
+        monthlyQuery = monthlyQuery.eq('user_id', user.id);
       }
       
       const { data: monthlyValues, error: monthlyError } = await monthlyQuery;
       
-      if (monthlyError) {
-        throw monthlyError;
-      }
+      if (monthlyError) throw monthlyError;
       
-      // Process monthly data
-      const monthlyMap = new Map<string, number>();
-      const now = new Date();
+      // Processa os dados mensais para o gráfico de barras
+      const months: Record<string, number> = {};
       
-      // Initialize past 6 months with 0 values
-      for (let i = 6; i >= 0; i--) {
-        const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthKey = month.toLocaleString('pt-BR', { month: 'short', year: '2-digit' });
-        monthlyMap.set(monthKey, 0);
-      }
-      
-      // Add values from database
       monthlyValues?.forEach(invoice => {
         const date = new Date(invoice.created_at);
-        const monthKey = date.toLocaleString('pt-BR', { month: 'short', year: '2-digit' });
+        const monthKey = format(date, 'yyyy-MM');
+        const monthName = format(date, 'MMM', { locale: ptBR });
         
-        if (monthlyMap.has(monthKey)) {
-          monthlyMap.set(monthKey, (monthlyMap.get(monthKey) || 0) + Number(invoice.valor));
+        if (!months[monthKey]) {
+          months[monthKey] = 0;
         }
+        
+        months[monthKey] += Number(invoice.valor);
       });
       
-      // Convert map to array for the chart
-      const formattedMonthlyData = Array.from(monthlyMap.entries()).map(([month, total]) => ({
-        month,
-        total
-      }));
+      const monthlyDataFormatted = Object.keys(months).sort().map(monthKey => {
+        const date = new Date(monthKey);
+        return {
+          month: format(date, 'MMM', { locale: ptBR }),
+          valor: months[monthKey]
+        };
+      });
       
-      setMonthlyData(formattedMonthlyData);
+      setMonthlyData(monthlyDataFormatted);
+      
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      console.error('Erro ao buscar dados para relatórios:', error);
     } finally {
       setLoading(false);
     }
   };
-
+  
+  // Função para formatar valores monetários
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -169,169 +136,135 @@ const Relatorios = () => {
     }).format(value);
   };
   
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-black/80 p-3 rounded border border-white/10 shadow-lg">
-          <p className="text-sm font-medium">Status: {STATUS_NAMES[data.status as keyof typeof STATUS_NAMES]}</p>
-          <p className="text-sm">Quantidade: {data.count}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-  
-  const CustomBarTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-black/80 p-3 rounded border border-white/10 shadow-lg">
-          <p className="text-sm font-medium">Mês: {payload[0].payload.month}</p>
-          <p className="text-sm">Total: {formatCurrency(payload[0].payload.total)}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-glow">
+          <h1 className="text-3xl font-bold tracking-tight text-glow">
             <span className="text-gradient">Relatórios</span>
           </h1>
-          <p className="text-muted-foreground">Visualize estatísticas e relatórios das suas cobranças.</p>
+          <p className="text-muted-foreground mt-1">
+            Acompanhe métricas e evolução dos seus pagamentos
+          </p>
         </div>
         
-        <div className="flex justify-between items-center">
-          <Tabs defaultValue="overview" className="w-auto">
-            <TabsList className="bg-black/20 border border-white/10">
-              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="detailed">Detalhado</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Select value={timeRange} onValueChange={(value) => setTimeRange(value as any)}>
-              <SelectTrigger className="w-[180px] bg-white/5 border-white/10">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                <SelectItem value="90d">Últimos 90 dias</SelectItem>
-                <SelectItem value="365d">Último ano</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <Tabs defaultValue="overview">
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card className="glass-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <PieChart className="h-5 w-5" />
-                    Status de Pagamentos
-                  </CardTitle>
-                  <CardDescription>
-                    Distribuição de faturas por status
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px] flex items-center justify-center">
-                    {loading ? (
-                      <p className="text-muted-foreground">Carregando dados...</p>
-                    ) : statusData.some(item => item.count > 0) ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPieChart>
-                          <Pie
-                            data={statusData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="count"
-                            nameKey="status"
-                            label={({ name, percent }) => `${STATUS_NAMES[name as keyof typeof STATUS_NAMES]} ${(percent * 100).toFixed(0)}%`}
-                          >
-                            {statusData.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={STATUS_COLORS[entry.status as keyof typeof STATUS_COLORS] || '#777777'} 
-                              />
-                            ))}
-                          </Pie>
-                          <Legend formatter={(value) => STATUS_NAMES[value as keyof typeof STATUS_NAMES]} />
-                          <Tooltip content={<CustomTooltip />} />
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <p className="text-muted-foreground">Nenhum dado disponível para o período selecionado.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Filtros */}
+          <Card className="bg-black/20 border-white/10">
+            <CardHeader>
+              <CardTitle>Filtros</CardTitle>
+              <CardDescription>Defina o período para análise</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium block mb-2">Período</label>
+                <DatePickerWithRange 
+                  date={dateRange} 
+                  setDate={setDateRange} 
+                />
+              </div>
               
-              <Card className="glass-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <BarChart3 className="h-5 w-5" />
-                    Valores Recebidos
-                  </CardTitle>
-                  <CardDescription>
-                    Total recebido por período
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px] flex items-center justify-center">
-                    {loading ? (
-                      <p className="text-muted-foreground">Carregando dados...</p>
-                    ) : monthlyData.some(item => item.total > 0) ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={monthlyData}
-                          margin={{
-                            top: 20,
-                            right: 30,
-                            left: 20,
-                            bottom: 5,
-                          }}
-                        >
-                          <XAxis dataKey="month" />
-                          <YAxis 
-                            tickFormatter={(value) => formatCurrency(value).replace('R$', '')}
-                            width={50}
-                          />
-                          <Tooltip content={<CustomBarTooltip />} />
-                          <Bar dataKey="total" fill="#10B981" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <p className="text-muted-foreground">Nenhum dado disponível para o período selecionado.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+              {isAdmin && (
+                <div>
+                  <label className="text-sm font-medium block mb-2">Usuário</label>
+                  <Select 
+                    value={userFilter} 
+                    onValueChange={setUserFilter}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10">
+                      <SelectValue placeholder="Selecione um usuário" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-pagora-dark border-white/10">
+                      <SelectGroup>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {/* Idealmente aqui teria uma lista de usuários */}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </CardContent>
+          </Card>
           
-          <TabsContent value="detailed" className="space-y-6">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Relatórios Detalhados</CardTitle>
-                <CardDescription>Relatórios exportáveis e análises detalhadas estarão disponíveis em breve.</CardDescription>
-              </CardHeader>
-              <CardContent className="h-64 flex items-center justify-center">
-                <p className="text-muted-foreground">Funcionalidade em desenvolvimento. Disponível em breve.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          {/* Status Chart */}
+          <Card className="bg-black/20 border-white/10">
+            <CardHeader>
+              <CardTitle>Status das Faturas</CardTitle>
+              <CardDescription>Distribuição dos status de pagamento</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <p>Carregando dados...</p>
+                </div>
+              ) : statusData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="count"
+                      nameKey="status"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <Tooltip formatter={(value) => [`${value} faturas`, 'Quantidade']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex justify-center items-center h-64">
+                  <p>Não há dados para o período selecionado</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Monthly Chart */}
+        <Card className="bg-black/20 border-white/10">
+          <CardHeader>
+            <CardTitle>Faturamento Mensal</CardTitle>
+            <CardDescription>Valores recebidos por mês</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <p>Carregando dados...</p>
+              </div>
+            ) : monthlyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={monthlyData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={tick => formatCurrency(tick)} />
+                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Valor']} />
+                  <Legend />
+                  <Bar dataKey="valor" fill="#8884d8" name="Valor recebido" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex justify-center items-center h-64">
+                <p>Não há dados para o período selecionado</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );

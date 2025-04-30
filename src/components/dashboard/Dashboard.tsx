@@ -41,11 +41,11 @@ export function Dashboard() {
       
       try {
         setLoading(true);
-        let query = supabase.from('faturas');
+        let query = supabase.from('faturas').select('*');
         
         // If not admin, only show user's own invoices
         if (!isAdmin) {
-          query = query.filter('user_id', 'eq', user.id);
+          query = query.eq('user_id', user.id);
         }
         
         const {
@@ -57,14 +57,14 @@ export function Dashboard() {
         });
         
         // Apply similar user filtering to other queries
-        let pendingQuery = supabase.from('faturas').filter('status', 'eq', 'pendente');
-        let approvedQuery = supabase.from('faturas').filter('status', 'eq', 'aprovado');
-        let approvedValueQuery = supabase.from('faturas').filter('status', 'eq', 'aprovado');
+        let pendingQuery = supabase.from('faturas').select('*').eq('status', 'pendente');
+        let approvedQuery = supabase.from('faturas').select('*').eq('status', 'aprovado');
+        let approvedValueQuery = supabase.from('faturas').select('valor').eq('status', 'aprovado');
         
         if (!isAdmin) {
-          pendingQuery = pendingQuery.filter('user_id', 'eq', user.id);
-          approvedQuery = approvedQuery.filter('user_id', 'eq', user.id);
-          approvedValueQuery = approvedValueQuery.filter('user_id', 'eq', user.id);
+          pendingQuery = pendingQuery.eq('user_id', user.id);
+          approvedQuery = approvedQuery.eq('user_id', user.id);
+          approvedValueQuery = approvedValueQuery.eq('user_id', user.id);
         }
         
         const {
@@ -84,7 +84,7 @@ export function Dashboard() {
         const {
           data: faturasAprovadas,
           error: errorValor
-        } = await approvedValueQuery.select('valor');
+        } = await approvedValueQuery;
         
         if (errorTotal || errorPendentes || errorAprovadas || errorValor) throw new Error();
         
@@ -125,11 +125,11 @@ export function Dashboard() {
     if (!user) return;
     
     try {
-      let query = supabase.from('clients');
+      let query = supabase.from('clients').select('*');
       
       // If not admin, only show user's own clients
       if (!isAdmin) {
-        query = query.filter('user_id', 'eq', user.id);
+        query = query.eq('user_id', user.id);
       }
       
       const { data, error } = await query.order('nome');

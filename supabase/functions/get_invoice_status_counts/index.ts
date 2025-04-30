@@ -32,7 +32,7 @@ serve(async (req) => {
     // Parse the request body
     const { start_date, end_date, user_filter } = await req.json()
 
-    // Build the query
+    // Build the query with date range
     let query = supabaseClient
       .from('faturas')
       .select('status, count(*)', { count: 'exact', head: false })
@@ -41,11 +41,12 @@ serve(async (req) => {
 
     // Apply user filter if needed
     if (user_filter) {
-      query = query.filter('user_id', 'eq', user_filter)
+      query = query.eq('user_id', user_filter)
     }
 
-    // Execute the query with group by clause
-    const { data, error } = await query.group('status')
+    // Execute the query with group by
+    const { data, error } = await query.select('status, count')
+      .groupBy('status')
 
     if (error) {
       throw error
