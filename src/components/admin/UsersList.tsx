@@ -66,19 +66,36 @@ export function UsersList({ onUpdate }: UsersListProps) {
         .select('*');
       
       // Get users with auth data and profiles combined
-      const usersWithData = profiles.map((profile) => {
-        // Check if user is admin
-        const isAdmin = roles?.some(role => 
-          role.user_id === profile.id && role.role === 'admin'
-        ) || false;
-        
-        return {
-          ...profile,
-          email: profile.id, // In a real app, we would get this from auth.users
-          is_admin: isAdmin,
-          phone: profile.phone || ''
-        };
-      });
+      const usersWithData = [];
+      
+      // Need to fetch each user's email using their ID
+      for (const profile of profiles) {
+        try {
+          // Use admin API to get user details by ID
+          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+          
+          // Check if user is admin
+          const isAdmin = roles?.some(role => 
+            role.user_id === profile.id && role.role === 'admin'
+          ) || false;
+          
+          usersWithData.push({
+            ...profile,
+            email: authUser?.user?.email || profile.id, // Use email from auth or fallback to ID
+            is_admin: isAdmin,
+            phone: profile.phone || ''
+          });
+        } catch (error) {
+          console.error(`Error fetching user ${profile.id}:`, error);
+          // Fallback to using the ID as the email
+          usersWithData.push({
+            ...profile,
+            email: profile.id,
+            is_admin: roles?.some(role => role.user_id === profile.id && role.role === 'admin') || false,
+            phone: profile.phone || ''
+          });
+        }
+      }
       
       setUsers(usersWithData);
     } catch (error) {
@@ -206,7 +223,7 @@ export function UsersList({ onUpdate }: UsersListProps) {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
+                <TableHead>WhatsApp</TableHead>
                 <TableHead>Data de Criação</TableHead>
                 <TableHead>Admin</TableHead>
                 <TableHead>Ações</TableHead>
@@ -297,7 +314,7 @@ export function UsersList({ onUpdate }: UsersListProps) {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
+              <Label htmlFor="phone">WhatsApp</Label>
               <Input 
                 id="phone" 
                 type="tel"
