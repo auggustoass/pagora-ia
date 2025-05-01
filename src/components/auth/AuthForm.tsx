@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-
 export function AuthForm() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -17,17 +15,16 @@ export function AuthForm() {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const {
+        error
+      } = await supabase.auth.signInWithPassword({
         email,
         password
       });
-      
       if (error) {
         toast.error(error.message);
       } else {
@@ -41,13 +38,13 @@ export function AuthForm() {
       setLoading(false);
     }
   };
-  
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
-      const { error } = await supabase.auth.signUp({
+      const {
+        error
+      } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -58,7 +55,6 @@ export function AuthForm() {
           }
         }
       });
-      
       if (error) {
         toast.error(error.message);
       } else {
@@ -76,11 +72,9 @@ export function AuthForm() {
       setLoading(false);
     }
   };
-
-  return (
-    <Card className="glass-card w-full max-w-md mx-auto">
+  return <Card className="glass-card w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl text-center">PAGORA</CardTitle>
+        <CardTitle className="text-2xl text-center">HBLACKPIX</CardTitle>
         <CardDescription className="text-center">
           Assistente de Cobrança Inteligente
         </CardDescription>
@@ -97,14 +91,7 @@ export function AuthForm() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="seu@email.com" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+                <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
               </div>
               
               <div className="space-y-2">
@@ -114,13 +101,7 @@ export function AuthForm() {
                     Esqueceu a senha?
                   </a>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
               </div>
               
               <Button type="submit" className="w-full pagora-gradient" disabled={loading}>
@@ -136,58 +117,28 @@ export function AuthForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Nome</Label>
-                  <Input 
-                    id="firstName" 
-                    value={firstName} 
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                  />
+                  <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} required />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Sobrenome</Label>
-                  <Input 
-                    id="lastName" 
-                    value={lastName} 
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                  />
+                  <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} required />
                 </div>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="signupEmail">Email</Label>
-                <Input 
-                  id="signupEmail" 
-                  type="email" 
-                  placeholder="seu@email.com" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+                <Input id="signupEmail" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="whatsapp">WhatsApp</Label>
-                <Input 
-                  id="whatsapp" 
-                  type="tel" 
-                  placeholder="+5511999999999" 
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                />
+                <Input id="whatsapp" type="tel" placeholder="+5511999999999" value={phone} onChange={e => setPhone(e.target.value)} required />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="signupPassword">Senha</Label>
-                <Input 
-                  id="signupPassword" 
-                  type="password" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <Input id="signupPassword" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
               </div>
               
               <Button type="submit" className="w-full pagora-gradient" disabled={loading}>
@@ -203,6 +154,5 @@ export function AuthForm() {
           Ao continuar, você concorda com nossos Termos de Serviço e Política de Privacidade
         </p>
       </CardFooter>
-    </Card>
-  );
+    </Card>;
 }
