@@ -6,6 +6,10 @@ import { toast } from 'sonner';
 export class UsersService {
   static async fetchUsers(filters?: UserFilters): Promise<User[]> {
     try {
+      // Get user auth data to match email with profile
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      
       // First get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -28,9 +32,19 @@ export class UsersService {
           role.user_id === profile.id && role.role === 'admin'
         ) || false;
         
+        // Get the user's email
+        let email = "";
+        
+        // If it's the current user, we know the email
+        if (profile.id === authData?.user?.id) {
+          email = authData.user.email || "";
+        } else {
+          email = `user-${profile.id.substring(0, 8)}@pagora.app`;
+        }
+        
         usersWithData.push({
           ...profile,
-          email: profile.id, // Use ID as email (as per the user's requirement)
+          email: email,
           is_admin: isAdmin,
           phone: profile.phone || ''
         });

@@ -15,6 +15,7 @@ export function AuthForm() {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -52,7 +53,8 @@ export function AuthForm() {
         options: {
           data: {
             first_name: firstName,
-            last_name: lastName
+            last_name: lastName,
+            phone: phone // Store phone in user metadata
           }
         }
       });
@@ -65,6 +67,7 @@ export function AuthForm() {
         setPassword('');
         setFirstName('');
         setLastName('');
+        setPhone('');
       }
     } catch (error) {
       toast.error('Erro ao criar conta');
@@ -160,6 +163,18 @@ export function AuthForm() {
                   placeholder="seu@email.com" 
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <Input 
+                  id="whatsapp" 
+                  type="tel" 
+                  placeholder="+5511999999999" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)}
                   required
                 />
               </div>
