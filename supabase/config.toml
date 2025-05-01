@@ -1,30 +1,13 @@
 
-# This file is used by Supabase CLI to configure your project.
+# This file defines configurations for your Supabase project
+
 project_id = "otxdnlfikoiafqshlydu"
 
-[api]
-# Port for the API server
-port = 54321
-# Enable debugging
-debug = false
-
-[db]
-# Database port
-port = 54322
-# Database system user
-system_user = "postgres"
-# Type of storage ("local" or "remote")
-storage = "local"
-
-[studio]
-# Studio port
-port = 54323
-# Whether to open the browser automatically
-browser_open = false
-
-[auth]
-# Disable email confirmations
-enable_confirmations = false
-
-[functions.get_invoice_status_counts]
+[functions.create-subscription]
 verify_jwt = true
+
+[functions.process-payment-webhook]
+verify_jwt = false
+
+[functions.verify-subscriptions]
+verify_jwt = false

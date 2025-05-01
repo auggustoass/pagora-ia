@@ -200,11 +200,64 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          payment_date: string | null
+          payment_id: string | null
+          plan_id: string
+          status: string
+          subscription_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          payment_date?: string | null
+          payment_id?: string | null
+          plan_id: string
+          status: string
+          subscription_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          payment_date?: string | null
+          payment_id?: string | null
+          plan_id?: string
+          status?: string
+          subscription_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
           end_date: string | null
           id: string
+          mercado_pago_subscription_id: string | null
+          payment_status: string | null
           plan_id: string
           start_date: string
           status: string
@@ -216,6 +269,8 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          mercado_pago_subscription_id?: string | null
+          payment_status?: string | null
           plan_id: string
           start_date?: string
           status?: string
@@ -227,6 +282,8 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          mercado_pago_subscription_id?: string | null
+          payment_status?: string | null
           plan_id?: string
           start_date?: string
           status?: string

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 import { toast } from 'sonner';
@@ -19,7 +19,7 @@ interface Plan {
 export function PricingPlans() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [subscribing, setSubscribing] = useState(false);
+  const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -60,33 +60,83 @@ export function PricingPlans() {
       return;
     }
     
-    setSubscribing(true);
+    setProcessingPlanId(planId);
     
     try {
+      // First, create a trial subscription in our database
+      const { data: existingSubscription } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'trial')
+        .single();
+        
+      if (existingSubscription) {
+        // User already has a trial subscription, redirect to checkout
+        await createMercadoPagoSubscription(existingSubscription.id, planId);
+        return;
+      }
+      
       // Calculate trial end date (30 days from now)
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 30);
       
-      const { error } = await supabase
+      const { data: subscription, error } = await supabase
         .from('subscriptions')
         .insert({
           user_id: user.id,
           plan_id: planId,
           status: 'trial',
           trial_ends_at: trialEndsAt.toISOString()
-        });
+        })
+        .select()
+        .single();
         
       if (error) {
         throw error;
       }
       
-      toast.success('Plano assinado com sucesso! Aproveite seus 30 dias grátis.');
-      navigate('/');
+      // Now create the Mercado Pago subscription
+      await createMercadoPagoSubscription(subscription.id, planId);
+      
     } catch (error: any) {
       console.error('Error subscribing to plan:', error);
       toast.error(`Erro ao assinar plano: ${error.message || 'Tente novamente mais tarde'}`);
-    } finally {
-      setSubscribing(false);
+      setProcessingPlanId(null);
+    }
+  }
+  
+  async function createMercadoPagoSubscription(subscriptionId: string, planId: string) {
+    try {
+      const { data: authData } = await supabase.auth.getSession();
+      if (!authData.session) {
+        throw new Error('Sessão expirada');
+      }
+      
+      // Call our edge function to create the Mercado Pago subscription
+      const response = await supabase.functions.invoke('create-subscription', {
+        body: {
+          planId,
+          userId: user!.id,
+          token: authData.session.access_token
+        },
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Falha ao processar assinatura');
+      }
+      
+      if (response.data.checkout_url) {
+        // Redirect to Mercado Pago checkout
+        window.location.href = response.data.checkout_url;
+      } else {
+        throw new Error('URL de checkout não recebida');
+      }
+      
+    } catch (error: any) {
+      console.error('Error creating Mercado Pago subscription:', error);
+      toast.error(`Erro ao configurar pagamento: ${error.message || 'Tente novamente mais tarde'}`);
+      setProcessingPlanId(null);
     }
   }
 
@@ -132,6 +182,7 @@ export function PricingPlans() {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {plans.map((plan) => {
         const colorScheme = getPlanColorScheme(plan.name);
+        const isProcessing = processingPlanId === plan.id;
         
         return (
           <Card key={plan.id} className="glass-card flex flex-col hover-float relative overflow-hidden">
@@ -170,9 +221,16 @@ export function PricingPlans() {
               <Button 
                 onClick={() => handleSubscribe(plan.id)} 
                 className={`w-full bg-gradient-to-r ${colorScheme.gradientClass} ${colorScheme.hoverClass}`}
-                disabled={subscribing}
+                disabled={isProcessing}
               >
-                Começar Teste Gratuito
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  'Começar Teste Gratuito'
+                )}
               </Button>
             </CardFooter>
           </Card>

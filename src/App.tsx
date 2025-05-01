@@ -18,6 +18,8 @@ import Ajuda from "./pages/Ajuda";
 import Auth from "./pages/Auth";
 import Planos from "./pages/Planos";
 import Admin from "./pages/Admin";
+import PlanosObrigado from "./pages/PlanosObrigado";
+import ConfiguracoesAssinatura from "./pages/ConfiguracoesAssinatura";
 
 const queryClient = new QueryClient();
 
@@ -58,12 +60,18 @@ const App = () => (
                   <Configuracoes />
                 </RequireAuth>
               } />
+              <Route path="/configuracoes/assinatura" element={
+                <RequireAuth>
+                  <ConfiguracoesAssinatura />
+                </RequireAuth>
+              } />
               <Route path="/ajuda" element={
                 <RequireAuth>
                   <Ajuda />
                 </RequireAuth>
               } />
               <Route path="/planos" element={<Planos />} />
+              <Route path="/planos/obrigado" element={<PlanosObrigado />} />
               <Route path="/admin" element={<Admin />} />
               
               {/* 404 route */}
