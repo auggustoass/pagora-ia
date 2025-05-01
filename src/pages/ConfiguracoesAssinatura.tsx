@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
 
 const ConfiguracoesAssinatura = () => {
   const { user } = useAuth();
@@ -40,10 +41,15 @@ const ConfiguracoesAssinatura = () => {
         toast({
           title: 'Configuração necessária',
           description: 'Configure suas credenciais do Mercado Pago para ativar os pagamentos',
-          action: {
-            label: 'Configurar',
-            onClick: () => navigate('/configuracoes')
-          },
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/configuracoes')}
+            >
+              Configurar
+            </Button>
+          ),
           duration: 10000,
         });
       }
