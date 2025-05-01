@@ -30,6 +30,7 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
+  phone: string;
   created_at: string;
   is_admin: boolean;
 }
@@ -59,27 +60,25 @@ export function UsersList({ onUpdate }: UsersListProps) {
       
       if (profilesError) throw profilesError;
       
-      // Then get all user emails from auth (we need to use a custom function or endpoint for this in production)
-      // For this demo, we'll simulate with some dummy data
+      // Then get all user roles
       const { data: roles } = await supabase
         .from('user_roles')
         .select('*');
       
       // Get users with auth data and profiles combined
-      const usersWithData = await Promise.all(
-        profiles.map(async (profile) => {
-          // Check if user is admin
-          const isAdmin = roles?.some(role => 
-            role.user_id === profile.id && role.role === 'admin'
-          ) || false;
-          
-          return {
-            ...profile,
-            email: profile.id, // In a real app, we would get this from auth
-            is_admin: isAdmin
-          };
-        })
-      );
+      const usersWithData = profiles.map((profile) => {
+        // Check if user is admin
+        const isAdmin = roles?.some(role => 
+          role.user_id === profile.id && role.role === 'admin'
+        ) || false;
+        
+        return {
+          ...profile,
+          email: profile.id, // In a real app, we would get this from auth.users
+          is_admin: isAdmin,
+          phone: profile.phone || ''
+        };
+      });
       
       setUsers(usersWithData);
     } catch (error) {
@@ -112,7 +111,8 @@ export function UsersList({ onUpdate }: UsersListProps) {
           .from('profiles')
           .update({
             first_name: currentUser.first_name,
-            last_name: currentUser.last_name
+            last_name: currentUser.last_name,
+            phone: currentUser.phone
           })
           .eq('id', currentUser.id);
 
@@ -206,6 +206,7 @@ export function UsersList({ onUpdate }: UsersListProps) {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Telefone</TableHead>
                 <TableHead>Data de Criação</TableHead>
                 <TableHead>Admin</TableHead>
                 <TableHead>Ações</TableHead>
@@ -214,7 +215,7 @@ export function UsersList({ onUpdate }: UsersListProps) {
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell colSpan={6} className="text-center">
                     Nenhum usuário encontrado
                   </TableCell>
                 </TableRow>
@@ -223,6 +224,7 @@ export function UsersList({ onUpdate }: UsersListProps) {
                   <TableRow key={user.id}>
                     <TableCell>{`${user.first_name || ''} ${user.last_name || ''}`}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phone || '-'}</TableCell>
                     <TableCell>
                       {user.created_at ? format(new Date(user.created_at), 'dd/MM/yyyy') : 'N/A'}
                     </TableCell>
@@ -294,6 +296,15 @@ export function UsersList({ onUpdate }: UsersListProps) {
                 />
               </div>
             )}
+            <div className="space-y-2">
+              <Label htmlFor="phone">Telefone</Label>
+              <Input 
+                id="phone" 
+                type="tel"
+                value={currentUser?.phone || ''} 
+                onChange={(e) => setCurrentUser({ ...currentUser, phone: e.target.value })}
+              />
+            </div>
             <div className="flex items-center space-x-2">
               <Switch
                 id="admin"
