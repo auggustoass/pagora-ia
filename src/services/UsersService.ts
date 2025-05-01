@@ -21,33 +21,19 @@ export class UsersService {
       // Get users with auth data and profiles combined
       let usersWithData: User[] = [];
       
-      // Need to fetch each user's email using their ID
+      // For each profile, create a user with the profile data
       for (const profile of profiles) {
-        try {
-          // Use admin API to get user details by ID
-          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
-          
-          // Check if user is admin
-          const isAdmin = roles?.some(role => 
-            role.user_id === profile.id && role.role === 'admin'
-          ) || false;
-          
-          usersWithData.push({
-            ...profile,
-            email: authUser?.user?.email || profile.id, // Use email from auth or fallback to ID
-            is_admin: isAdmin,
-            phone: profile.phone || ''
-          });
-        } catch (error) {
-          console.error(`Error fetching user ${profile.id}:`, error);
-          // Fallback to using the ID as the email
-          usersWithData.push({
-            ...profile,
-            email: profile.id,
-            is_admin: roles?.some(role => role.user_id === profile.id && role.role === 'admin') || false,
-            phone: profile.phone || ''
-          });
-        }
+        // Check if user is admin
+        const isAdmin = roles?.some(role => 
+          role.user_id === profile.id && role.role === 'admin'
+        ) || false;
+        
+        usersWithData.push({
+          ...profile,
+          email: profile.id, // Use ID as email (as per the user's requirement)
+          is_admin: isAdmin,
+          phone: profile.phone || ''
+        });
       }
       
       // Apply filters if provided
