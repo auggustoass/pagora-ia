@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Bell, CreditCard, MessageSquare, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -113,8 +112,7 @@ export function Header() {
                 <div className="w-full mt-1">
                   <Progress 
                     value={Math.max(0, Math.min(100, ((30 - daysLeftInTrial) / 30) * 100))}
-                    className="h-1"
-                    indicatorClassName={isDangerZone ? "bg-yellow-400" : "bg-blue-400"}
+                    className={`h-1 ${isDangerZone ? "bg-yellow-400" : "bg-blue-400"}`}
                   />
                 </div>
               )}

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -403,8 +402,7 @@ export function SubscriptionDetails() {
                 </div>
                 <Progress 
                   value={trialProgress} 
-                  className="h-2" 
-                  indicatorClassName={daysLeft <= 3 ? "bg-red-500" : "bg-blue-500"} 
+                  className={`h-2 ${daysLeft <= 3 ? "bg-red-500" : "bg-blue-500"}`}
                 />
                 
                 <Alert className={`mt-4 ${daysLeft <= 3 ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-blue-500/10 border-blue-500/20 text-blue-500'}`}>

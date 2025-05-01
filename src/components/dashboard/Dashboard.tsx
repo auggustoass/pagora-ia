@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle, AlertTitle, AlertDescription, Link } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { InvoiceTable } from './InvoiceTable';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,8 @@ import { InvoiceForm } from '../forms/InvoiceForm';
 import { ClientEditForm } from '../forms/ClientEditForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 
 interface Client {
   id: string;
