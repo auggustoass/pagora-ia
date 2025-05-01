@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress'; 
 import { 
   Dialog, 
   DialogContent, 
@@ -25,6 +26,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
+import { useNavigate } from 'react-router-dom';
 
 interface Subscription {
   id: string;
@@ -53,8 +55,11 @@ export function SubscriptionDetails() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [renewDialogOpen, setRenewDialogOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -74,9 +79,9 @@ export function SubscriptionDetails() {
         .in('status', ['active', 'trial'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
         
-      if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+      if (subscriptionError) {
         throw subscriptionError;
       }
       
@@ -150,6 +155,47 @@ export function SubscriptionDetails() {
       setCancelling(false);
     }
   }
+  
+  async function handleRenewSubscription() {
+    if (!subscription || !user) return;
+    
+    try {
+      setProcessing(true);
+      
+      const { data: authData } = await supabase.auth.getSession();
+      if (!authData.session) {
+        throw new Error('Sessão expirada');
+      }
+      
+      // Call our edge function to create/renew Mercado Pago subscription
+      const response = await supabase.functions.invoke('create-subscription', {
+        body: {
+          planId: subscription.plans.id,
+          userId: user.id,
+          token: authData.session.access_token
+        },
+      });
+      
+      if (response.error) {
+        console.error('Error from edge function:', response.error);
+        throw new Error(response.error.message || 'Falha ao processar pagamento');
+      }
+      
+      if (response.data.checkout_url) {
+        // Redirect to Mercado Pago checkout
+        window.location.href = response.data.checkout_url;
+      } else {
+        throw new Error('URL de checkout não recebida');
+      }
+      
+    } catch (error: any) {
+      console.error('Error renewing subscription:', error);
+      toast.error(`Erro ao renovar assinatura: ${error.message || 'Verifique suas credenciais do Mercado Pago em Configurações'}`);
+    } finally {
+      setProcessing(false);
+      setRenewDialogOpen(false);
+    }
+  }
 
   function getStatusColor(status: string) {
     switch (status) {
@@ -207,6 +253,32 @@ export function SubscriptionDetails() {
     if (!date) return '-';
     return format(new Date(date), 'dd/MM/yyyy');
   }
+  
+  function getDaysLeft(trialEndsAt: string | null): number {
+    if (!trialEndsAt) return 0;
+    const endDate = new Date(trialEndsAt);
+    const today = new Date();
+    const diffTime = endDate.getTime() - today.getTime();
+    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+  }
+  
+  function getTrialProgress(trialEndsAt: string | null): number {
+    if (!trialEndsAt) return 0;
+    // Assuming trial period is 30 days
+    const daysLeft = getDaysLeft(trialEndsAt);
+    const progress = Math.max(0, Math.min(100, ((30 - daysLeft) / 30) * 100));
+    return progress;
+  }
+  
+  function needsRenewal(): boolean {
+    if (!subscription) return false;
+    
+    if (subscription.status === 'trial' && subscription.trial_ends_at) {
+      return getDaysLeft(subscription.trial_ends_at) <= 3;
+    }
+    
+    return false;
+  }
 
   if (loading) {
     return (
@@ -234,7 +306,7 @@ export function SubscriptionDetails() {
               Assine um plano para acessar todas as funcionalidades.
             </p>
             <Button 
-              onClick={() => window.location.href = '/planos'} 
+              onClick={() => navigate('/planos')} 
               className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80"
             >
               Ver Planos
@@ -244,6 +316,9 @@ export function SubscriptionDetails() {
       </Card>
     );
   }
+
+  const daysLeft = getDaysLeft(subscription.trial_ends_at);
+  const trialProgress = getTrialProgress(subscription.trial_ends_at);
 
   return (
     <div className="space-y-6">
@@ -316,21 +391,62 @@ export function SubscriptionDetails() {
               )}
             </div>
             
-            {subscription.status === 'trial' && (
-              <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-500">
-                <Clock className="h-5 w-5" />
-                <AlertTitle>Período de Teste</AlertTitle>
-                <AlertDescription>
-                  Você está no período de teste gratuito. 
-                  {subscription.trial_ends_at && 
-                    ` Após ${formatDate(subscription.trial_ends_at)}, você será cobrado automaticamente.`
-                  }
-                </AlertDescription>
-              </Alert>
+            {subscription.status === 'trial' && subscription.trial_ends_at && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">
+                    Período de teste: {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} restantes
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {Math.floor(trialProgress)}%
+                  </span>
+                </div>
+                <Progress 
+                  value={trialProgress} 
+                  className="h-2" 
+                  indicatorClassName={daysLeft <= 3 ? "bg-red-500" : "bg-blue-500"} 
+                />
+                
+                <Alert className={`mt-4 ${daysLeft <= 3 ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-blue-500/10 border-blue-500/20 text-blue-500'}`}>
+                  <Clock className="h-5 w-5" />
+                  <AlertTitle>
+                    {daysLeft <= 3 ? 'Atenção: Seu período de teste está acabando!' : 'Período de Teste Ativo'}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {daysLeft <= 3 
+                      ? `Seu período de teste termina em ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}. Adicione um método de pagamento para continuar usando o sistema sem interrupções.`
+                      : `Você está no período de teste gratuito. Após ${formatDate(subscription.trial_ends_at)}, você precisará configurar um método de pagamento.`
+                    }
+                  </AlertDescription>
+                </Alert>
+                
+                {daysLeft <= 3 && (
+                  <div className="mt-4 flex justify-end">
+                    <Button 
+                      onClick={() => setRenewDialogOpen(true)}
+                      className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80"
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" /> 
+                      Configurar Pagamento
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
             
-            {(subscription.status === 'active' || subscription.status === 'trial') && (
-              <div className="flex justify-end pt-4">
+            <div className="flex flex-wrap justify-end gap-4 pt-4">
+              {subscription.status === 'active' && (
+                <Button 
+                  variant="outline"
+                  className="text-muted-foreground border-white/10 hover:bg-white/10"
+                  onClick={() => navigate('/configuracoes')}
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Gerenciar Pagamento
+                </Button>
+              )}
+              
+              {(subscription.status === 'active' || subscription.status === 'trial') && (
                 <Button 
                   variant="outline"
                   className="text-red-500 border-red-500 hover:bg-red-500/10"
@@ -338,8 +454,8 @@ export function SubscriptionDetails() {
                 >
                   Cancelar Assinatura
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -422,6 +538,54 @@ export function SubscriptionDetails() {
                 </>
               ) : (
                 'Confirmar Cancelamento'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Renew Subscription Dialog */}
+      <Dialog open={renewDialogOpen} onOpenChange={setRenewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurar Pagamento</DialogTitle>
+            <DialogDescription>
+              Para continuar utilizando o sistema após o período de teste, é necessário configurar um método de pagamento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-500">
+              <CreditCard className="h-5 w-5" />
+              <AlertTitle>Importante</AlertTitle>
+              <AlertDescription>
+                Você será redirecionado para o Mercado Pago para completar o processo de pagamento.
+                Certifique-se de configurar suas credenciais do Mercado Pago em Configurações primeiro.
+              </AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/configuracoes')}
+              disabled={processing}
+            >
+              Ir para Configurações
+            </Button>
+            <Button 
+              onClick={handleRenewSubscription}
+              disabled={processing}
+              className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80"
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Configurar Pagamento
+                </>
               )}
             </Button>
           </DialogFooter>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, CheckCircle, Wallet, Search, UserCog } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle, AlertTitle, AlertDescription, Link } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { InvoiceTable } from './InvoiceTable';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { InvoiceForm } from '../forms/InvoiceForm';
 import { ClientEditForm } from '../forms/ClientEditForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert } from '@/components/ui/alert';
 
 interface Client {
   id: string;
@@ -33,73 +34,94 @@ export function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
+  const [showTrialAlert, setShowTrialAlert] = useState(false);
+  const [trialDaysLeft, setTrialDaysLeft] = useState(0);
   const { user, isAdmin } = useAuth();
   
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) return;
-      
-      try {
-        setLoading(true);
-        let query = supabase.from('faturas').select('*', { count: 'exact' });
-        
-        // If not admin, only show user's own invoices
-        if (!isAdmin) {
-          query = query.eq('user_id', user.id);
-        }
-        
-        const { data, count: total, error: errorTotal } = await query;
-        
-        // Apply similar user filtering to other queries
-        let pendingQuery = supabase.from('faturas').select('*', { count: 'exact' }).eq('status', 'pendente');
-        let approvedQuery = supabase.from('faturas').select('*', { count: 'exact' }).eq('status', 'aprovado');
-        let approvedValueQuery = supabase.from('faturas').select('valor').eq('status', 'aprovado');
-        
-        if (!isAdmin) {
-          pendingQuery = pendingQuery.eq('user_id', user.id);
-          approvedQuery = approvedQuery.eq('user_id', user.id);
-          approvedValueQuery = approvedValueQuery.eq('user_id', user.id);
-        }
-        
-        const { count: pendentes, error: errorPendentes } = await pendingQuery;
-        const { count: aprovadas, error: errorAprovadas } = await approvedQuery;
-        const { data: faturasAprovadas, error: errorValor } = await approvedValueQuery;
-        
-        if (errorTotal || errorPendentes || errorAprovadas || errorValor) throw new Error();
-        
-        const totalRecebido = faturasAprovadas?.reduce((sum, item) => sum + Number(item.valor), 0) || 0;
-        
-        setStats({
-          total: total || 0,
-          pendentes: pendentes || 0,
-          aprovadas: aprovadas || 0,
-          totalRecebido
-        });
-        
-        // Fetch clients for the clients tab
-        await fetchClients();
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchStats();
-    
-    const subscription = supabase.channel('table-db-changes').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'faturas'
-    }, () => {
+    if (user) {
       fetchStats();
-    }).subscribe();
-    
-    return () => {
-      subscription.unsubscribe();
-    };
+      checkTrialStatus();
+    }
   }, [user, isAdmin]);
+  
+  async function checkTrialStatus() {
+    try {
+      const { data: subscription, error } = await supabase
+        .from('subscriptions')
+        .select('trial_ends_at, status')
+        .eq('user_id', user!.id)
+        .eq('status', 'trial')
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error fetching trial status:', error);
+        return;
+      }
+      
+      if (subscription && subscription.trial_ends_at) {
+        const endDate = new Date(subscription.trial_ends_at);
+        const today = new Date();
+        const diffTime = endDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        setTrialDaysLeft(diffDays);
+        setShowTrialAlert(diffDays <= 5);
+      }
+    } catch (error) {
+      console.error('Error checking trial status:', error);
+    }
+  }
 
+  const fetchStats = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      let query = supabase.from('faturas').select('*', { count: 'exact' });
+      
+      // If not admin, only show user's own invoices
+      if (!isAdmin) {
+        query = query.eq('user_id', user.id);
+      }
+      
+      const { data, count: total, error: errorTotal } = await query;
+      
+      // Apply similar user filtering to other queries
+      let pendingQuery = supabase.from('faturas').select('*', { count: 'exact' }).eq('status', 'pendente');
+      let approvedQuery = supabase.from('faturas').select('*', { count: 'exact' }).eq('status', 'aprovado');
+      let approvedValueQuery = supabase.from('faturas').select('valor').eq('status', 'aprovado');
+      
+      if (!isAdmin) {
+        pendingQuery = pendingQuery.eq('user_id', user.id);
+        approvedQuery = approvedQuery.eq('user_id', user.id);
+        approvedValueQuery = approvedValueQuery.eq('user_id', user.id);
+      }
+      
+      const { count: pendentes, error: errorPendentes } = await pendingQuery;
+      const { count: aprovadas, error: errorAprovadas } = await approvedQuery;
+      const { data: faturasAprovadas, error: errorValor } = await approvedValueQuery;
+      
+      if (errorTotal || errorPendentes || errorAprovadas || errorValor) throw new Error();
+      
+      const totalRecebido = faturasAprovadas?.reduce((sum, item) => sum + Number(item.valor), 0) || 0;
+      
+      setStats({
+        total: total || 0,
+        pendentes: pendentes || 0,
+        aprovadas: aprovadas || 0,
+        totalRecebido
+      });
+      
+      // Fetch clients for the clients tab
+      await fetchClients();
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const fetchClients = async () => {
     if (!user) return;
     
@@ -188,6 +210,22 @@ export function Dashboard() {
           </Dialog>
         </div>
       </div>
+      
+      {/* Trial Alert Banner */}
+      {showTrialAlert && trialDaysLeft > 0 && (
+        <Alert className={`${trialDaysLeft <= 3 ? 'bg-red-500/10 border-red-500/20' : 'bg-yellow-500/10 border-yellow-500/20'}`}>
+          <AlertCircle className={`h-5 w-5 ${trialDaysLeft <= 3 ? 'text-red-500' : 'text-yellow-500'}`} />
+          <AlertTitle className={trialDaysLeft <= 3 ? 'text-red-500' : 'text-yellow-500'}>
+            Seu período de teste está acabando!
+          </AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            Restam apenas {trialDaysLeft} {trialDaysLeft === 1 ? 'dia' : 'dias'} do seu período de teste. 
+            <Link to="/configuracoes/assinatura" className="ml-1 underline">
+              Configure seu método de pagamento agora
+            </Link> para evitar a interrupção do serviço.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatusCard 
