@@ -81,7 +81,7 @@ export function AuthForm() {
       </CardHeader>
       
       <Tabs defaultValue="login" className="w-full">
-        <TabsList className="grid w-full">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="login">Login</TabsTrigger>
           <TabsTrigger value="signup">Cadastro</TabsTrigger>
         </TabsList>
