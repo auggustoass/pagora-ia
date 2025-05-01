@@ -8,3 +8,8 @@ export interface User {
   created_at: string;
   is_admin: boolean;
 }
+
+export interface UserFilters {
+  search: string;
+  role: string | null;
+}

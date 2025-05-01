@@ -1,12 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { UserPlus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { UserPlus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserEditDialog } from './UserEditDialog';
 import { UsersTable } from './UsersTable';
 import { UsersService } from '@/services/UsersService';
-import { User } from '@/types/user';
+import { User, UserFilters } from '@/types/user';
 
 interface UsersListProps {
   onUpdate?: () => void;
@@ -18,20 +20,44 @@ export function UsersList({ onUpdate }: UsersListProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<Partial<User> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [filters, setFilters] = useState<UserFilters>({
+    search: '',
+    role: null
+  });
+  const [searchInput, setSearchInput] = useState('');
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [filters]);
 
   async function fetchUsers() {
     setLoading(true);
     try {
-      const usersData = await UsersService.fetchUsers();
+      const usersData = await UsersService.fetchUsers(filters);
       setUsers(usersData);
     } finally {
       setLoading(false);
     }
   }
+
+  const handleSearch = () => {
+    setFilters(prev => ({ ...prev, search: searchInput }));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handleRoleFilterChange = (value: string) => {
+    setFilters(prev => ({ ...prev, role: value === 'all' ? null : value }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ search: '', role: null });
+    setSearchInput('');
+  };
 
   const handleEditUser = (user: User) => {
     setCurrentUser(user);
@@ -90,6 +116,49 @@ export function UsersList({ onUpdate }: UsersListProps) {
           <UserPlus className="h-4 w-4" />
           Adicionar Usuário
         </Button>
+      </div>
+      
+      <div className="mb-4 flex flex-col md:flex-row gap-3">
+        <div className="flex flex-1 gap-2">
+          <div className="relative flex-1">
+            <Input
+              placeholder="Buscar por nome, email ou WhatsApp"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={handleKeyPress}
+              className="pl-10"
+            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </div>
+          <Button onClick={handleSearch} variant="secondary">
+            Buscar
+          </Button>
+        </div>
+        
+        <div className="flex gap-2 md:w-1/3">
+          <Select 
+            value={filters.role || 'all'} 
+            onValueChange={handleRoleFilterChange}
+          >
+            <SelectTrigger className="w-full">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Perfil</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="admin">Administradores</SelectItem>
+              <SelectItem value="user">Usuários</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {(filters.search || filters.role) && (
+            <Button onClick={handleClearFilters} variant="outline">
+              Limpar
+            </Button>
+          )}
+        </div>
       </div>
       
       <UsersTable 

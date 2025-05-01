@@ -1,10 +1,10 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/types/user';
+import { User, UserFilters } from '@/types/user';
 import { toast } from 'sonner';
 
 export class UsersService {
-  static async fetchUsers(): Promise<User[]> {
+  static async fetchUsers(filters?: UserFilters): Promise<User[]> {
     try {
       // First get all profiles
       const { data: profiles, error: profilesError } = await supabase
@@ -19,7 +19,7 @@ export class UsersService {
         .select('*');
       
       // Get users with auth data and profiles combined
-      const usersWithData: User[] = [];
+      let usersWithData: User[] = [];
       
       // Need to fetch each user's email using their ID
       for (const profile of profiles) {
@@ -47,6 +47,28 @@ export class UsersService {
             is_admin: roles?.some(role => role.user_id === profile.id && role.role === 'admin') || false,
             phone: profile.phone || ''
           });
+        }
+      }
+      
+      // Apply filters if provided
+      if (filters) {
+        if (filters.search && filters.search.trim() !== '') {
+          const searchTerm = filters.search.toLowerCase();
+          usersWithData = usersWithData.filter(user => 
+            user.first_name?.toLowerCase().includes(searchTerm) || 
+            user.last_name?.toLowerCase().includes(searchTerm) || 
+            user.email.toLowerCase().includes(searchTerm) ||
+            user.phone?.toLowerCase().includes(searchTerm) ||
+            `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm)
+          );
+        }
+        
+        if (filters.role) {
+          if (filters.role === 'admin') {
+            usersWithData = usersWithData.filter(user => user.is_admin);
+          } else if (filters.role === 'user') {
+            usersWithData = usersWithData.filter(user => !user.is_admin);
+          }
         }
       }
       
