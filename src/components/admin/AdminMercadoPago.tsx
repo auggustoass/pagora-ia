@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { CreditCard, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 
@@ -16,6 +16,7 @@ export function AdminMercadoPago() {
   const [publicKey, setPublicKey] = useState('');
   const [userId, setUserId] = useState('');
   const [hasCredentials, setHasCredentials] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -27,15 +28,24 @@ export function AdminMercadoPago() {
   const fetchCredentials = async () => {
     try {
       setIsLoading(true);
+      setErrorMessage(null);
+      
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        setErrorMessage('Sessão expirada. Por favor, faça login novamente.');
+        return;
+      }
 
       const { data, error } = await supabase.functions.invoke('admin-mercado-pago', {
-        body: { action: 'get' }
+        body: { action: 'get' },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       if (error) {
         console.error('Error fetching credentials:', error);
+        setErrorMessage(`Erro ao buscar credenciais: ${error.message || 'Erro desconhecido'}`);
         return;
       }
 
@@ -45,8 +55,9 @@ export function AdminMercadoPago() {
         setHasCredentials(true);
         setAccessToken(''); // Don't set the actual token for security
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching credentials:', error);
+      setErrorMessage(`Erro ao buscar credenciais: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
     }
@@ -54,29 +65,70 @@ export function AdminMercadoPago() {
 
   const handleTest = async () => {
     if (!accessToken) {
-      toast.error('Por favor, insira um token de acesso');
+      toast({
+        title: 'Erro',
+        description: 'Por favor, insira um token de acesso',
+        variant: 'destructive',
+      });
       return;
     }
 
     try {
       setIsTesting(true);
+      setErrorMessage(null);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: 'Erro',
+          description: 'Sessão expirada. Por favor, faça login novamente.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-mercado-pago', {
-        body: { action: 'test', access_token: accessToken }
+        body: { action: 'test', access_token: accessToken },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       if (error) {
-        toast.error('Erro ao testar credenciais: ' + error.message);
+        console.error('Error response from function:', error);
+        toast({
+          title: 'Erro ao testar credenciais',
+          description: error.message || 'Falha ao verificar credenciais',
+          variant: 'destructive',
+        });
         return;
       }
 
       if (data.success) {
-        toast.success('Credenciais válidas!');
+        toast({
+          title: 'Sucesso',
+          description: 'Credenciais válidas!',
+        });
+      } else if (data.error) {
+        toast({
+          title: 'Credenciais inválidas',
+          description: data.error,
+          variant: 'destructive',
+        });
       } else {
-        toast.error('Credenciais inválidas');
+        toast({
+          title: 'Resultado inesperado',
+          description: 'Não foi possível determinar a validade das credenciais',
+          variant: 'destructive',
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error testing credentials:', error);
-      toast.error('Erro ao testar credenciais');
+      toast({
+        title: 'Erro',
+        description: `Erro ao testar credenciais: ${error.message || 'Erro desconhecido'}`,
+        variant: 'destructive',
+      });
     } finally {
       setIsTesting(false);
     }
@@ -84,32 +136,73 @@ export function AdminMercadoPago() {
 
   const handleSave = async () => {
     if (!accessToken || !publicKey || !userId) {
-      toast.error('Por favor, preencha todos os campos');
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Por favor, preencha todos os campos',
+        variant: 'destructive',
+      });
       return;
     }
 
     try {
       setIsLoading(true);
+      setErrorMessage(null);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: 'Erro',
+          description: 'Sessão expirada. Por favor, faça login novamente.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-mercado-pago', {
         body: {
           action: 'create',
           access_token: accessToken,
           public_key: publicKey,
           user_mercado_pago_id: userId
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
       if (error) {
-        toast.error('Erro ao salvar credenciais: ' + error.message);
+        console.error('Error from edge function:', error);
+        toast({
+          title: 'Erro',
+          description: `Erro ao salvar credenciais: ${error.message || 'Erro desconhecido'}`,
+          variant: 'destructive',
+        });
         return;
       }
 
-      toast.success('Credenciais salvas com sucesso!');
+      if (data.error) {
+        toast({
+          title: 'Erro',
+          description: `Falha ao salvar: ${data.error}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Sucesso',
+        description: 'Credenciais salvas com sucesso!',
+      });
+      
       setHasCredentials(true);
       setAccessToken(''); // Clear for security
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving credentials:', error);
-      toast.error('Erro ao salvar credenciais');
+      toast({
+        title: 'Erro',
+        description: `Erro ao salvar credenciais: ${error.message || 'Erro desconhecido'}`,
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -127,6 +220,13 @@ export function AdminMercadoPago() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {errorMessage && (
+          <div className="flex items-center p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+            <p className="text-sm text-red-500">{errorMessage}</p>
+          </div>
+        )}
+        
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="accessToken">Token de Acesso</Label>
@@ -145,7 +245,12 @@ export function AdminMercadoPago() {
                 onClick={handleTest}
                 disabled={isTesting || !accessToken}
               >
-                {isTesting ? 'Testando...' : 'Testar'}
+                {isTesting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Testando...
+                  </>
+                ) : 'Testar'}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -188,7 +293,12 @@ export function AdminMercadoPago() {
           disabled={isLoading}
           onClick={handleSave}
         >
-          {isLoading ? 'Salvando...' : hasCredentials ? 'Atualizar Credenciais' : 'Salvar Credenciais'}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : (hasCredentials ? 'Atualizar Credenciais' : 'Salvar Credenciais')}
         </Button>
       </CardContent>
     </Card>
