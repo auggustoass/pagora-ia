@@ -5,7 +5,7 @@ import { SubscriptionDetails } from '@/components/subscription/SubscriptionDetai
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 
 const ConfiguracoesAssinatura = () => {
   const { user } = useAuth();
@@ -20,10 +20,15 @@ const ConfiguracoesAssinatura = () => {
 
   const checkMercadoPagoCredentials = async () => {
     try {
+      if (!user || !user.id) {
+        console.error('User not authenticated');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('mercado_pago_credentials')
         .select('access_token')
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .maybeSingle();
         
       if (error && error.code !== 'PGRST116') {
@@ -32,16 +37,15 @@ const ConfiguracoesAssinatura = () => {
       
       // If no credentials are found, show a toast with a link to the config page
       if (!data?.access_token) {
-        toast.warning(
-          'Configure suas credenciais do Mercado Pago para ativar os pagamentos',
-          {
-            action: {
-              label: 'Configurar',
-              onClick: () => navigate('/configuracoes')
-            },
-            duration: 10000,
-          }
-        );
+        toast({
+          title: 'Configuração necessária',
+          description: 'Configure suas credenciais do Mercado Pago para ativar os pagamentos',
+          action: {
+            label: 'Configurar',
+            onClick: () => navigate('/configuracoes')
+          },
+          duration: 10000,
+        });
       }
     } catch (error) {
       console.error('Error checking MP credentials:', error);

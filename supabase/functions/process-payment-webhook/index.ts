@@ -5,7 +5,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
-const mpAccessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN") || "";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,9 +81,26 @@ async function handleSubscriptionPayment(payload) {
   }
 
   console.log(`Fetching preapproval details for ID: ${preapprovalId}`);
+  
+  // First get credentials from admin settings
+  const { data: adminCredentials, error: adminCredentialsError } = await supabase
+    .from("admin_mercado_pago_credentials")
+    .select("access_token")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  if (adminCredentialsError || !adminCredentials) {
+    console.error("No admin credentials found for API validation:", adminCredentialsError);
+    return new Response(
+      JSON.stringify({ error: "Failed to validate with Mercado Pago: Missing credentials" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+
   const mpResponse = await fetch(`https://api.mercadopago.com/preapproval/${preapprovalId}`, {
     headers: {
-      "Authorization": `Bearer ${mpAccessToken}`,
+      "Authorization": `Bearer ${adminCredentials.access_token}`,
     },
   });
 
@@ -191,11 +207,27 @@ async function handleInvoicePayment(payload) {
     );
   }
 
+  // Get admin credentials to verify the payment
+  const { data: adminCredentials, error: adminCredentialsError } = await supabase
+    .from("admin_mercado_pago_credentials")
+    .select("access_token")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  if (adminCredentialsError || !adminCredentials) {
+    console.error("No admin credentials found for API validation:", adminCredentialsError);
+    return new Response(
+      JSON.stringify({ error: "Failed to validate with Mercado Pago: Missing credentials" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+
   // Get the payment details from Mercado Pago API
   console.log(`Fetching payment details for ID: ${paymentId}`);
   const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: {
-      "Authorization": `Bearer ${mpAccessToken}`,
+      "Authorization": `Bearer ${adminCredentials.access_token}`,
     },
   });
 
@@ -218,6 +250,29 @@ async function handleInvoicePayment(payload) {
     console.error("No external_reference found in payment data");
     return new Response(
       JSON.stringify({ error: "No invoice reference found" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+    );
+  }
+
+  // Get the invoice to verify user_id exists
+  const { data: invoice, error: invoiceFetchError } = await supabase
+    .from("faturas")
+    .select("user_id")
+    .eq("id", invoiceId)
+    .single();
+    
+  if (invoiceFetchError || !invoice) {
+    console.error("Invoice not found:", invoiceFetchError);
+    return new Response(
+      JSON.stringify({ error: "Invoice not found" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+    );
+  }
+  
+  if (!invoice.user_id) {
+    console.error("Invoice has no associated user_id");
+    return new Response(
+      JSON.stringify({ error: "Invoice has no associated user" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
     );
   }
@@ -248,7 +303,7 @@ async function handleInvoicePayment(payload) {
   }
 
   // Update the invoice with payment information
-  const { data: invoice, error: invoiceError } = await supabase
+  const { data: updatedInvoice, error: invoiceError } = await supabase
     .from("faturas")
     .update({
       payment_status: paymentStatus,
@@ -268,15 +323,7 @@ async function handleInvoicePayment(payload) {
     );
   }
 
-  if (!invoice) {
-    console.error("Invoice not found for ID:", invoiceId);
-    return new Response(
-      JSON.stringify({ error: "Invoice not found" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
-    );
-  }
-
-  console.log("Invoice updated successfully:", invoice);
+  console.log("Invoice updated successfully:", updatedInvoice);
   
   return new Response(
     JSON.stringify({ success: true }),

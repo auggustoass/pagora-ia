@@ -21,13 +21,14 @@ serve(async (req) => {
     const { invoiceId } = await req.json();
     
     if (!invoiceId) {
+      console.error("Missing invoice ID");
       return new Response(
         JSON.stringify({ error: "Missing invoice ID" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
-    // Get the invoice details
+    // Get the invoice details with user_id
     const { data: invoice, error: invoiceError } = await supabase
       .from("faturas")
       .select("*, user_id")
@@ -35,9 +36,19 @@ serve(async (req) => {
       .single();
 
     if (invoiceError || !invoice) {
+      console.error("Invoice not found:", invoiceError);
       return new Response(
         JSON.stringify({ error: "Invoice not found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+      );
+    }
+
+    // Check if the invoice has a user_id
+    if (!invoice.user_id) {
+      console.error("Invoice has no associated user_id");
+      return new Response(
+        JSON.stringify({ error: "Invoice has no associated user" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
@@ -51,14 +62,17 @@ serve(async (req) => {
     // If the user doesn't have credentials, fall back to admin credentials
     let credentials;
     if (userCredentialsError || !userCredentials) {
+      console.log(`User ${invoice.user_id} has no Mercado Pago credentials, falling back to admin credentials`);
+      
       const { data: adminCredentials, error: adminCredentialsError } = await supabase
         .from("admin_mercado_pago_credentials")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
         
       if (adminCredentialsError || !adminCredentials) {
+        console.error("No payment credentials found:", adminCredentialsError);
         return new Response(
           JSON.stringify({ error: "No payment credentials found" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
@@ -66,8 +80,10 @@ serve(async (req) => {
       }
       
       credentials = adminCredentials;
+      console.log("Using admin credentials for payment processing");
     } else {
       credentials = userCredentials;
+      console.log(`Using user's own credentials for payment processing (User ID: ${invoice.user_id})`);
     }
 
     // Create a Mercado Pago preference
@@ -98,6 +114,7 @@ serve(async (req) => {
       auto_return: "approved",
     };
 
+    console.log(`Creating payment preference for invoice ${invoice.id}`);
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
@@ -111,15 +128,16 @@ serve(async (req) => {
       const errorText = await mpResponse.text();
       console.error("Mercado Pago API error:", errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to create payment preference" }),
+        JSON.stringify({ error: "Failed to create payment preference", details: errorText }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
     const preferenceData = await mpResponse.json();
+    console.log(`Payment preference created successfully, ID: ${preferenceData.id}`);
 
     // Update the invoice with the preference ID and payment URL
-    await supabase
+    const { error: updateError } = await supabase
       .from("faturas")
       .update({
         mercado_pago_preference_id: preferenceData.id,
@@ -127,6 +145,11 @@ serve(async (req) => {
         payment_status: "pending"
       })
       .eq("id", invoice.id);
+      
+    if (updateError) {
+      console.error("Error updating invoice with preference data:", updateError);
+      // Continue anyway since we already created the preference
+    }
 
     return new Response(
       JSON.stringify({
@@ -142,7 +165,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error generating payment:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "Unknown error occurred" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

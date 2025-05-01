@@ -206,7 +206,7 @@ async function getCredentials(supabase) {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle();  // Changed from .single() to .maybeSingle()
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
       console.error("Error fetching credentials:", error);
