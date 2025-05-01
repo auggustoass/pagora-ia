@@ -54,6 +54,12 @@ export function AdminMercadoPago() {
         setUserId(data.user_mercado_pago_id);
         setHasCredentials(true);
         setAccessToken(''); // Don't set the actual token for security
+      } else {
+        // No credentials found, but this is not an error
+        setHasCredentials(false);
+        setPublicKey('');
+        setUserId('');
+        setAccessToken('');
       }
     } catch (error: any) {
       console.error('Error fetching credentials:', error);

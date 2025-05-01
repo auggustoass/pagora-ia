@@ -206,13 +206,23 @@ async function getCredentials(supabase) {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();  // Changed from .single() to .maybeSingle()
 
-    if (error) {
-      console.error("No credentials found:", error);
+    if (error && error.code !== 'PGRST116') {
+      console.error("Error fetching credentials:", error);
       return new Response(
-        JSON.stringify({ error: "No credentials found" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+        JSON.stringify({ error: "Error fetching credentials", details: error.message }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    if (!data) {
+      console.log("No credentials found, but returning success with has_credentials=false");
+      return new Response(
+        JSON.stringify({
+          has_credentials: false
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
 
