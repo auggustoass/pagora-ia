@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Client {
   id: string;
@@ -52,6 +53,7 @@ const formSchema = z.object({
     required_error: 'A data de vencimento é obrigatória',
   }),
   descricao: z.string().min(3, { message: 'A descrição deve ter pelo menos 3 caracteres' }),
+  generatePaymentLink: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -62,6 +64,7 @@ interface InvoiceFormProps {
 
 export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingPaymentLink, setIsGeneratingPaymentLink] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const { user, isAdmin } = useAuth();
   
@@ -99,6 +102,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       clientId: '',
       valor: '',
       descricao: '',
+      generatePaymentLink: false,
     },
   });
   
@@ -123,7 +127,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       }
       
       // Inserir fatura no Supabase
-      const { error } = await supabase
+      const { data: invoice, error } = await supabase
         .from('faturas')
         .insert({
           nome: client.nome,
@@ -134,11 +138,43 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           vencimento: values.vencimento.toISOString().split('T')[0],
           descricao: values.descricao,
           status: 'pendente',
+          payment_status: 'pending',
           client_id: client.id,
           user_id: user.id
-        });
+        })
+        .select()
+        .single();
         
       if (error) throw error;
+      
+      // If the user wants to generate a payment link
+      if (values.generatePaymentLink && invoice) {
+        setIsGeneratingPaymentLink(true);
+        
+        try {
+          const { data: paymentData, error: paymentError } = await supabase.functions.invoke('generate-invoice-payment', {
+            body: { invoiceId: invoice.id }
+          });
+          
+          if (paymentError) {
+            console.error('Error generating payment link:', paymentError);
+            toast({
+              title: 'Aviso',
+              description: 'Fatura criada, mas não foi possível gerar o link de pagamento.',
+              variant: 'default',
+            });
+          } else if (paymentData && paymentData.payment_url) {
+            toast({
+              title: 'Link de pagamento gerado',
+              description: 'O link de pagamento foi gerado com sucesso.',
+            });
+          }
+        } catch (paymentGenError) {
+          console.error('Error calling payment generation:', paymentGenError);
+        } finally {
+          setIsGeneratingPaymentLink(false);
+        }
+      }
       
       toast({
         title: 'Fatura gerada com sucesso',
@@ -274,14 +310,37 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="generatePaymentLink"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-white/10 p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Gerar link de pagamento
+                  </FormLabel>
+                  <p className="text-sm text-muted-foreground">
+                    Cria automaticamente um link de pagamento via Mercado Pago para esta fatura
+                  </p>
+                </div>
+              </FormItem>
+            )}
+          />
         </div>
         
         <Button 
           type="submit" 
           className="w-full bg-pagora-purple hover:bg-pagora-purple/90"
-          disabled={isLoading}
+          disabled={isLoading || isGeneratingPaymentLink}
         >
-          {isLoading ? 'Gerando...' : 'Gerar Fatura'}
+          {isLoading ? 'Gerando...' : (isGeneratingPaymentLink ? 'Gerando link de pagamento...' : 'Gerar Fatura')}
         </Button>
       </form>
     </Form>

@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
-import { Check, Clock, Ban, Search, Filter, Edit } from 'lucide-react';
+import { Check, Clock, Ban, Search, Filter, Edit, CreditCard, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +25,9 @@ export interface Invoice {
   descricao: string;
   status: 'pendente' | 'aprovado' | 'rejeitado';
   user_id: string;
+  payment_url: string | null;
+  payment_status: string | null;
+  mercado_pago_preference_id: string | null;
 }
 
 // Status badge component
@@ -68,6 +73,7 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [processingPayment, setProcessingPayment] = useState<string | null>(null);
   const { user, isAdmin } = useAuth();
 
   // Busca dados do Supabase
@@ -162,6 +168,30 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
       onEditInvoice(invoiceId);
     }
   };
+
+  const handleGeneratePaymentLink = async (invoiceId: string) => {
+    if (!user) return;
+
+    try {
+      setProcessingPayment(invoiceId);
+
+      const { data, error } = await supabase.functions.invoke('generate-invoice-payment', {
+        body: { invoiceId }
+      });
+
+      if (error) throw error;
+      
+      if (data.success && data.payment_url) {
+        toast.success('Link de pagamento gerado com sucesso!');
+        // The real-time subscription will update the invoice in the UI
+      }
+    } catch (error) {
+      console.error('Error generating payment link:', error);
+      toast.error('Erro ao gerar link de pagamento');
+    } finally {
+      setProcessingPayment(null);
+    }
+  };
   
   if (!user) {
     return <div className="text-center py-4">Você precisa estar logado para visualizar faturas.</div>;
@@ -215,13 +245,14 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
               <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Valor</th>
               <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Vencimento</th>
               <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Status</th>
+              <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Pagamento</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                   Carregando...
                 </td>
               </tr>
@@ -248,6 +279,30 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
                       <StatusBadge status={invoice.status} />
                     </td>
                     <td className="px-4 py-4">
+                      {invoice.payment_url ? (
+                        <a 
+                          href={invoice.payment_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Link de pagamento
+                        </a>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs flex items-center gap-1"
+                          onClick={() => handleGeneratePaymentLink(invoice.id)}
+                          disabled={processingPayment === invoice.id}
+                        >
+                          <CreditCard className="w-3 h-3" />
+                          {processingPayment === invoice.id ? 'Gerando...' : 'Gerar link'}
+                        </Button>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -262,7 +317,7 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhuma fatura encontrada.
                   </td>
                 </tr>

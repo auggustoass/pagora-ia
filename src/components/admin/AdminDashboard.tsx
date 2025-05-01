@@ -3,12 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusCard } from '@/components/dashboard/StatusCard';
-import { Users, FileText, CreditCard, Calendar } from 'lucide-react';
+import { Users, FileText, CreditCard, Calendar, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { UsersList } from './UsersList';
 import { PlansList } from './PlansList';
 import { SubscriptionsList } from './SubscriptionsList';
 import { InvoicesList } from './InvoicesList';
+import { AdminMercadoPago } from './AdminMercadoPago';
 
 interface AdminStats {
   totalUsers: number;
@@ -106,15 +107,16 @@ export function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Gerenciamento</CardTitle>
-          <CardDescription>Gerencie usuários, planos, assinaturas e faturas</CardDescription>
+          <CardDescription>Gerencie usuários, planos, assinaturas, faturas e configurações</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="grid grid-cols-4">
+            <TabsList className="grid grid-cols-5">
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
               <TabsTrigger value="invoices">Faturas</TabsTrigger>
+              <TabsTrigger value="settings">Configurações</TabsTrigger>
             </TabsList>
             <TabsContent value="users">
               <UsersList onUpdate={fetchStats} />
@@ -127,6 +129,11 @@ export function AdminDashboard() {
             </TabsContent>
             <TabsContent value="invoices">
               <InvoicesList />
+            </TabsContent>
+            <TabsContent value="settings">
+              <div className="space-y-6">
+                <AdminMercadoPago />
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>

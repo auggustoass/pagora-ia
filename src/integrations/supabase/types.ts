@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_mercado_pago_credentials: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          public_key: string
+          updated_at: string
+          user_mercado_pago_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          public_key: string
+          updated_at?: string
+          user_mercado_pago_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          public_key?: string
+          updated_at?: string
+          user_mercado_pago_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           cpf_cnpj: string
@@ -50,7 +77,12 @@ export type Database = {
           descricao: string
           email: string
           id: string
+          mercado_pago_preference_id: string | null
           nome: string
+          paid_amount: number | null
+          payment_date: string | null
+          payment_status: string | null
+          payment_url: string | null
           pix_url: string | null
           qrcode: string | null
           status: string
@@ -66,7 +98,12 @@ export type Database = {
           descricao: string
           email: string
           id?: string
+          mercado_pago_preference_id?: string | null
           nome: string
+          paid_amount?: number | null
+          payment_date?: string | null
+          payment_status?: string | null
+          payment_url?: string | null
           pix_url?: string | null
           qrcode?: string | null
           status?: string
@@ -82,7 +119,12 @@ export type Database = {
           descricao?: string
           email?: string
           id?: string
+          mercado_pago_preference_id?: string | null
           nome?: string
+          paid_amount?: number | null
+          payment_date?: string | null
+          payment_status?: string | null
+          payment_url?: string | null
           pix_url?: string | null
           qrcode?: string | null
           status?: string
