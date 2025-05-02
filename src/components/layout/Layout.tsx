@@ -1,24 +1,24 @@
-
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Navigate } from 'react-router-dom';
-
 interface LayoutProps {
   children: React.ReactNode;
   requireAuth?: boolean;
 }
-
-export function Layout({ children, requireAuth = true }: LayoutProps) {
-  const { user, isLoading } = useAuth();
-
+export function Layout({
+  children,
+  requireAuth = true
+}: LayoutProps) {
+  const {
+    user,
+    isLoading
+  } = useAuth();
   if (requireAuth && !user && !isLoading) {
     return <Navigate to="/auth" replace />;
   }
-
-  return (
-    <div className="flex min-h-screen bg-background bg-grid">
+  return <div className="flex min-h-screen bg-background ">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
@@ -26,6 +26,5 @@ export function Layout({ children, requireAuth = true }: LayoutProps) {
           {children}
         </main>
       </div>
-    </div>
-  );
+    </div>;
 }
