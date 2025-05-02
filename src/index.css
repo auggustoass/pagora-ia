@@ -5,26 +5,26 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 256 80% 75%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --background: 230 25% 8%;
+    --foreground: 210 40% 98%;
+    --card: 230 25% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 230 25% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 250 85% 65%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 230 25% 15%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 230 25% 15%;
+    --muted-foreground: 217 15% 65%;
     --accent: 191 78% 49%;
-    --accent-foreground: 0 0% 98%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --radius: 0.75rem;
+    --destructive-foreground: 210 40% 98%;
+    --border: 230 25% 18%;
+    --input: 230 25% 18%;
+    --ring: 250 85% 65%;
+    --radius: 1rem;
   }
 
   * {
@@ -35,13 +35,13 @@
     @apply bg-background text-foreground antialiased overflow-x-hidden min-h-screen;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     background-image: 
-      radial-gradient(circle at 15% 50%, rgba(155, 135, 245, 0.1) 0%, transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(30, 174, 219, 0.1) 0%, transparent 25%);
+      radial-gradient(circle at 15% 50%, rgba(155, 135, 245, 0.05) 0%, transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(30, 174, 219, 0.05) 0%, transparent 25%);
     background-attachment: fixed;
   }
 
   .glass-card {
-    @apply backdrop-blur-md border rounded-2xl shadow-lg transition-all duration-300;
+    @apply backdrop-blur-sm border rounded-xl shadow-lg transition-all duration-300;
     position: relative;
     overflow: hidden;
   }
@@ -53,7 +53,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    @apply bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    @apply bg-gradient-to-r from-transparent via-white/10 to-transparent;
   }
 
   .light .glass-card {
@@ -62,8 +62,8 @@
   }
 
   .dark .glass-card {
-    @apply bg-black/30 border-white/10;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    @apply bg-black/20 border-white/5;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
 
   .pagora-gradient {
@@ -74,12 +74,10 @@
     @apply transition-all duration-200 hover:shadow-lg focus:ring-2 focus:ring-pagora-purple/50 focus:outline-none;
   }
   
-  /* Modified to be static without animation */
   .floating {
     transform: translateY(0px);
   }
   
-  /* New class for hover floating effect */
   .hover-float:hover {
     animation: float 3s ease-in-out infinite;
   }
@@ -102,10 +100,10 @@
   
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 12px 2px rgba(155, 135, 245, 0.2);
+      box-shadow: 0 0 12px 2px rgba(155, 135, 245, 0.1);
     }
     50% {
-      box-shadow: 0 0 24px 4px rgba(155, 135, 245, 0.3);
+      box-shadow: 0 0 24px 4px rgba(155, 135, 245, 0.15);
     }
   }
   
@@ -120,12 +118,26 @@
     height: 100%;
     top: 0;
     left: -100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
     transition: 0.5s;
   }
   
   .btn-hover-fx:hover::after {
     left: 100%;
+  }
+
+  /* Progress circle */
+  .progress-circle {
+    @apply relative flex items-center justify-center;
+    transform: rotate(-90deg);
+  }
+
+  .progress-circle circle {
+    @apply transition-all duration-500 ease-in-out;
+  }
+
+  .progress-circle .progress-value {
+    @apply absolute transform rotate-90;
   }
 }
 
@@ -162,7 +174,7 @@
   }
   
   .text-glow {
-    text-shadow: 0 0 10px rgba(155, 135, 245, 0.5);
+    text-shadow: 0 0 10px rgba(155, 135, 245, 0.3);
   }
   
   .text-gradient {
@@ -174,8 +186,16 @@
   }
   
   .bg-grid {
-    background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
     background-size: 20px 20px;
+  }
+
+  .card-hover {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .icon-circle {
+    @apply rounded-full p-2 flex items-center justify-center;
   }
 }

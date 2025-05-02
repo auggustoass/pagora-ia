@@ -19,14 +19,15 @@ export function ThemeToggle() {
   };
   
   return (
-    <div className="flex items-center space-x-2">
-      <Sun className="h-5 w-5" />
+    <div className="flex items-center space-x-2 bg-secondary/40 p-1.5 rounded-full">
+      <Sun className="h-4 w-4 text-muted-foreground" />
       <Switch 
         checked={isDarkMode} 
         onCheckedChange={toggleTheme} 
         id="theme-toggle"
+        className="data-[state=checked]:bg-primary"
       />
-      <Moon className="h-5 w-5" />
+      <Moon className="h-4 w-4 text-muted-foreground" />
     </div>
   );
 }
