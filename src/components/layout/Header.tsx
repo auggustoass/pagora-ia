@@ -72,7 +72,7 @@ export function Header() {
   const isExpired = daysLeftInTrial <= 0 && subscriptionStatus?.trial;
 
   return (
-    <header className="px-6 py-4 flex items-center justify-between border-b border-white/5 backdrop-blur-md bg-black/5">
+    <header className="px-6 py-4 flex items-center justify-between border-b border-border backdrop-blur-md bg-background/50">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground">
           <Menu size={20} />
@@ -82,7 +82,7 @@ export function Header() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="Pesquisar..."
-            className="pl-9 bg-white/5 border-white/5 h-9"
+            className="pl-9 bg-secondary/20 border-border/50 h-9"
           />
         </div>
       </div>
@@ -94,11 +94,11 @@ export function Header() {
               variant="outline" 
               size="sm"
               className={`
-                flex flex-col items-center gap-1 border-white/10 h-auto py-1.5
-                ${isExpired ? 'text-red-400 hover:text-red-300' : 
-                  isDangerZone ? 'text-yellow-400 hover:text-yellow-300' :
-                  subscriptionStatus.trial ? 'text-blue-400 hover:text-blue-300' : 
-                  'text-green-400 hover:text-green-300'
+                flex flex-col items-center gap-1 border-border h-auto py-1.5
+                ${isExpired ? 'text-pagora-error hover:text-pagora-error/90' : 
+                  isDangerZone ? 'text-pagora-pending hover:text-pagora-pending/90' :
+                  subscriptionStatus.trial ? 'text-primary hover:text-primary/90' : 
+                  'text-pagora-success hover:text-pagora-success/90'
                 }
               `}
             >
@@ -107,7 +107,7 @@ export function Header() {
                 {subscriptionStatus.active ? (
                   subscriptionStatus.trial ? (
                     <>
-                      Trial <Badge variant="outline" className={`ml-1 text-xs ${isDangerZone ? 'text-yellow-400 border-yellow-400' : isExpired ? 'text-red-400 border-red-400' : ''}`}>
+                      Trial <Badge variant="outline" className={`ml-1 text-xs ${isDangerZone ? 'text-pagora-pending border-pagora-pending' : isExpired ? 'text-pagora-error border-pagora-error' : 'text-primary border-primary'}`}>
                         {isExpired ? 'Expirado' : `${daysLeftInTrial} dias`}
                       </Badge>
                     </>
@@ -123,7 +123,7 @@ export function Header() {
                 <div className="w-full mt-1">
                   <Progress 
                     value={Math.max(0, Math.min(100, ((30 - daysLeftInTrial) / 30) * 100))}
-                    className={`h-1 ${isDangerZone ? "bg-yellow-400" : "bg-blue-400"}`}
+                    className={`h-1 ${isDangerZone ? "bg-pagora-pending" : "bg-primary"}`}
                   />
                 </div>
               )}
@@ -133,17 +133,17 @@ export function Header() {
         
         <ThemeToggle />
         
-        <div className="h-6 w-[1px] bg-white/5"></div>
+        <div className="h-6 w-[1px] bg-border"></div>
         
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white relative bg-white/5 rounded-full h-9 w-9">
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative bg-secondary/20 rounded-full h-9 w-9">
                 <Bell size={18} />
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="bg-card border-white/10">
+            <TooltipContent className="bg-card border-border">
               <p>Notificações</p>
             </TooltipContent>
           </Tooltip>
@@ -152,11 +152,11 @@ export function Header() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white bg-white/5 rounded-full h-9 w-9">
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground bg-secondary/20 rounded-full h-9 w-9">
                 <MessageSquare size={18} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="bg-card border-white/10">
+            <TooltipContent className="bg-card border-border">
               <p>Mensagens</p>
             </TooltipContent>
           </Tooltip>
@@ -166,11 +166,11 @@ export function Header() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white bg-white/5 rounded-full h-9 w-9">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground bg-secondary/20 rounded-full h-9 w-9">
                   <Settings size={18} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="bg-card border-white/10">
+              <TooltipContent className="bg-card border-border">
                 <p>Configurações</p>
               </TooltipContent>
             </Tooltip>

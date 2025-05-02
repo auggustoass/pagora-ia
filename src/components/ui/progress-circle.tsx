@@ -40,7 +40,7 @@ export const ProgressCircle = ({
           cy={size / 2}
           r={radius}
           strokeWidth={strokeWidth}
-          className="stroke-white/5 fill-none"
+          className="stroke-secondary fill-none"
         />
         {/* Progress circle */}
         <circle

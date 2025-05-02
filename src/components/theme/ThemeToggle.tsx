@@ -19,7 +19,7 @@ export function ThemeToggle() {
   };
   
   return (
-    <div className="flex items-center space-x-2 bg-white/5 p-1.5 rounded-full">
+    <div className="flex items-center space-x-2 bg-secondary/80 p-1.5 rounded-full">
       <Sun className="h-4 w-4 text-muted-foreground" />
       <Switch 
         checked={isDarkMode} 

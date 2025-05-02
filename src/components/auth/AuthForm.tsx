@@ -79,8 +79,8 @@ export function AuthForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-card/60 backdrop-blur-md border-white/5 rounded-2xl shadow-xl">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pagora-purple via-pagora-blue to-transparent"></div>
+    <Card className="w-full max-w-md mx-auto bg-card/60 backdrop-blur-md border-border rounded-2xl shadow-xl">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pagora-green via-pagora-darkGreen to-transparent"></div>
       
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl text-center font-bold">
@@ -118,7 +118,7 @@ export function AuthForm() {
                   placeholder="seu@email.com" 
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
-                  className="bg-secondary/40 border-white/5 h-10 focus:border-primary/50"
+                  className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
                 />
               </div>
@@ -135,14 +135,14 @@ export function AuthForm() {
                   type="password" 
                   value={password} 
                   onChange={e => setPassword(e.target.value)} 
-                  className="bg-secondary/40 border-white/5 h-10 focus:border-primary/50"
+                  className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
                 />
               </div>
               
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-pagora-purple to-pagora-blue text-white hover:opacity-90"
+                className="w-full bg-gradient-to-r from-pagora-green to-pagora-darkGreen text-white hover:opacity-90"
                 disabled={loading}
               >
                 {loading ? (
@@ -168,7 +168,7 @@ export function AuthForm() {
                     id="firstName" 
                     value={firstName} 
                     onChange={e => setFirstName(e.target.value)} 
-                    className="bg-secondary/40 border-white/5 h-10 focus:border-primary/50"
+                    className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                     required 
                   />
                 </div>
@@ -179,7 +179,7 @@ export function AuthForm() {
                     id="lastName" 
                     value={lastName} 
                     onChange={e => setLastName(e.target.value)} 
-                    className="bg-secondary/40 border-white/5 h-10 focus:border-primary/50"
+                    className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                     required 
                   />
                 </div>
@@ -193,7 +193,7 @@ export function AuthForm() {
                   placeholder="seu@email.com" 
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
-                  className="bg-secondary/40 border-white/5 h-10 focus:border-primary/50"
+                  className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
                 />
               </div>
@@ -206,7 +206,7 @@ export function AuthForm() {
                   placeholder="+5511999999999" 
                   value={phone} 
                   onChange={e => setPhone(e.target.value)} 
-                  className="bg-secondary/40 border-white/5 h-10 focus:border-primary/50"
+                  className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
                 />
               </div>
@@ -218,14 +218,14 @@ export function AuthForm() {
                   type="password" 
                   value={password} 
                   onChange={e => setPassword(e.target.value)} 
-                  className="bg-secondary/40 border-white/5 h-10 focus:border-primary/50"
+                  className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
                 />
               </div>
               
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-pagora-purple to-pagora-blue text-white hover:opacity-90"
+                className="w-full bg-gradient-to-r from-pagora-green to-pagora-darkGreen text-white hover:opacity-90"
                 disabled={loading}
               >
                 {loading ? (

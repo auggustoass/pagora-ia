@@ -64,10 +64,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				pagora: {
-					purple: '#9b87f5',
-					dark: '#121420',
-					blue: '#1EAEDB',
-					orange: '#F97316',
+					green: '#10b981',
+					darkGreen: '#047857',
+					dark: '#121212',
+					darker: '#0a0a0a',
+					light: '#f8f9fa',
 					lightGray: '#F1F1F1',
 					success: '#10b981',
 					pending: '#f59e0b',

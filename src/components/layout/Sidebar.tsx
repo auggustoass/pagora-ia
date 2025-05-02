@@ -49,8 +49,8 @@ const NavItem = ({
               className={cn(
                 "flex w-full items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all justify-start font-normal",
                 isActive
-                  ? "bg-primary/20 text-primary"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
               onClick={onClick}
             >
@@ -65,8 +65,8 @@ const NavItem = ({
               className={cn(
                 "flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all",
                 isActive
-                  ? "bg-primary/20 text-primary"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
               <div className="w-5 h-5 flex items-center justify-center">
@@ -96,7 +96,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <div className={cn(
-      "h-full flex flex-col bg-sidebar border-r border-white/5 relative",
+      "h-full flex flex-col bg-sidebar border-r border-border relative",
       collapsed ? "w-20" : "w-60",
       "transition-all duration-300 ease-in-out",
       className
@@ -104,7 +104,7 @@ export function Sidebar({ className }: SidebarProps) {
       <Button 
         variant="ghost" 
         size="icon" 
-        className="absolute -right-3 top-8 bg-background border border-white/5 rounded-full hover:bg-white/5 z-10"
+        className="absolute -right-3 top-8 bg-background border border-border rounded-full hover:bg-secondary z-10"
         onClick={() => setCollapsed(!collapsed)}
       >
         <ChevronRight className={cn(
@@ -207,13 +207,13 @@ export function Sidebar({ className }: SidebarProps) {
         "p-4 mt-auto",
         collapsed ? "hidden" : "block"
       )}>
-        <div className="glass-card p-4 text-center bg-gradient-to-br from-black/40 to-black/10">
+        <div className="glass-card p-4 text-center bg-gradient-to-br from-card to-card/40">
           <p className="text-sm text-muted-foreground mb-2">Precisa de ajuda?</p>
           <a 
             href="https://wa.me/5511998115159" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="bg-primary text-white px-4 py-2 rounded-md w-full block hover:opacity-90 transition-all btn-hover-fx"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md w-full block hover:opacity-90 transition-all btn-hover-fx"
           >
             <div className="flex items-center justify-center gap-2">
               <MessageSquare size={16} />

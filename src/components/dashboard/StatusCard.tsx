@@ -82,10 +82,11 @@ export function StatusCard({
           </div>
         ) : (
           <div className={cn(
-            "icon-circle w-10 h-10 bg-white/5 mr-4", 
+            "icon-circle w-10 h-10 bg-secondary/50 mr-4", 
             variant === "pending" && "bg-pagora-pending/10 text-pagora-pending", 
             variant === "success" && "bg-pagora-success/10 text-pagora-success", 
-            variant === "error" && "bg-pagora-error/10 text-pagora-error"
+            variant === "error" && "bg-pagora-error/10 text-pagora-error",
+            (!variant || variant === "default") && "text-primary"
           )}>
             {icon}
           </div>
