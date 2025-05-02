@@ -18,7 +18,7 @@ export const ProgressCircle = ({
   value,
   max = 100,
   size = 120,
-  strokeWidth = 8,
+  strokeWidth = 6,
   className,
   valueClassName,
   children,

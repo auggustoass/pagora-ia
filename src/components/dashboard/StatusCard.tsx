@@ -4,13 +4,13 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 import { ProgressCircle } from '@/components/ui/progress-circle';
 
-const statusCardVariants = cva("glass-card p-5 flex transition-all duration-300 card-hover", {
+const statusCardVariants = cva("glass-card p-5 flex transition-all duration-300 card-hover h-full", {
   variants: {
     variant: {
       default: "border-white/5 bg-card/80",
-      pending: "border-pagora-pending/30",
-      success: "border-pagora-success/30",
-      error: "border-pagora-error/30"
+      pending: "border-l-4 border-l-pagora-pending border-white/5",
+      success: "border-l-4 border-l-pagora-success border-white/5",
+      error: "border-l-4 border-l-pagora-error border-white/5"
     }
   },
   defaultVariants: {
@@ -59,40 +59,43 @@ export function StatusCard({
       variant,
       className
     }))} style={style}>
-      <div className="flex flex-1">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "icon-circle w-8 h-8 bg-white/5", 
-              variant === "pending" && "bg-pagora-pending/10 text-pagora-pending", 
-              variant === "success" && "bg-pagora-success/10 text-pagora-success", 
-              variant === "error" && "bg-pagora-error/10 text-pagora-error"
-            )}>
-              {icon}
-            </div>
-            <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="font-bold text-2xl">{value}</p>
-            {description && <p className="text-xs text-muted-foreground">{description}</p>}
-          </div>
-        </div>
-      
-        {showProgress && (
-          <div className="ml-auto">
+      <div className="flex flex-1 items-center">
+        {showProgress ? (
+          <div className="mr-4">
             <ProgressCircle 
               value={progressValue} 
               max={100} 
               size={64} 
-              strokeWidth={6} 
+              strokeWidth={4} 
               color={getProgressColor()}
-              className="ml-auto"
             >
-              <span className="text-xs font-semibold">{progressValue}%</span>
+              <div className={cn(
+                "flex flex-col items-center justify-center",
+                variant === "pending" && "text-pagora-pending",
+                variant === "success" && "text-pagora-success", 
+                variant === "error" && "text-pagora-error",
+                (!variant || variant === "default") && "text-primary"
+              )}>
+                {icon}
+              </div>
             </ProgressCircle>
           </div>
+        ) : (
+          <div className={cn(
+            "icon-circle w-10 h-10 bg-white/5 mr-4", 
+            variant === "pending" && "bg-pagora-pending/10 text-pagora-pending", 
+            variant === "success" && "bg-pagora-success/10 text-pagora-success", 
+            variant === "error" && "bg-pagora-error/10 text-pagora-error"
+          )}>
+            {icon}
+          </div>
         )}
+
+        <div className="space-y-1">
+          <h3 className="status-card-title">{title}</h3>
+          <p className="status-card-value">{value}</p>
+          {description && <p className="status-card-description">{description}</p>}
+        </div>
       </div>
     </div>
   );

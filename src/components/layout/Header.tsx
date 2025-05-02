@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { Bell, CreditCard, MessageSquare, Settings } from 'lucide-react';
+import { Bell, CreditCard, MessageSquare, Settings, Search, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -8,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '../ui/badge';
 import { Link } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
 
 interface SubscriptionStatus {
   active: boolean;
@@ -69,13 +71,22 @@ export function Header() {
   const isDangerZone = daysLeftInTrial <= 3 && daysLeftInTrial > 0;
   const isExpired = daysLeftInTrial <= 0 && subscriptionStatus?.trial;
 
-  return <header className="px-6 py-5 flex items-center justify-between border-b border-white/10 dark:border-white/10 border-gray-200 backdrop-blur-md bg-black/10">
-      <div className="flex items-center">
-        <h1 className="text-xl font-bold text-white dark:text-white flex items-center">
-          <span className="text-gradient text-glow text-2xl mr-2">HBLACKPIX</span>
-          <span className="text-sm text-muted-foreground">Assistente de Cobrança Inteligente</span>
-        </h1>
+  return (
+    <header className="px-6 py-4 flex items-center justify-between border-b border-white/5 backdrop-blur-md bg-black/5">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground">
+          <Menu size={20} />
+        </Button>
+        
+        <div className="relative w-64 hidden md:flex">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Pesquisar..."
+            className="pl-9 bg-white/5 border-white/5 h-9"
+          />
+        </div>
       </div>
+      
       <div className="flex items-center space-x-3">
         {user && subscriptionStatus && (
           <Link to="/configuracoes/assinatura">
@@ -83,7 +94,7 @@ export function Header() {
               variant="outline" 
               size="sm"
               className={`
-                flex flex-col items-center gap-1 border-white/10 
+                flex flex-col items-center gap-1 border-white/10 h-auto py-1.5
                 ${isExpired ? 'text-red-400 hover:text-red-300' : 
                   isDangerZone ? 'text-yellow-400 hover:text-yellow-300' :
                   subscriptionStatus.trial ? 'text-blue-400 hover:text-blue-300' : 
@@ -122,17 +133,17 @@ export function Header() {
         
         <ThemeToggle />
         
-        <div className="h-6 w-[1px] bg-white/10"></div>
+        <div className="h-6 w-[1px] bg-white/5"></div>
         
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white relative">
-                <Bell size={20} />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-pagora-purple rounded-full"></span>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white relative bg-white/5 rounded-full h-9 w-9">
+                <Bell size={18} />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="bg-pagora-dark border-white/10">
+            <TooltipContent className="bg-card border-white/10">
               <p>Notificações</p>
             </TooltipContent>
           </Tooltip>
@@ -141,11 +152,11 @@ export function Header() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
-                <MessageSquare size={20} />
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white bg-white/5 rounded-full h-9 w-9">
+                <MessageSquare size={18} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="bg-pagora-dark border-white/10">
+            <TooltipContent className="bg-card border-white/10">
               <p>Mensagens</p>
             </TooltipContent>
           </Tooltip>
@@ -155,16 +166,17 @@ export function Header() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
-                  <Settings size={20} />
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white bg-white/5 rounded-full h-9 w-9">
+                  <Settings size={18} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="bg-pagora-dark border-white/10">
+              <TooltipContent className="bg-card border-white/10">
                 <p>Configurações</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </Link>
       </div>
-    </header>;
+    </header>
+  );
 }
