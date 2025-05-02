@@ -11,7 +11,8 @@ import {
   CreditCard, 
   LogOut, 
   Shield,
-  ChevronRight
+  ChevronRight,
+  MessagesSquare
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -153,6 +154,13 @@ export function Sidebar({ className }: SidebarProps) {
             label="Faturas" 
             to="/faturas" 
             isActive={location.pathname === '/faturas'} 
+          />
+          
+          <NavItem 
+            icon={<MessagesSquare size={18} />} 
+            label="Assistente" 
+            to="/assistente" 
+            isActive={location.pathname === '/assistente'} 
           />
           
           <NavItem 

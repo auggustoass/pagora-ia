@@ -20,6 +20,7 @@ import Planos from "./pages/Planos";
 import Admin from "./pages/Admin";
 import PlanosObrigado from "./pages/PlanosObrigado";
 import ConfiguracoesAssinatura from "./pages/ConfiguracoesAssinatura";
+import Assistente from "./pages/Assistente";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,11 @@ const App = () => (
               <Route path="/ajuda" element={
                 <RequireAuth>
                   <Ajuda />
+                </RequireAuth>
+              } />
+              <Route path="/assistente" element={
+                <RequireAuth>
+                  <Assistente />
                 </RequireAuth>
               } />
               <Route path="/planos" element={<Planos />} />
