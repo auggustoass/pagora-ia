@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Home, 
@@ -138,8 +137,8 @@ export function Sidebar({ className }: SidebarProps) {
           <NavItem 
             icon={<Home size={18} />} 
             label="Dashboard" 
-            to="/" 
-            isActive={location.pathname === '/'} 
+            to="/dashboard" 
+            isActive={location.pathname === '/dashboard'} 
           />
           
           <NavItem 

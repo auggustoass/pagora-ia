@@ -5,9 +5,10 @@ import { useAuth } from './AuthProvider';
 interface RequireAuthProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  redirectTo?: string;
 }
 
-export function RequireAuth({ children, requireAdmin = false }: RequireAuthProps) {
+export function RequireAuth({ children, requireAdmin = false, redirectTo = "/auth" }: RequireAuthProps) {
   const { user, isLoading, isAdmin } = useAuth();
   const location = useLocation();
 
@@ -16,11 +17,11 @@ export function RequireAuth({ children, requireAdmin = false }: RequireAuthProps
   }
 
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
   if (requireAdmin && !isAdmin) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/dashboard" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

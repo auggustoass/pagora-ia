@@ -3,12 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 
-import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Clientes from "./pages/Clientes";
@@ -34,7 +33,12 @@ const App = () => (
         <AuthProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Landing />} />
+              {/* Redirect root to dashboard if logged in, otherwise to auth */}
+              <Route path="/" element={
+                <RequireAuth redirectTo="/auth">
+                  <Navigate to="/dashboard" replace />
+                </RequireAuth>
+              } />
               <Route path="/auth" element={<Auth />} />
               
               {/* Protected routes */}
