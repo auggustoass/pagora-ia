@@ -7,8 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Coins, CreditCard } from 'lucide-react';
+import { Coins, CreditCard, AlertCircle } from 'lucide-react';
 import { CreditsDisplay } from '@/components/dashboard/CreditsDisplay';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ConfiguracoesAssinatura = () => {
   const { user } = useAuth();
@@ -84,6 +85,13 @@ const ConfiguracoesAssinatura = () => {
             <CardContent className="space-y-4">
               <CreditsDisplay className="pb-4" />
               
+              <Alert className="bg-blue-500/10 border-blue-500/20">
+                <AlertCircle className="h-4 w-4 text-blue-500" />
+                <AlertDescription className="text-sm text-blue-500">
+                  Após a compra, seus créditos serão adicionados assim que o pagamento for confirmado pelo Mercado Pago.
+                </AlertDescription>
+              </Alert>
+              
               <Button 
                 onClick={() => navigate('/planos')} 
                 className="w-full bg-gradient-to-r from-pagora-purple to-pagora-purple/80 hover:bg-pagora-purple/90"
@@ -112,6 +120,14 @@ const ConfiguracoesAssinatura = () => {
                   <li>Plano Pro: 15 faturas por R$97 (R$6,46 por fatura)</li>
                   <li>Plano Enterprise: 30 faturas por R$197 (R$5,62 por fatura)</li>
                 </ul>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">Processo de pagamento</h3>
+                <p className="text-sm text-muted-foreground">
+                  Ao comprar créditos, você será redirecionado para o Mercado Pago para completar o pagamento.
+                  Seus créditos serão adicionados automaticamente à sua conta assim que o pagamento for confirmado.
+                </p>
               </div>
               
               <div className="space-y-2">

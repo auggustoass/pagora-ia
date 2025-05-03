@@ -1,13 +1,15 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCredits } from '@/hooks/use-credits';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Plan {
   id: string;
@@ -248,6 +250,15 @@ export function PricingPlans() {
           </AlertDescription>
         </Alert>
       )}
+      
+      <Alert className="bg-blue-500/10 border-blue-500/20">
+        <AlertDescription className="text-blue-500">
+          <div className="flex items-center">
+            <Info className="mr-2 h-4 w-4" />
+            Após a confirmação do pagamento pelo Mercado Pago, seus créditos serão adicionados automaticamente à sua conta.
+          </div>
+        </AlertDescription>
+      </Alert>
     
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {plans.map((plan) => {
@@ -285,7 +296,19 @@ export function PricingPlans() {
                   ))}
                 </ul>
                 <div className="mt-4 text-sm text-muted-foreground flex items-center justify-center">
-                  <span>🔒 Sem contrato</span>
+                  <span className="flex items-center">
+                    🔒 Sem contrato 
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="ml-1 h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Créditos adicionados após confirmação do pagamento</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </span>
                 </div>
               </CardContent>
               <CardFooter>

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -174,54 +173,6 @@ serve(async (req) => {
     }
 
     console.log("Payment preference created in Mercado Pago:", mpData.id);
-    
-    // Check if user already has credits
-    const { data: existingCredits, error: existingCreditsError } = await serviceClient
-      .from("user_invoice_credits")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-      
-    if (existingCreditsError && existingCreditsError.code !== 'PGRST116') {
-      console.error("Error checking existing credits:", existingCreditsError);
-    }
-    
-    if (existingCredits) {
-      // Update existing credits entry
-      console.log("Updating existing credits for user:", userId);
-      const newCredits = existingCredits.credits_remaining + planCredits;
-      
-      const { error: updateError } = await serviceClient
-        .from("user_invoice_credits")
-        .update({
-          credits_remaining: newCredits,
-          plan_id: planId,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", existingCredits.id);
-        
-      if (updateError) {
-        console.error("Error updating credits:", updateError);
-      } else {
-        console.log(`Added ${planCredits} credits to user ${userId}, new total: ${newCredits}`);
-      }
-    } else {
-      // Create new credits entry
-      console.log("Creating new credits entry for user:", userId);
-      const { error: insertError } = await serviceClient
-        .from("user_invoice_credits")
-        .insert({
-          user_id: userId,
-          credits_remaining: planCredits,
-          plan_id: planId
-        });
-        
-      if (insertError) {
-        console.error("Error inserting credits:", insertError);
-      } else {
-        console.log(`Added ${planCredits} new credits for user ${userId}`);
-      }
-    }
     
     // Record purchase in subscription_payments table
     try {
