@@ -1,9 +1,10 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const defaultMpToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
 
 const corsHeaders = {
@@ -21,7 +22,7 @@ serve(async (req) => {
     console.log("Processing subscription request");
     let { planId, userId, token } = await req.json();
     
-    if (!planId || !userId || !token) {
+    if (!planId || !userId) {
       console.error("Missing required parameters:", { planId, userId, token: Boolean(token) });
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
@@ -29,22 +30,24 @@ serve(async (req) => {
       );
     }
     
-    // Verify the user making the request
-    console.log("Verifying user authentication");
-    const authClient = createClient(supabaseUrl, token);
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    // Create Supabase client with service role key for database operations
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
     
-    if (authError || !user || user.id !== userId) {
-      console.error("Authentication error:", authError);
+    // Verify the user exists
+    console.log("Verifying user existence");
+    const { data: userData, error: userError } = await serviceClient.auth.admin.getUserById(userId);
+    
+    if (userError || !userData.user) {
+      console.error("User verification error:", userError);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Invalid user" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       );
     }
 
     // Get the plan details
     console.log("Fetching plan details");
-    const { data: plan, error: planError } = await supabase
+    const { data: plan, error: planError } = await serviceClient
       .from("plans")
       .select("*")
       .eq("id", planId)
@@ -60,7 +63,7 @@ serve(async (req) => {
 
     // Get user's Mercado Pago credentials
     console.log("Fetching Mercado Pago credentials");
-    const { data: credentials, error: credentialsError } = await supabase
+    const { data: credentials, error: credentialsError } = await serviceClient
       .from("mercado_pago_credentials")
       .select("access_token")
       .eq("user_id", userId)
@@ -71,7 +74,25 @@ serve(async (req) => {
     }
     
     // Use user's credentials or fall back to default token
-    const accessToken = credentials?.access_token || defaultMpToken;
+    let accessToken = credentials?.access_token;
+
+    // If no user credentials, try admin credentials
+    if (!accessToken) {
+      const { data: adminCredentials, error: adminError } = await serviceClient
+        .from("admin_mercado_pago_credentials")
+        .select("access_token")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (adminError) {
+        console.error("Error fetching admin credentials:", adminError);
+      } else if (adminCredentials?.access_token) {
+        accessToken = adminCredentials.access_token;
+      } else {
+        accessToken = defaultMpToken;
+      }
+    }
     
     if (!accessToken) {
       console.error("No Mercado Pago credentials available");
@@ -83,7 +104,7 @@ serve(async (req) => {
       );
     }
 
-    // Create the payment in Mercado Pago (not a subscription anymore)
+    // Create the payment in Mercado Pago
     console.log("Preparing Mercado Pago request");
     const backUrl = `${req.headers.get("origin") || "http://localhost:5173"}/planos/obrigado`;
     const notificationUrl = `${supabaseUrl}/functions/v1/process-payment-webhook`;
@@ -116,7 +137,7 @@ serve(async (req) => {
       notification_url: notificationUrl,
       external_reference: `plan_purchase_${planId}_user_${userId}`,
       payer: {
-        email: user.email,
+        email: userData.user.email,
       },
     };
 
@@ -155,7 +176,7 @@ serve(async (req) => {
     console.log("Payment preference created in Mercado Pago:", mpData.id);
     
     // Check if user already has credits
-    const { data: existingCredits, error: existingCreditsError } = await supabase
+    const { data: existingCredits, error: existingCreditsError } = await serviceClient
       .from("user_invoice_credits")
       .select("*")
       .eq("user_id", userId)
@@ -170,7 +191,7 @@ serve(async (req) => {
       console.log("Updating existing credits for user:", userId);
       const newCredits = existingCredits.credits_remaining + planCredits;
       
-      const { error: updateError } = await supabase
+      const { error: updateError } = await serviceClient
         .from("user_invoice_credits")
         .update({
           credits_remaining: newCredits,
@@ -187,7 +208,7 @@ serve(async (req) => {
     } else {
       // Create new credits entry
       console.log("Creating new credits entry for user:", userId);
-      const { error: insertError } = await supabase
+      const { error: insertError } = await serviceClient
         .from("user_invoice_credits")
         .insert({
           user_id: userId,
@@ -204,7 +225,7 @@ serve(async (req) => {
     
     // Record purchase in subscription_payments table
     try {
-      await supabase
+      await serviceClient
         .from("subscription_payments")
         .insert({
           user_id: userId,

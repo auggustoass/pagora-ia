@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,8 @@ export function PricingPlans() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
-  const [hasMpCredentials, setHasMpCredentials] = useState(false);
+  const [hasMpCredentials, setHasMpCredentials] = useState(true); // Default to true initially
+  const [hasAdminMpCredentials, setHasAdminMpCredentials] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { updateCredits, credits } = useCredits();
@@ -72,6 +72,7 @@ export function PricingPlans() {
   
   async function checkMercadoPagoCredentials() {
     try {
+      // First check if user has their own credentials
       const { data, error } = await supabase
         .from('mercado_pago_credentials')
         .select('access_token')
@@ -82,7 +83,28 @@ export function PricingPlans() {
         console.error('Error checking Mercado Pago credentials:', error);
       }
       
-      setHasMpCredentials(!!data?.access_token);
+      const userHasCredentials = !!data?.access_token;
+      setHasMpCredentials(userHasCredentials);
+      
+      // If user doesn't have credentials, check if admin credentials exist
+      if (!userHasCredentials) {
+        const { data: adminData, error: adminError } = await supabase
+          .from('admin_mercado_pago_credentials')
+          .select('access_token')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+          
+        if (adminError) {
+          console.error('Error checking admin Mercado Pago credentials:', adminError);
+        }
+        
+        setHasAdminMpCredentials(!!adminData?.access_token);
+        // If admin has credentials, we can use them
+        if (adminData?.access_token) {
+          setHasMpCredentials(true);
+        }
+      }
     } catch (error) {
       console.error('Error checking Mercado Pago credentials:', error);
     }
@@ -98,9 +120,9 @@ export function PricingPlans() {
     setProcessingPlanId(planId);
     
     try {
-      // First, check if user has Mercado Pago credentials
-      if (!hasMpCredentials) {
-        toast.warning('Você precisa configurar suas credenciais do Mercado Pago antes de comprar créditos');
+      // Check if any credentials are available (user's own or admin's)
+      if (!hasMpCredentials && !hasAdminMpCredentials) {
+        toast.warning('Credenciais do Mercado Pago não configuradas. Configure suas credenciais em Configurações.');
         navigate('/configuracoes');
         return;
       }
@@ -118,13 +140,13 @@ export function PricingPlans() {
         throw new Error('Sessão expirada');
       }
       
-      console.log('Creating Mercado Pago subscription...');
+      console.log('Creating Mercado Pago payment...');
       
-      // Call our edge function to create the Mercado Pago subscription
+      // Call our edge function to create the Mercado Pago payment
       const response = await supabase.functions.invoke('create-subscription', {
         body: {
           planId,
-          userId: user!.id,
+          userId: user.id,
           token: authData.session.access_token
         },
       });
@@ -135,12 +157,8 @@ export function PricingPlans() {
         throw new Error(response.error || 'Falha ao processar pagamento');
       }
       
-      // Add credits to user account based on plan
-      await updateCredits(plan.invoiceCredits);
-      
       if (response.data.checkout_url) {
         // Redirect to Mercado Pago checkout
-        toast.success(`${plan.invoiceCredits} créditos adicionados à sua conta!`);
         toast.success('Redirecionando para pagamento...');
         window.location.href = response.data.checkout_url;
       } else {
@@ -148,7 +166,7 @@ export function PricingPlans() {
       }
       
     } catch (error: any) {
-      console.error('Error creating Mercado Pago subscription:', error);
+      console.error('Error creating Mercado Pago payment:', error);
       
       // More descriptive error message based on the actual error
       let errorMessage = error.message;
@@ -177,7 +195,7 @@ export function PricingPlans() {
   }
 
   // Function to get the color scheme for each plan
-  const getPlanColorScheme = (planName: string) => {
+  function getPlanColorScheme(planName: string) {
     switch (planName) {
       case 'Basic':
         return {
@@ -204,14 +222,14 @@ export function PricingPlans() {
           hoverClass: 'hover:bg-pagora-purple/90'
         };
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
       {user && !hasMpCredentials && (
         <Alert className="bg-yellow-500/10 border-yellow-500/20">
           <AlertDescription className="text-yellow-500">
-            Você precisa configurar suas credenciais do Mercado Pago antes de comprar créditos. 
+            Para comprar créditos, é necessário que você ou o administrador configure as credenciais do Mercado Pago.
             <Button 
               variant="link" 
               className="text-yellow-500 p-0 h-auto ml-1"

@@ -44,14 +44,9 @@ serve(async (req) => {
       );
     }
 
-    // Handle subscription payments (preapproval)
-    if (payload.type === "preapproval") {
-      return await handleSubscriptionPayment(payload);
-    }
-    
-    // Handle one-time payments (invoices/faturas)
+    // Handle one-time payments for credit purchases
     if (payload.type === "payment") {
-      return await handleInvoicePayment(payload);
+      return await handleCreditPayment(payload);
     }
 
     // Fallback for unhandled webhook types
@@ -69,134 +64,7 @@ serve(async (req) => {
   }
 });
 
-async function handleSubscriptionPayment(payload) {
-  // Get the preapproval details from Mercado Pago API
-  const preapprovalId = payload.data?.id;
-  if (!preapprovalId) {
-    console.error("Missing preapproval ID in webhook");
-    return new Response(
-      JSON.stringify({ error: "Missing preapproval ID" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-    );
-  }
-
-  console.log(`Fetching preapproval details for ID: ${preapprovalId}`);
-  
-  // First get credentials from admin settings
-  const { data: adminCredentials, error: adminCredentialsError } = await supabase
-    .from("admin_mercado_pago_credentials")
-    .select("access_token")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  
-  if (adminCredentialsError || !adminCredentials) {
-    console.error("No admin credentials found for API validation:", adminCredentialsError);
-    return new Response(
-      JSON.stringify({ error: "Failed to validate with Mercado Pago: Missing credentials" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
-  }
-
-  const mpResponse = await fetch(`https://api.mercadopago.com/preapproval/${preapprovalId}`, {
-    headers: {
-      "Authorization": `Bearer ${adminCredentials.access_token}`,
-    },
-  });
-
-  if (!mpResponse.ok) {
-    console.error(`Mercado Pago API error: ${mpResponse.status}`);
-    const errorText = await mpResponse.text();
-    console.error(`Error response: ${errorText}`);
-    return new Response(
-      JSON.stringify({ error: "Failed to verify subscription with Mercado Pago" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
-  }
-
-  const mpData = await mpResponse.json();
-  console.log("Preapproval data:", mpData);
-
-  // Map Mercado Pago status to our internal status
-  let subscriptionStatus;
-  let paymentStatus;
-  
-  switch (mpData.status) {
-    case "authorized":
-      subscriptionStatus = "active";
-      paymentStatus = "paid";
-      break;
-    case "paused":
-      subscriptionStatus = "paused";
-      paymentStatus = "pending";
-      break;
-    case "cancelled":
-      subscriptionStatus = "canceled";
-      paymentStatus = "canceled";
-      break;
-    case "pending":
-      subscriptionStatus = "trial"; // Keep as trial if still pending during trial period
-      paymentStatus = "pending";
-      break;
-    default:
-      subscriptionStatus = "expired";
-      paymentStatus = "failed";
-  }
-
-  // Update the subscription in our database
-  const { data: subscription, error: subscriptionError } = await supabase
-    .from("subscriptions")
-    .update({
-      status: subscriptionStatus,
-      payment_status: paymentStatus,
-      updated_at: new Date().toISOString()
-    })
-    .eq("mercado_pago_subscription_id", preapprovalId)
-    .select("*, plans(*)")
-    .single();
-
-  if (subscriptionError) {
-    console.error("Error updating subscription:", subscriptionError);
-    return new Response(
-      JSON.stringify({ error: "Failed to update subscription" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
-  }
-
-  if (!subscription) {
-    console.error("Subscription not found for preapproval ID:", preapprovalId);
-    return new Response(
-      JSON.stringify({ error: "Subscription not found" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
-    );
-  }
-
-  // If this is a successful payment, record it
-  if (paymentStatus === "paid") {
-    await supabase
-      .from("subscription_payments")
-      .insert({
-        subscription_id: subscription.id,
-        user_id: subscription.user_id,
-        plan_id: subscription.plan_id,
-        amount: subscription.plans.price,
-        status: "approved",
-        payment_id: mpData.last_payment?.id?.toString() || null,
-        payment_date: new Date().toISOString()
-      });
-    
-    console.log("Payment record created successfully");
-  }
-
-  console.log("Subscription updated successfully:", subscription);
-
-  return new Response(
-    JSON.stringify({ success: true }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-  );
-}
-
-async function handleInvoicePayment(payload) {
+async function handleCreditPayment(payload) {
   // Get the payment ID
   const paymentId = payload.data?.id;
   if (!paymentId) {
@@ -215,12 +83,25 @@ async function handleInvoicePayment(payload) {
     .limit(1)
     .maybeSingle();
   
-  if (adminCredentialsError || !adminCredentials) {
+  if (adminCredentialsError || !adminCredentials?.access_token) {
     console.error("No admin credentials found for API validation:", adminCredentialsError);
-    return new Response(
-      JSON.stringify({ error: "Failed to validate with Mercado Pago: Missing credentials" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+    
+    // Try to get any user credentials as fallback
+    const { data: userCredentials, error: userCredentialsError } = await supabase
+      .from("mercado_pago_credentials")
+      .select("access_token")
+      .limit(1)
+      .maybeSingle();
+      
+    if (userCredentialsError || !userCredentials?.access_token) {
+      console.error("No user credentials found for API validation:", userCredentialsError);
+      return new Response(
+        JSON.stringify({ error: "Failed to validate with Mercado Pago: No credentials available" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+    
+    adminCredentials = userCredentials;
   }
 
   // Get the payment details from Mercado Pago API
@@ -244,35 +125,66 @@ async function handleInvoicePayment(payload) {
   const mpData = await mpResponse.json();
   console.log("Payment data:", mpData);
 
-  // Find the invoice using the external_reference
-  const invoiceId = mpData.external_reference;
-  if (!invoiceId) {
-    console.error("No external_reference found in payment data");
+  // Extract plan ID and user ID from external_reference
+  // Format: plan_purchase_PLAN_ID_user_USER_ID
+  const externalRef = mpData.external_reference;
+  if (!externalRef || !externalRef.startsWith('plan_purchase_')) {
+    console.error("Invalid external_reference format:", externalRef);
     return new Response(
-      JSON.stringify({ error: "No invoice reference found" }),
+      JSON.stringify({ error: "Invalid payment reference" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
     );
   }
 
-  // Get the invoice to verify user_id exists
-  const { data: invoice, error: invoiceFetchError } = await supabase
-    .from("faturas")
-    .select("user_id")
-    .eq("id", invoiceId)
-    .single();
-    
-  if (invoiceFetchError || !invoice) {
-    console.error("Invoice not found:", invoiceFetchError);
+  const refParts = externalRef.split('_');
+  if (refParts.length < 5) {
+    console.error("External reference doesn't contain enough parts:", refParts);
     return new Response(
-      JSON.stringify({ error: "Invoice not found" }),
+      JSON.stringify({ error: "Invalid payment reference format" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+    );
+  }
+
+  const planId = refParts[2];
+  const userId = refParts[4];
+
+  console.log(`Found planId: ${planId}, userId: ${userId} in external_reference`);
+
+  if (!planId || !userId) {
+    console.error("Could not extract plan or user ID from external_reference");
+    return new Response(
+      JSON.stringify({ error: "Invalid payment reference data" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+    );
+  }
+
+  // Get plan details to know how many credits to add
+  const { data: plan, error: planError } = await supabase
+    .from("plans")
+    .select("name")
+    .eq("id", planId)
+    .single();
+
+  if (planError || !plan) {
+    console.error("Error fetching plan:", planError);
+    return new Response(
+      JSON.stringify({ error: "Plan not found" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
     );
   }
-  
-  if (!invoice.user_id) {
-    console.error("Invoice has no associated user_id");
+
+  // Determine credits based on plan name
+  const credits = {
+    Basic: 5,
+    Pro: 15,
+    Enterprise: 30
+  };
+
+  const planCredits = credits[plan.name] || 0;
+  if (planCredits === 0) {
+    console.error("Invalid plan name or no credits defined for plan:", plan.name);
     return new Response(
-      JSON.stringify({ error: "Invoice has no associated user" }),
+      JSON.stringify({ error: "Invalid plan configuration" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
     );
   }
@@ -284,8 +196,6 @@ async function handleInvoicePayment(payload) {
       paymentStatus = "approved";
       break;
     case "pending":
-      paymentStatus = "pending";
-      break;
     case "in_process":
       paymentStatus = "pending";
       break;
@@ -302,28 +212,91 @@ async function handleInvoicePayment(payload) {
       paymentStatus = "pending";
   }
 
-  // Update the invoice with payment information
-  const { data: updatedInvoice, error: invoiceError } = await supabase
-    .from("faturas")
+  // Update the payment status in our database
+  const { data: paymentRecord, error: paymentError } = await supabase
+    .from("subscription_payments")
     .update({
-      payment_status: paymentStatus,
-      status: paymentStatus === "approved" ? "aprovado" : (paymentStatus === "rejected" || paymentStatus === "cancelled" ? "rejeitado" : "pendente"),
-      payment_date: new Date().toISOString(),
-      paid_amount: mpData.transaction_amount || null
+      status: paymentStatus,
+      payment_id: paymentId.toString(),
+      payment_date: new Date().toISOString()
     })
-    .eq("id", invoiceId)
+    .eq("user_id", userId)
+    .eq("plan_id", planId)
+    .eq("status", "pending")
     .select()
-    .single();
+    .maybeSingle();
 
-  if (invoiceError) {
-    console.error("Error updating invoice:", invoiceError);
-    return new Response(
-      JSON.stringify({ error: "Failed to update invoice" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+  if (paymentError) {
+    console.error("Error updating payment record:", paymentError);
+    // Continue anyway, we might still need to add credits
   }
 
-  console.log("Invoice updated successfully:", updatedInvoice);
+  // If payment is approved, add the credits
+  if (paymentStatus === "approved") {
+    // Check if user already has credits
+    const { data: existingCredits, error: existingCreditsError } = await supabase
+      .from("user_invoice_credits")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+      
+    if (existingCreditsError && existingCreditsError.code !== 'PGRST116') {
+      console.error("Error checking existing credits:", existingCreditsError);
+      return new Response(
+        JSON.stringify({ error: "Failed to check existing credits" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+    
+    if (existingCredits) {
+      // Update existing credits entry
+      console.log("Updating existing credits for user:", userId);
+      const newCredits = existingCredits.credits_remaining + planCredits;
+      
+      const { error: updateError } = await supabase
+        .from("user_invoice_credits")
+        .update({
+          credits_remaining: newCredits,
+          plan_id: planId,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", existingCredits.id);
+        
+      if (updateError) {
+        console.error("Error updating credits:", updateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to update credits" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+      
+      console.log(`Added ${planCredits} credits to user ${userId}, new total: ${newCredits}`);
+    } else {
+      // Create new credits entry
+      console.log("Creating new credits entry for user:", userId);
+      const { error: insertError } = await supabase
+        .from("user_invoice_credits")
+        .insert({
+          user_id: userId,
+          credits_remaining: planCredits,
+          plan_id: planId
+        });
+        
+      if (insertError) {
+        console.error("Error inserting credits:", insertError);
+        return new Response(
+          JSON.stringify({ error: "Failed to create credits" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+      
+      console.log(`Added ${planCredits} new credits for user ${userId}`);
+    }
+  } else {
+    console.log(`Payment status is ${paymentStatus}, not adding credits yet`);
+  }
+
+  console.log("Payment webhook processed successfully");
   
   return new Response(
     JSON.stringify({ success: true }),
