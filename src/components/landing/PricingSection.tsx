@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Check, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface PlanFeature {
   text: string;
@@ -27,12 +28,12 @@ const plans: PricingPlan[] = [
     invoicesPerMonth: 5,
     popular: false,
     features: [
-      { text: "Cobranças automáticas via WhatsApp", included: true },
+      { text: "5 cobranças/mês", included: true },
+      { text: "Cobranças via WhatsApp", included: true },
       { text: "Pagamento via Pix", included: true },
-      { text: "Dashboard básico", included: true },
+      { text: "IA básica para mensagens", included: true },
       { text: "Suporte por e-mail", included: true },
-      { text: "IA para geração de mensagens", included: false },
-      { text: "Relatórios avançados", included: false },
+      { text: "Dashboard básico", included: true },
     ]
   },
   {
@@ -42,12 +43,13 @@ const plans: PricingPlan[] = [
     invoicesPerMonth: 15,
     popular: true,
     features: [
-      { text: "Cobranças automáticas via WhatsApp", included: true },
+      { text: "15 cobranças/mês", included: true },
+      { text: "Cobranças via WhatsApp", included: true },
       { text: "Pagamento via Pix", included: true },
-      { text: "Dashboard completo", included: true },
-      { text: "Suporte por chat", included: true },
       { text: "IA avançada para mensagens", included: true },
-      { text: "Relatórios básicos", included: true },
+      { text: "Lembretes automáticos", included: true },
+      { text: "Suporte por chat", included: true },
+      { text: "Dashboard completo", included: true },
     ]
   },
   {
@@ -57,12 +59,13 @@ const plans: PricingPlan[] = [
     invoicesPerMonth: 50,
     popular: false,
     features: [
-      { text: "Cobranças automáticas via WhatsApp", included: true },
+      { text: "50 cobranças/mês", included: true },
+      { text: "Cobranças via WhatsApp", included: true },
       { text: "Pagamento via Pix", included: true },
-      { text: "Dashboard completo", included: true },
-      { text: "Suporte prioritário", included: true },
       { text: "IA avançada personalizada", included: true },
-      { text: "Relatórios exportáveis", included: true },
+      { text: "Lembretes programáveis", included: true },
+      { text: "Suporte prioritário", included: true },
+      { text: "Dashboard completo + Relatórios exportáveis", included: true },
     ]
   }
 ];
@@ -72,9 +75,9 @@ export const PricingSection = () => {
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-2xl md:text-4xl font-bold mb-4">Escolha seu Plano</h2>
+          <h2 className="text-2xl md:text-4xl font-bold mb-4">Planos para quem quer parar de perder tempo cobrando</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Preços acessíveis para todos os tamanhos de negócio. Comece agora mesmo!
+            Escolha o plano ideal para o seu negócio e comece a automatizar suas cobranças hoje mesmo.
           </p>
         </div>
         
@@ -84,13 +87,13 @@ export const PricingSection = () => {
               key={plan.id} 
               className={cn(
                 "glass-card relative p-6 flex flex-col hover-float transition-all",
-                plan.popular ? "border-primary ring-1 ring-primary" : ""
+                plan.popular ? "border-[#aaff00] ring-1 ring-[#aaff00]" : ""
               )}
             >
               {plan.popular && (
-                <div className="absolute top-0 right-6 -translate-y-1/2 bg-primary text-white px-3 py-1 rounded-full flex items-center text-sm font-medium">
-                  <Star className="h-4 w-4 mr-1 fill-white" /> Mais vendido
-                </div>
+                <Badge className="absolute top-0 right-6 -translate-y-1/2 bg-[#aaff00] text-black px-3 py-1 flex items-center text-sm font-medium">
+                  <Star className="h-4 w-4 mr-1 fill-current" /> Mais vendido
+                </Badge>
               )}
               
               <div className="text-center mb-6">
@@ -100,7 +103,7 @@ export const PricingSection = () => {
                   <span className="text-muted-foreground ml-2">/mês</span>
                 </div>
                 <div className="mt-2 text-muted-foreground">
-                  {plan.invoicesPerMonth} faturas/mês
+                  {plan.invoicesPerMonth} cobranças/mês
                 </div>
               </div>
               
@@ -108,16 +111,9 @@ export const PricingSection = () => {
                 {plan.features.map((feature, index) => (
                   <div 
                     key={index} 
-                    className={cn(
-                      "flex items-center",
-                      !feature.included && "text-muted-foreground/70"
-                    )}
+                    className="flex items-center"
                   >
-                    {feature.included ? (
-                      <Check className="h-5 w-5 text-primary mr-2 flex-shrink-0" />
-                    ) : (
-                      <div className="h-5 w-5 rounded-full border border-muted-foreground/40 mr-2 flex-shrink-0" />
-                    )}
+                    <Check className="h-5 w-5 text-[#aaff00] mr-2 flex-shrink-0" />
                     <span>{feature.text}</span>
                   </div>
                 ))}
@@ -129,11 +125,11 @@ export const PricingSection = () => {
                 className={cn(
                   "w-full",
                   plan.popular 
-                    ? "bg-primary hover:bg-primary/90" 
+                    ? "bg-[#aaff00] hover:bg-[#88cc00] text-black" 
                     : "bg-primary/80 hover:bg-primary"
                 )}
               >
-                <Link to="/auth">
+                <Link to="/auth?tab=signup">
                   Começar agora
                 </Link>
               </Button>

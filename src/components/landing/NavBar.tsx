@@ -19,7 +19,7 @@ export const NavBar = () => {
           <ThemeToggle />
           
           {user ? (
-            <Button asChild variant="default" className="bg-primary hover:bg-primary/90">
+            <Button asChild variant="default" className="bg-[#aaff00] hover:bg-[#88cc00] text-black">
               <Link to="/dashboard">
                 Acessar Dashboard
               </Link>
@@ -31,7 +31,7 @@ export const NavBar = () => {
                   Entrar
                 </Link>
               </Button>
-              <Button asChild variant="default" className="bg-primary hover:bg-primary/90">
+              <Button asChild variant="default" className="bg-[#aaff00] hover:bg-[#88cc00] text-black">
                 <Link to="/auth?tab=signup">
                   Criar Conta
                 </Link>

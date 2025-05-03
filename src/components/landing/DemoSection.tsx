@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 
 export const DemoSection = () => {
   return (
-    <section className="py-16 md:py-24 bg-muted/30">
+    <section id="demo-section" className="py-16 md:py-24 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-2xl md:text-4xl font-bold mb-6">Veja a plataforma em ação</h2>
@@ -21,24 +21,24 @@ export const DemoSection = () => {
                 alt="Video demonstração"
                 className="absolute inset-0 w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = 'https://placehold.co/1280x720/10b981/FFFFFF?text=Assista+à+Demonstração';
+                  e.currentTarget.src = 'https://placehold.co/1280x720/1a1a1a/88cc00?text=Assista+à+Demonstração';
                 }}
               />
               
               <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-all"></div>
               
-              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center z-10 group-hover:scale-110 transition-transform">
-                <Play className="h-8 w-8 text-white fill-white ml-1" />
+              <div className="w-16 h-16 rounded-full bg-[#aaff00] flex items-center justify-center z-10 group-hover:scale-110 transition-transform">
+                <Play className="h-8 w-8 text-black fill-black ml-1" />
               </div>
             </div>
             <p className="mt-4 text-muted-foreground">
-              🎥 Assista à demonstração em 1 minuto
+              🎥 Veja como automatizar suas cobranças em menos de 1 minuto
             </p>
           </div>
           
           <Button asChild size="lg" className="bg-[#aaff00] hover:bg-[#88cc00] text-black font-medium">
-            <Link to="/auth" className="flex items-center">
-              Clique aqui e crie sua primeira cobrança
+            <Link to="/auth?tab=signup" className="flex items-center">
+              Quero automatizar minhas cobranças agora
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
