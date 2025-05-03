@@ -8,7 +8,8 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 
-import Index from "./pages/Index";
+import Landing from "./pages/Landing";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Clientes from "./pages/Clientes";
 import Faturas from "./pages/Faturas";
@@ -33,12 +34,13 @@ const App = () => (
         <AuthProvider>
           <BrowserRouter>
             <Routes>
+              <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               
               {/* Protected routes */}
-              <Route path="/" element={
+              <Route path="/dashboard" element={
                 <RequireAuth>
-                  <Index />
+                  <Dashboard />
                 </RequireAuth>
               } />
               <Route path="/clientes" element={
