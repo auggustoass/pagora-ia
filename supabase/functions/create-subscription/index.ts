@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -84,27 +83,46 @@ serve(async (req) => {
       );
     }
 
-    // Create the subscription in Mercado Pago
+    // Create the payment in Mercado Pago (not a subscription anymore)
     console.log("Preparing Mercado Pago request");
     const backUrl = `${req.headers.get("origin") || "http://localhost:5173"}/planos/obrigado`;
     const notificationUrl = `${supabaseUrl}/functions/v1/process-payment-webhook`;
 
+    // Determine invoice credits based on plan name
+    const credits = {
+      Basic: 5,      // R$49 = R$9,80 per invoice
+      Pro: 15,       // R$97 = R$6,46 per invoice
+      Enterprise: 30 // R$197 = R$5,62 per invoice
+    };
+    
+    const planCredits = credits[plan.name as keyof typeof credits] || 0;
+
+    // Create a single payment for the plan
     const payload = {
-      reason: `Assinatura ${plan.name} - HBLACKPIX`,
-      auto_recurring: {
-        frequency: 1,
-        frequency_type: "months",
-        transaction_amount: plan.price,
-        currency_id: "BRL",
+      items: [
+        {
+          title: `${planCredits} créditos para faturas - Plano ${plan.name}`,
+          quantity: 1,
+          currency_id: "BRL",
+          unit_price: plan.price,
+          description: `${planCredits} créditos para geração de faturas - Plano ${plan.name} HBLACKPIX`,
+        },
+      ],
+      back_urls: {
+        success: backUrl,
+        failure: backUrl,
+        pending: backUrl,
       },
-      back_url: backUrl,
       notification_url: notificationUrl,
-      payer_email: user.email,
+      external_reference: `plan_purchase_${planId}_user_${userId}`,
+      payer: {
+        email: user.email,
+      },
     };
 
     console.log("Sending request to Mercado Pago API");
-    // Call Mercado Pago API to create a subscription
-    const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
+    // Call Mercado Pago API to create a payment preference
+    const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -118,7 +136,7 @@ serve(async (req) => {
 
     if (!mpResponse.ok) {
       console.error("Mercado Pago error:", mpData);
-      let errorMessage = "Falha ao criar assinatura no Mercado Pago";
+      let errorMessage = "Falha ao criar pagamento no Mercado Pago";
       
       if (mpData.message) {
         errorMessage += `: ${mpData.message}`;
@@ -134,65 +152,69 @@ serve(async (req) => {
       );
     }
 
-    console.log("Subscription created in Mercado Pago:", mpData.id);
+    console.log("Payment preference created in Mercado Pago:", mpData.id);
     
-    // Check for existing subscription
-    const { data: existingSubscription } = await supabase
-      .from("subscriptions")
+    // Check if user already has credits
+    const { data: existingCredits, error: existingCreditsError } = await supabase
+      .from("user_invoice_credits")
       .select("*")
       .eq("user_id", userId)
-      .eq("plan_id", planId)
-      .in("status", ["trial", "active"])
       .maybeSingle();
       
-    if (existingSubscription) {
-      // Update existing subscription
-      console.log("Updating existing subscription:", existingSubscription.id);
+    if (existingCreditsError && existingCreditsError.code !== 'PGRST116') {
+      console.error("Error checking existing credits:", existingCreditsError);
+    }
+    
+    if (existingCredits) {
+      // Update existing credits entry
+      console.log("Updating existing credits for user:", userId);
+      const newCredits = existingCredits.credits_remaining + planCredits;
+      
       const { error: updateError } = await supabase
-        .from("subscriptions")
+        .from("user_invoice_credits")
         .update({
-          mercado_pago_subscription_id: mpData.id,
-          payment_status: "pending",
+          credits_remaining: newCredits,
+          plan_id: planId,
           updated_at: new Date().toISOString()
         })
-        .eq("id", existingSubscription.id);
+        .eq("id", existingCredits.id);
         
       if (updateError) {
-        console.error("Error updating subscription:", updateError);
-        return new Response(
-          JSON.stringify({ error: "Failed to update subscription record" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-        );
+        console.error("Error updating credits:", updateError);
+      } else {
+        console.log(`Added ${planCredits} credits to user ${userId}, new total: ${newCredits}`);
       }
-      
-      console.log("Existing subscription updated successfully");
     } else {
-      // Calculate trial end date (30 days from now)
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 30);
-      
-      // Create new subscription
-      console.log("Creating new subscription");
-      const { error: subscriptionError } = await supabase
-        .from("subscriptions")
+      // Create new credits entry
+      console.log("Creating new credits entry for user:", userId);
+      const { error: insertError } = await supabase
+        .from("user_invoice_credits")
+        .insert({
+          user_id: userId,
+          credits_remaining: planCredits,
+          plan_id: planId
+        });
+        
+      if (insertError) {
+        console.error("Error inserting credits:", insertError);
+      } else {
+        console.log(`Added ${planCredits} new credits for user ${userId}`);
+      }
+    }
+    
+    // Record purchase in subscription_payments table
+    try {
+      await supabase
+        .from("subscription_payments")
         .insert({
           user_id: userId,
           plan_id: planId,
-          status: "trial",
-          trial_ends_at: trialEndsAt.toISOString(),
-          mercado_pago_subscription_id: mpData.id,
-          payment_status: "pending"
+          status: "pending",
+          amount: plan.price
         });
-
-      if (subscriptionError) {
-        console.error("Database error:", subscriptionError);
-        return new Response(
-          JSON.stringify({ error: "Failed to create subscription record" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-        );
-      }
-      
-      console.log("New subscription created successfully");
+    } catch (paymentError) {
+      console.error("Error recording payment:", paymentError);
+      // Continue anyway as this is just for record-keeping
     }
 
     // Return success with the Mercado Pago init point URL for redirect

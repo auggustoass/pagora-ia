@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useCredits } from '@/hooks/use-credits';
 
 interface Plan {
   id: string;
@@ -15,6 +15,7 @@ interface Plan {
   price: number;
   description: string;
   features: string[];
+  invoiceCredits?: number;
 }
 
 export function PricingPlans() {
@@ -24,6 +25,14 @@ export function PricingPlans() {
   const [hasMpCredentials, setHasMpCredentials] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { updateCredits, credits } = useCredits();
+
+  // New plans with invoice credits
+  const creditsPerPlan = {
+    Basic: 5,     // R$49 = R$9,80 per invoice
+    Pro: 15,      // R$97 = R$6,46 per invoice
+    Enterprise: 30 // R$197 = R$5,62 per invoice
+  };
 
   useEffect(() => {
     fetchPlans();
@@ -46,7 +55,9 @@ export function PricingPlans() {
       if (data) {
         const formattedPlans = data.map(plan => ({
           ...plan,
-          features: plan.features as unknown as string[]
+          features: plan.features as unknown as string[],
+          // Add invoice credits based on plan name
+          invoiceCredits: creditsPerPlan[plan.name as keyof typeof creditsPerPlan] || 0
         }));
         setPlans(formattedPlans);
       }
@@ -76,7 +87,7 @@ export function PricingPlans() {
     }
   }
 
-  async function handleSubscribe(planId: string) {
+  async function handleSubscribe(planId: string, planName: string) {
     if (!user) {
       toast.error('Você precisa estar logado para assinar um plano');
       navigate('/auth');
@@ -93,53 +104,14 @@ export function PricingPlans() {
         return;
       }
       
-      // Check if user already has a subscription
-      const { data: existingSubscription } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('status', ['active', 'trial'])
-        .maybeSingle();
-        
-      if (existingSubscription) {
-        // User already has an active subscription, redirect to subscription details
-        toast.info('Você já possui uma assinatura ativa.');
-        navigate('/configuracoes/assinatura');
+      // Get invoice credits for this plan
+      const plan = plans.find(p => p.id === planId);
+      if (!plan || !plan.invoiceCredits) {
+        toast.error('Plano não encontrado ou inválido');
         return;
       }
-      
+
       // Calculate trial end date (30 days from now)
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 30);
-      
-      // Create trial subscription in database
-      const { data: subscription, error } = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: user.id,
-          plan_id: planId,
-          status: 'trial',
-          trial_ends_at: trialEndsAt.toISOString()
-        })
-        .select()
-        .single();
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Setup Mercado Pago subscription for automatic billing after trial
-      await createMercadoPagoSubscription(subscription.id, planId);
-      
-    } catch (error: any) {
-      console.error('Error subscribing to plan:', error);
-      toast.error(`Erro ao assinar plano: ${error.message || 'Tente novamente mais tarde'}`);
-      setProcessingPlanId(null);
-    }
-  }
-  
-  async function createMercadoPagoSubscription(subscriptionId: string, planId: string) {
-    try {
       const { data: authData } = await supabase.auth.getSession();
       if (!authData.session) {
         throw new Error('Sessão expirada');
@@ -162,9 +134,13 @@ export function PricingPlans() {
         throw new Error(response.error || 'Falha ao processar assinatura');
       }
       
+      // Add credits to user account based on plan
+      await updateCredits(plan.invoiceCredits);
+      
       if (response.data.checkout_url) {
         // Redirect to Mercado Pago checkout
-        toast.success('Assinatura criada com sucesso! Redirecionando para pagamento...');
+        toast.success(`${plan.invoiceCredits} créditos adicionados à sua conta!`);
+        toast.success('Redirecionando para pagamento...');
         window.location.href = response.data.checkout_url;
       } else {
         throw new Error('URL de checkout não recebida');
@@ -182,15 +158,6 @@ export function PricingPlans() {
       }
       
       toast.error(`Erro ao configurar pagamento: ${errorMessage}`);
-      
-      // Delete the subscription if we couldn't set up payment
-      if (subscriptionId) {
-        await supabase
-          .from('subscriptions')
-          .delete()
-          .eq('id', subscriptionId);
-      }
-      
       setProcessingPlanId(null);
       
       // Redirect to config if it's a credentials issue
@@ -243,7 +210,7 @@ export function PricingPlans() {
       {user && !hasMpCredentials && (
         <Alert className="bg-yellow-500/10 border-yellow-500/20">
           <AlertDescription className="text-yellow-500">
-            Você precisa configurar suas credenciais do Mercado Pago antes de assinar um plano. 
+            Você precisa configurar suas credenciais do Mercado Pago antes de comprar créditos. 
             <Button 
               variant="link" 
               className="text-yellow-500 p-0 h-auto ml-1"
@@ -254,11 +221,20 @@ export function PricingPlans() {
           </AlertDescription>
         </Alert>
       )}
+      
+      {user && credits && credits.credits_remaining > 0 && (
+        <Alert className="bg-green-500/10 border-green-500/20">
+          <AlertDescription className="text-green-500">
+            Você já possui {credits.credits_remaining} crédito{credits.credits_remaining !== 1 ? 's' : ''} disponível{credits.credits_remaining !== 1 ? 'is' : ''} para gerar faturas.
+          </AlertDescription>
+        </Alert>
+      )}
     
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {plans.map((plan) => {
           const colorScheme = getPlanColorScheme(plan.name);
           const isProcessing = processingPlanId === plan.id;
+          const pricePerInvoice = plan.price / (plan.invoiceCredits || 1);
           
           return (
             <Card key={plan.id} className="glass-card flex flex-col hover-float relative overflow-hidden">
@@ -275,7 +251,9 @@ export function PricingPlans() {
                 <CardDescription>{plan.description}</CardDescription>
                 <div className="mt-4">
                   <span className="text-4xl font-bold">R${plan.price}</span>
-                  <span className="text-muted-foreground">/mês</span>
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  <span className="font-semibold">{plan.invoiceCredits} faturas</span> (R${pricePerInvoice.toFixed(2)} por fatura)
                 </div>
               </CardHeader>
               <CardContent className="flex-1">
@@ -287,15 +265,13 @@ export function PricingPlans() {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-4 text-sm text-muted-foreground flex items-center justify-center space-x-2">
+                <div className="mt-4 text-sm text-muted-foreground flex items-center justify-center">
                   <span>🔒 Sem contrato</span>
-                  <span>|</span>
-                  <span>✅ 30 dias grátis</span>
                 </div>
               </CardContent>
               <CardFooter>
                 <Button 
-                  onClick={() => handleSubscribe(plan.id)} 
+                  onClick={() => handleSubscribe(plan.id, plan.name)} 
                   className={`w-full bg-gradient-to-r ${colorScheme.gradientClass} ${colorScheme.hoverClass}`}
                   disabled={isProcessing || (user && !hasMpCredentials)}
                 >
@@ -305,7 +281,7 @@ export function PricingPlans() {
                       Processando...
                     </>
                   ) : (
-                    'Começar Teste Gratuito'
+                    `Comprar ${plan.invoiceCredits} créditos`
                   )}
                 </Button>
               </CardFooter>

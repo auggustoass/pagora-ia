@@ -1,12 +1,14 @@
 
 import React, { useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
-import { SubscriptionDetails } from '@/components/subscription/SubscriptionDetails';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Coins, CreditCard } from 'lucide-react';
+import { CreditsDisplay } from '@/components/dashboard/CreditsDisplay';
 
 const ConfiguracoesAssinatura = () => {
   const { user } = useAuth();
@@ -62,13 +64,66 @@ const ConfiguracoesAssinatura = () => {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Gerenciar Assinatura</h1>
+          <h1 className="text-3xl font-bold mb-2">Créditos de Faturas</h1>
           <p className="text-muted-foreground">
-            Visualize detalhes de sua assinatura atual, gerencie pagamentos e veja o histórico de transações.
+            Gerencie seus créditos para geração de faturas. Cada fatura gerada consume um crédito.
           </p>
         </div>
         
-        <SubscriptionDetails />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-yellow-400" />
+                Meus Créditos
+              </CardTitle>
+              <CardDescription>
+                Status atual dos seus créditos de faturas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <CreditsDisplay className="pb-4" />
+              
+              <Button 
+                onClick={() => navigate('/planos')} 
+                className="w-full bg-gradient-to-r from-pagora-purple to-pagora-purple/80 hover:bg-pagora-purple/90"
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Comprar mais créditos
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Como funciona</CardTitle>
+              <CardDescription>
+                Entenda o sistema de créditos para faturas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="font-medium">Créditos de faturas</h3>
+                <p className="text-sm text-muted-foreground">
+                  Cada fatura que você gera consome 1 crédito da sua conta. Você pode comprar pacotes de créditos com diferentes valores:
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+                  <li>Plano Básico: 5 faturas por R$49 (R$9,80 por fatura)</li>
+                  <li>Plano Pro: 15 faturas por R$97 (R$6,46 por fatura)</li>
+                  <li>Plano Enterprise: 30 faturas por R$197 (R$5,62 por fatura)</li>
+                </ul>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">Fatura de teste gratuita</h3>
+                <p className="text-sm text-muted-foreground">
+                  Todos os novos usuários recebem 1 crédito gratuito para testar o sistema.
+                  Após usar seu crédito gratuito, é necessário comprar mais créditos para continuar gerando faturas.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </Layout>
   );

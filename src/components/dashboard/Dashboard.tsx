@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle, Coins } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { InvoiceTable } from './InvoiceTable';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
+import { CreditsDisplay } from './CreditsDisplay';
+import { useCredits } from '@/hooks/use-credits';
 
 interface Client {
   id: string;
@@ -35,45 +37,15 @@ export function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
-  const [showTrialAlert, setShowTrialAlert] = useState(false);
-  const [trialDaysLeft, setTrialDaysLeft] = useState(0);
   const { user, isAdmin } = useAuth();
+  const { credits, loading: creditsLoading } = useCredits();
   
   useEffect(() => {
     if (user) {
       fetchStats();
-      checkTrialStatus();
     }
   }, [user, isAdmin]);
   
-  async function checkTrialStatus() {
-    try {
-      const { data: subscription, error } = await supabase
-        .from('subscriptions')
-        .select('trial_ends_at, status')
-        .eq('user_id', user!.id)
-        .eq('status', 'trial')
-        .maybeSingle();
-        
-      if (error) {
-        console.error('Error fetching trial status:', error);
-        return;
-      }
-      
-      if (subscription && subscription.trial_ends_at) {
-        const endDate = new Date(subscription.trial_ends_at);
-        const today = new Date();
-        const diffTime = endDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        setTrialDaysLeft(diffDays);
-        setShowTrialAlert(diffDays <= 5);
-      }
-    } catch (error) {
-      console.error('Error checking trial status:', error);
-    }
-  }
-
   const fetchStats = async () => {
     if (!user) return;
     
@@ -212,28 +184,21 @@ export function Dashboard() {
         </div>
       </div>
       
-      {/* Trial Alert Banner */}
-      {showTrialAlert && trialDaysLeft > 0 && (
-        <Alert className={`${trialDaysLeft <= 3 ? 'bg-red-500/10 border-red-500/20' : 'bg-yellow-500/10 border-yellow-500/20'}`}>
-          <AlertCircle className={`h-5 w-5 ${trialDaysLeft <= 3 ? 'text-red-500' : 'text-yellow-500'}`} />
-          <AlertTitle className={trialDaysLeft <= 3 ? 'text-red-500' : 'text-yellow-500'}>
-            Seu período de teste está acabando!
-          </AlertTitle>
-          <AlertDescription className="text-muted-foreground">
-            Restam apenas {trialDaysLeft} {trialDaysLeft === 1 ? 'dia' : 'dias'} do seu período de teste. 
-            <Link to="/configuracoes/assinatura" className="ml-1 underline">
-              Configure seu método de pagamento agora
-            </Link> para evitar a interrupção do serviço.
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Credits Display */}
+      <CreditsDisplay />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatusCard 
+          title="Créditos restantes" 
+          value={creditsLoading ? "..." : String(credits?.credits_remaining || 0)} 
+          icon={<Coins className="h-5 w-5 text-yellow-400" />} 
+          className="pulse-glow" 
+          description="Para geração de faturas"
+        />
+        <StatusCard 
           title="Total de Faturas" 
           value={loading ? "..." : String(stats.total)} 
-          icon={<FileText className="h-5 w-5" />} 
-          className="pulse-glow" 
+          icon={<FileText className="h-5 w-5" />}  
         />
         <StatusCard 
           title="Faturas Pendentes" 
@@ -241,13 +206,6 @@ export function Dashboard() {
           icon={<Clock className="h-5 w-5" />} 
           variant="pending" 
           description="Aguardando pagamento" 
-        />
-        <StatusCard 
-          title="Faturas Aprovadas" 
-          value={loading ? "..." : String(stats.aprovadas)} 
-          icon={<CheckCircle className="h-5 w-5" />} 
-          variant="success" 
-          description="Pagamentos confirmados" 
         />
         <StatusCard 
           title="Total Recebido" 

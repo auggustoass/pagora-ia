@@ -203,6 +203,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          first_login: boolean | null
           first_name: string | null
           id: string
           last_name: string | null
@@ -211,6 +212,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          first_login?: boolean | null
           first_name?: string | null
           id: string
           last_name?: string | null
@@ -219,6 +221,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          first_login?: boolean | null
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -339,6 +342,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_invoice_credits: {
+        Row: {
+          created_at: string
+          credits_remaining: number
+          id: string
+          plan_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_remaining?: number
+          id?: string
+          plan_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_remaining?: number
+          id?: string
+          plan_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invoice_credits_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"

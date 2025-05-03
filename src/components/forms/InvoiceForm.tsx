@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +12,10 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useCredits } from '@/hooks/use-credits';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   Form,
   FormControl,
@@ -33,7 +36,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Checkbox
+} from '@/components/ui/checkbox';
 
 interface Client {
   id: string;
@@ -67,6 +72,10 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [isGeneratingPaymentLink, setIsGeneratingPaymentLink] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const { user, isAdmin } = useAuth();
+  const { credits, loading: creditsLoading, consumeCredit } = useCredits();
+  const navigate = useNavigate();
+  
+  const hasCredits = credits && credits.credits_remaining > 0;
   
   // Carrega a lista de clientes do Supabase, filtrando pelo usuário atual
   useEffect(() => {
@@ -94,7 +103,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     };
     
     fetchClients();
-  }, [user, isAdmin]); // Adiciona isAdmin e user como dependências
+  }, [user, isAdmin]);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -116,9 +125,25 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       return;
     }
 
+    // Check if user has available credits
+    if (!hasCredits) {
+      toast({
+        title: 'Sem créditos',
+        description: 'Você não tem créditos suficientes para gerar faturas.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
+      // Consume one credit
+      const creditConsumed = await consumeCredit();
+      if (!creditConsumed) {
+        throw new Error('Não foi possível consumir um crédito');
+      }
+      
       // Encontrar detalhes do cliente
       const client = clients.find(c => c.id === values.clientId);
       
@@ -199,10 +224,52 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     }
   };
   
+  if (creditsLoading) {
+    return (
+      <div className="flex justify-center items-center p-4">
+        <p>Carregando...</p>
+      </div>
+    );
+  }
+  
+  if (!hasCredits) {
+    return (
+      <div className="space-y-4">
+        <Alert className="bg-red-500/10 border-red-500/20">
+          <AlertCircle className="h-4 w-4 text-red-500" />
+          <AlertTitle className="text-red-500">Sem créditos disponíveis</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            Você não tem créditos suficientes para gerar faturas.
+            Compre mais créditos para continuar gerando faturas.
+          </AlertDescription>
+        </Alert>
+        
+        <Button 
+          className="w-full bg-yellow-500 hover:bg-yellow-600"
+          onClick={() => navigate('/planos')}
+        >
+          Comprar créditos
+        </Button>
+      </div>
+    );
+  }
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
+          <Alert className="bg-blue-500/10 border-blue-500/20">
+            <AlertDescription className="text-sm">
+              <span className="font-medium">
+                Créditos disponíveis: {credits?.credits_remaining || 0}
+              </span>
+              <br />
+              <span className="text-muted-foreground">
+                Cada fatura gerada consome 1 crédito
+              </span>
+            </AlertDescription>
+          </Alert>
+          
           <FormField
             control={form.control}
             name="clientId"
