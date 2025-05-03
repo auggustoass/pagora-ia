@@ -1,15 +1,17 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab');
 
-  // If user is already logged in, redirect to home
+  // If user is already logged in, redirect to dashboard
   if (user && !isLoading) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
@@ -19,7 +21,7 @@ const Auth = () => {
         <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-accent/5 rounded-full filter blur-[120px]" />
       </div>
       <div className="w-full max-w-md z-10">
-        <AuthForm />
+        <AuthForm initialTab={activeTab === 'signup' ? 'signup' : 'login'} />
       </div>
     </div>
   );

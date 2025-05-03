@@ -10,7 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Loader } from 'lucide-react';
 
-export function AuthForm() {
+interface AuthFormProps {
+  initialTab?: string;
+}
+
+export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +37,7 @@ export function AuthForm() {
         toast.error(error.message);
       } else {
         toast.success('Login realizado com sucesso!');
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (error) {
       toast.error('Erro ao fazer login');
@@ -91,7 +95,7 @@ export function AuthForm() {
         </CardDescription>
       </CardHeader>
       
-      <Tabs defaultValue="login" className="w-full">
+      <Tabs defaultValue={initialTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4 rounded-lg bg-secondary/40">
           <TabsTrigger 
             value="login" 

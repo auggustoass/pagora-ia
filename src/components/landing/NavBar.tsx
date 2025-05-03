@@ -32,7 +32,7 @@ export const NavBar = () => {
                 </Link>
               </Button>
               <Button asChild variant="default" className="bg-primary hover:bg-primary/90">
-                <Link to="/auth">
+                <Link to="/auth?tab=signup">
                   Criar Conta
                 </Link>
               </Button>
