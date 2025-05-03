@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -9,14 +10,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle, Clock, CreditCard, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, CreditCard, Loader2, Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress'; 
 import { 
   Dialog, 
   DialogContent, 
@@ -26,12 +26,13 @@ import {
   DialogTitle 
 } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
+import { useCredits } from '@/hooks/use-credits';
+import { CreditsDisplay } from '../dashboard/CreditsDisplay';
 
 interface Subscription {
   id: string;
   status: string;
   start_date: string;
-  trial_ends_at: string | null;
   end_date: string | null;
   payment_status: string | null;
   mercado_pago_subscription_id: string | null;
@@ -59,6 +60,7 @@ export function SubscriptionDetails() {
   const [processing, setProcessing] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { credits } = useCredits();
 
   useEffect(() => {
     if (user) {
@@ -75,7 +77,7 @@ export function SubscriptionDetails() {
         .from('subscriptions')
         .select('*, plans(id, name, price)')
         .eq('user_id', user!.id)
-        .in('status', ['active', 'trial'])
+        .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -200,8 +202,6 @@ export function SubscriptionDetails() {
     switch (status) {
       case 'active':
         return 'bg-green-500';
-      case 'trial':
-        return 'bg-blue-500';
       case 'canceled':
         return 'bg-yellow-500';
       case 'expired':
@@ -214,8 +214,6 @@ export function SubscriptionDetails() {
     switch (status) {
       case 'active':
         return 'Ativo';
-      case 'trial':
-        return 'Período de Teste';
       case 'canceled':
         return 'Cancelado';
       case 'expired':
@@ -252,32 +250,6 @@ export function SubscriptionDetails() {
     if (!date) return '-';
     return format(new Date(date), 'dd/MM/yyyy');
   }
-  
-  function getDaysLeft(trialEndsAt: string | null): number {
-    if (!trialEndsAt) return 0;
-    const endDate = new Date(trialEndsAt);
-    const today = new Date();
-    const diffTime = endDate.getTime() - today.getTime();
-    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  }
-  
-  function getTrialProgress(trialEndsAt: string | null): number {
-    if (!trialEndsAt) return 0;
-    // Assuming trial period is 30 days
-    const daysLeft = getDaysLeft(trialEndsAt);
-    const progress = Math.max(0, Math.min(100, ((30 - daysLeft) / 30) * 100));
-    return progress;
-  }
-  
-  function needsRenewal(): boolean {
-    if (!subscription) return false;
-    
-    if (subscription.status === 'trial' && subscription.trial_ends_at) {
-      return getDaysLeft(subscription.trial_ends_at) <= 3;
-    }
-    
-    return false;
-  }
 
   if (loading) {
     return (
@@ -289,174 +261,151 @@ export function SubscriptionDetails() {
     );
   }
 
-  if (!subscription) {
-    return (
+  return (
+    <div className="space-y-6">
+      {/* Credits Display */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Assinatura</CardTitle>
-          <CardDescription>Você não possui uma assinatura ativa</CardDescription>
+          <CardTitle>Seus Créditos</CardTitle>
+          <CardDescription>Saldo atual de créditos para geração de faturas</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Nenhuma assinatura encontrada</h3>
-            <p className="text-muted-foreground mb-4">
-              Você não possui uma assinatura ativa no momento.
-              Assine um plano para acessar todas as funcionalidades.
-            </p>
-            <Button 
-              onClick={() => navigate('/planos')} 
+          <CreditsDisplay className="pb-4" />
+          
+          <div className="flex justify-end mt-4">
+            <Button
+              onClick={() => navigate('/planos')}
               className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80"
             >
-              Ver Planos
+              <Coins className="mr-2 h-4 w-4" />
+              Comprar mais créditos
             </Button>
           </div>
         </CardContent>
       </Card>
-    );
-  }
 
-  const daysLeft = getDaysLeft(subscription.trial_ends_at);
-  const trialProgress = getTrialProgress(subscription.trial_ends_at);
-
-  return (
-    <div className="space-y-6">
-      <Card className="glass-card">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Sua Assinatura</CardTitle>
-              <CardDescription>Detalhes do seu plano atual</CardDescription>
+      {!subscription ? (
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle>Assinatura</CardTitle>
+            <CardDescription>Você não possui uma assinatura ativa</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Nenhuma assinatura encontrada</h3>
+              <p className="text-muted-foreground mb-4">
+                Você não possui uma assinatura ativa no momento.
+                Compre créditos para gerar faturas.
+              </p>
+              <Button 
+                onClick={() => navigate('/planos')} 
+                className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80"
+              >
+                Ver Planos
+              </Button>
             </div>
-            <Badge className={getStatusColor(subscription.status)}>
-              {formatStatus(subscription.status)}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Plano</div>
-                <div className="text-xl font-semibold">{subscription.plans.name}</div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="glass-card">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Sua Assinatura</CardTitle>
+                <CardDescription>Detalhes do seu plano atual</CardDescription>
               </div>
-              
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Valor Mensal</div>
-                <div className="text-xl font-semibold">{formatCurrency(subscription.plans.price)}</div>
-              </div>
-              
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Status do Pagamento</div>
-                <div className="flex items-center">
-                  {subscription.payment_status === 'paid' ? (
-                    <>
-                      <CheckCircle className="h-5 w-5 text-pagora-success mr-2" />
-                      <span>Pago</span>
-                    </>
-                  ) : subscription.payment_status === 'pending' ? (
-                    <>
-                      <Clock className="h-5 w-5 text-yellow-500 mr-2" />
-                      <span>Pendente</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                      <span>{formatPaymentStatus(subscription.payment_status || 'unknown')}</span>
-                    </>
-                  )}
-                </div>
-              </div>
+              <Badge className={getStatusColor(subscription.status)}>
+                {formatStatus(subscription.status)}
+              </Badge>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-white/10">
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Data de Início</div>
-                <div>{formatDate(subscription.start_date)}</div>
-              </div>
-              
-              {subscription.trial_ends_at && (
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">Fim do Período Gratuito</div>
-                  <div>{formatDate(subscription.trial_ends_at)}</div>
+                  <div className="text-sm text-muted-foreground">Plano</div>
+                  <div className="text-xl font-semibold">{subscription.plans.name}</div>
                 </div>
-              )}
-              
-              {subscription.end_date && (
+                
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">Data de Término</div>
-                  <div>{formatDate(subscription.end_date)}</div>
+                  <div className="text-sm text-muted-foreground">Valor do Plano</div>
+                  <div className="text-xl font-semibold">{formatCurrency(subscription.plans.price)}</div>
                 </div>
-              )}
-            </div>
-            
-            {subscription.status === 'trial' && subscription.trial_ends_at && (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">
-                    Período de teste: {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} restantes
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {Math.floor(trialProgress)}%
-                  </span>
+                
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Status do Pagamento</div>
+                  <div className="flex items-center">
+                    {subscription.payment_status === 'paid' ? (
+                      <>
+                        <CheckCircle className="h-5 w-5 text-pagora-success mr-2" />
+                        <span>Pago</span>
+                      </>
+                    ) : subscription.payment_status === 'pending' ? (
+                      <>
+                        <Clock className="h-5 w-5 text-yellow-500 mr-2" />
+                        <span>Pendente</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                        <span>{formatPaymentStatus(subscription.payment_status || 'unknown')}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <Progress 
-                  value={trialProgress} 
-                  className={`h-2 ${daysLeft <= 3 ? "bg-red-500" : "bg-blue-500"}`}
-                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/10">
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Data de Início</div>
+                  <div>{formatDate(subscription.start_date)}</div>
+                </div>
                 
-                <Alert className={`mt-4 ${daysLeft <= 3 ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-blue-500/10 border-blue-500/20 text-blue-500'}`}>
-                  <Clock className="h-5 w-5" />
-                  <AlertTitle>
-                    {daysLeft <= 3 ? 'Atenção: Seu período de teste está acabando!' : 'Período de Teste Ativo'}
-                  </AlertTitle>
-                  <AlertDescription>
-                    {daysLeft <= 3 
-                      ? `Seu período de teste termina em ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}. Adicione um método de pagamento para continuar usando o sistema sem interrupções.`
-                      : `Você está no período de teste gratuito. Após ${formatDate(subscription.trial_ends_at)}, você precisará configurar um método de pagamento.`
-                    }
-                  </AlertDescription>
-                </Alert>
-                
-                {daysLeft <= 3 && (
-                  <div className="mt-4 flex justify-end">
-                    <Button 
-                      onClick={() => setRenewDialogOpen(true)}
-                      className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80"
-                    >
-                      <CreditCard className="mr-2 h-4 w-4" /> 
-                      Configurar Pagamento
-                    </Button>
+                {subscription.end_date && (
+                  <div className="space-y-1">
+                    <div className="text-sm text-muted-foreground">Data de Término</div>
+                    <div>{formatDate(subscription.end_date)}</div>
                   </div>
                 )}
               </div>
-            )}
-            
-            <div className="flex flex-wrap justify-end gap-4 pt-4">
-              {subscription.status === 'active' && (
-                <Button 
-                  variant="outline"
-                  className="text-muted-foreground border-white/10 hover:bg-white/10"
-                  onClick={() => navigate('/configuracoes')}
-                >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Gerenciar Pagamento
-                </Button>
+              
+              {credits?.credits_remaining === 0 && (
+                <Alert className="mt-4 bg-red-500/10 border-red-500/20 text-red-500">
+                  <AlertCircle className="h-5 w-5" />
+                  <AlertTitle>Atenção: Seus créditos acabaram!</AlertTitle>
+                  <AlertDescription>
+                    Você não tem mais créditos para gerar faturas. Compre mais créditos para continuar usando o sistema.
+                  </AlertDescription>
+                </Alert>
               )}
               
-              {(subscription.status === 'active' || subscription.status === 'trial') && (
-                <Button 
-                  variant="outline"
-                  className="text-red-500 border-red-500 hover:bg-red-500/10"
-                  onClick={() => setCancelDialogOpen(true)}
-                >
-                  Cancelar Assinatura
-                </Button>
-              )}
+              <div className="flex flex-wrap justify-end gap-4 pt-4">
+                {subscription.status === 'active' && (
+                  <Button 
+                    variant="outline"
+                    className="text-muted-foreground border-white/10 hover:bg-white/10"
+                    onClick={() => navigate('/configuracoes')}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Gerenciar Pagamento
+                  </Button>
+                )}
+                
+                {subscription.status === 'active' && (
+                  <Button 
+                    variant="outline"
+                    className="text-red-500 border-red-500 hover:bg-red-500/10"
+                    onClick={() => setCancelDialogOpen(true)}
+                  >
+                    Cancelar Assinatura
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
       
       {payments.length > 0 && (
         <Card className="glass-card">
@@ -504,7 +453,7 @@ export function SubscriptionDetails() {
           <DialogHeader>
             <DialogTitle>Cancelar Assinatura</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja cancelar sua assinatura? Você perderá acesso às funcionalidades após o término do período atual.
+              Tem certeza que deseja cancelar sua assinatura? Seus créditos já adquiridos continuarão disponíveis para uso.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -512,7 +461,7 @@ export function SubscriptionDetails() {
               <AlertCircle className="h-5 w-5" />
               <AlertTitle>Atenção</AlertTitle>
               <AlertDescription>
-                O cancelamento será efetivado imediatamente e você não receberá reembolso pelo período não utilizado.
+                O cancelamento será efetivado imediatamente. Você não receberá reembolso pelos créditos não utilizados.
               </AlertDescription>
             </Alert>
           </div>
@@ -546,9 +495,9 @@ export function SubscriptionDetails() {
       <Dialog open={renewDialogOpen} onOpenChange={setRenewDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Configurar Pagamento</DialogTitle>
+            <DialogTitle>Comprar Créditos</DialogTitle>
             <DialogDescription>
-              Para continuar utilizando o sistema após o período de teste, é necessário configurar um método de pagamento.
+              Adquira mais créditos para continuar gerando faturas.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -582,7 +531,7 @@ export function SubscriptionDetails() {
               ) : (
                 <>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Configurar Pagamento
+                  Comprar Créditos
                 </>
               )}
             </Button>

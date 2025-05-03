@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ export function PricingPlans() {
   const navigate = useNavigate();
   const { updateCredits, credits } = useCredits();
 
-  // New plans with invoice credits
+  // Credits per plan
   const creditsPerPlan = {
     Basic: 5,     // R$49 = R$9,80 per invoice
     Pro: 15,      // R$97 = R$6,46 per invoice
@@ -89,7 +90,7 @@ export function PricingPlans() {
 
   async function handleSubscribe(planId: string, planName: string) {
     if (!user) {
-      toast.error('Você precisa estar logado para assinar um plano');
+      toast.error('Você precisa estar logado para comprar créditos');
       navigate('/auth');
       return;
     }
@@ -99,7 +100,7 @@ export function PricingPlans() {
     try {
       // First, check if user has Mercado Pago credentials
       if (!hasMpCredentials) {
-        toast.warning('Você precisa configurar suas credenciais do Mercado Pago antes de assinar um plano');
+        toast.warning('Você precisa configurar suas credenciais do Mercado Pago antes de comprar créditos');
         navigate('/configuracoes');
         return;
       }
@@ -111,7 +112,7 @@ export function PricingPlans() {
         return;
       }
 
-      // Calculate trial end date (30 days from now)
+      // Get auth session
       const { data: authData } = await supabase.auth.getSession();
       if (!authData.session) {
         throw new Error('Sessão expirada');
@@ -131,7 +132,7 @@ export function PricingPlans() {
       console.log('Edge function response:', response);
       
       if (response.error) {
-        throw new Error(response.error || 'Falha ao processar assinatura');
+        throw new Error(response.error || 'Falha ao processar pagamento');
       }
       
       // Add credits to user account based on plan

@@ -11,7 +11,7 @@ const Planos = () => {
           <h1 className="text-3xl font-bold mb-2">Planos</h1>
           <p className="text-muted-foreground">
             Escolha o plano que melhor se adapta às necessidades do seu negócio. 
-            Todos os planos incluem período de teste grátis por 30 dias.
+            Cada plano inclui uma quantidade de créditos para gerar faturas.
           </p>
         </div>
         

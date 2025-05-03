@@ -1,75 +1,18 @@
 
 import React, { useEffect, useState } from 'react';
-import { Bell, CreditCard, MessageSquare, Settings, Search, Menu } from 'lucide-react';
+import { Bell, CreditCard, MessageSquare, Settings, Search, Menu, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { useAuth } from '../auth/AuthProvider';
-import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '../ui/badge';
 import { Link } from 'react-router-dom';
-import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-
-interface SubscriptionStatus {
-  active: boolean;
-  status: string;
-  trial: boolean;
-  trial_ends_at: string | null;
-}
+import { useCredits } from '@/hooks/use-credits';
 
 export function Header() {
   const { user } = useAuth();
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      fetchSubscriptionStatus();
-    }
-  }, [user]);
-
-  async function fetchSubscriptionStatus() {
-    try {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('status, trial_ends_at')
-        .eq('user_id', user!.id)
-        .in('status', ['active', 'trial'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching subscription status:', error);
-        return;
-      }
-
-      if (data) {
-        setSubscriptionStatus({
-          active: true,
-          status: data.status,
-          trial: data.status === 'trial',
-          trial_ends_at: data.trial_ends_at,
-        });
-      } else {
-        setSubscriptionStatus({
-          active: false,
-          status: 'inactive',
-          trial: false,
-          trial_ends_at: null,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching subscription status:', error);
-    }
-  }
-
-  const daysLeftInTrial = subscriptionStatus?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(subscriptionStatus.trial_ends_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
-    
-  const isDangerZone = daysLeftInTrial <= 3 && daysLeftInTrial > 0;
-  const isExpired = daysLeftInTrial <= 0 && subscriptionStatus?.trial;
+  const { credits } = useCredits();
 
   return (
     <header className="px-6 py-4 flex items-center justify-between border-b border-border backdrop-blur-md bg-background/50">
@@ -88,45 +31,17 @@ export function Header() {
       </div>
       
       <div className="flex items-center space-x-3">
-        {user && subscriptionStatus && (
+        {user && (
           <Link to="/configuracoes/assinatura">
             <Button 
               variant="outline" 
               size="sm"
-              className={`
-                flex flex-col items-center gap-1 border-border h-auto py-1.5
-                ${isExpired ? 'text-pagora-error hover:text-pagora-error/90' : 
-                  isDangerZone ? 'text-pagora-pending hover:text-pagora-pending/90' :
-                  subscriptionStatus.trial ? 'text-primary hover:text-primary/90' : 
-                  'text-pagora-success hover:text-pagora-success/90'
-                }
-              `}
+              className="flex items-center gap-2 border-border h-auto py-1.5"
             >
-              <div className="flex items-center gap-2">
-                <CreditCard size={16} />
-                {subscriptionStatus.active ? (
-                  subscriptionStatus.trial ? (
-                    <>
-                      Trial <Badge variant="outline" className={`ml-1 text-xs ${isDangerZone ? 'text-pagora-pending border-pagora-pending' : isExpired ? 'text-pagora-error border-pagora-error' : 'text-primary border-primary'}`}>
-                        {isExpired ? 'Expirado' : `${daysLeftInTrial} dias`}
-                      </Badge>
-                    </>
-                  ) : (
-                    'Ativo'
-                  )
-                ) : (
-                  'Inativo'
-                )}
-              </div>
-              
-              {subscriptionStatus.trial && subscriptionStatus.trial_ends_at && daysLeftInTrial > 0 && (
-                <div className="w-full mt-1">
-                  <Progress 
-                    value={Math.max(0, Math.min(100, ((30 - daysLeftInTrial) / 30) * 100))}
-                    className={`h-1 ${isDangerZone ? "bg-pagora-pending" : "bg-primary"}`}
-                  />
-                </div>
-              )}
+              <Coins size={16} className="text-yellow-400" />
+              <Badge variant="outline" className="text-xs">
+                {credits?.credits_remaining || 0} crédito{credits?.credits_remaining !== 1 ? 's' : ''}
+              </Badge>
             </Button>
           </Link>
         )}

@@ -20,10 +20,10 @@ const PlanosObrigado = () => {
           <CheckCircle className="h-10 w-10 text-pagora-success" />
         </div>
         
-        <h1 className="text-3xl font-bold">Assinatura Configurada com Sucesso!</h1>
+        <h1 className="text-3xl font-bold">Créditos Adicionados com Sucesso!</h1>
         
         <p className="text-xl text-muted-foreground max-w-2xl">
-          Obrigado por configurar sua assinatura. Seu período de teste gratuito de 30 dias já está ativo!
+          Obrigado por adquirir créditos. Seus créditos já estão disponíveis para uso!
         </p>
         
         <div className="glass-card p-6 max-w-xl w-full">
@@ -34,19 +34,19 @@ const PlanosObrigado = () => {
               <div className="bg-pagora-success/20 rounded-full p-1 mr-3 mt-1">
                 <CheckCircle className="h-4 w-4 text-pagora-success" />
               </div>
-              <span>Você tem <strong>acesso completo</strong> a todas as funcionalidades do plano escolhido pelos próximos 30 dias.</span>
+              <span>Você tem <strong>acesso imediato</strong> aos créditos adquiridos para gerar faturas.</span>
             </li>
             <li className="flex items-start">
               <div className="bg-pagora-success/20 rounded-full p-1 mr-3 mt-1">
                 <CheckCircle className="h-4 w-4 text-pagora-success" />
               </div>
-              <span>Após o período gratuito, sua assinatura será ativada automaticamente e você será cobrado de acordo com o plano escolhido.</span>
+              <span>Cada crédito permite gerar uma nova fatura. Quando seus créditos acabarem, basta adquirir mais.</span>
             </li>
             <li className="flex items-start">
               <div className="bg-pagora-success/20 rounded-full p-1 mr-3 mt-1">
                 <CheckCircle className="h-4 w-4 text-pagora-success" />
               </div>
-              <span>Você pode cancelar ou alterar seu plano a qualquer momento através da sua área de configurações.</span>
+              <span>Você pode verificar seu saldo de créditos no dashboard ou configurações.</span>
             </li>
           </ul>
         </div>
