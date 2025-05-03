@@ -1,67 +1,45 @@
-
 import React from 'react';
 import { useCredits } from '@/hooks/use-credits';
 import { Coins, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
 interface CreditsDisplayProps {
   showAlert?: boolean;
   className?: string;
 }
-
-export function CreditsDisplay({ showAlert = true, className = '' }: CreditsDisplayProps) {
-  const { credits, loading } = useCredits();
+export function CreditsDisplay({
+  showAlert = true,
+  className = ''
+}: CreditsDisplayProps) {
+  const {
+    credits,
+    loading
+  } = useCredits();
   const navigate = useNavigate();
-  
   if (loading) {
-    return (
-      <div className={`flex items-center ${className}`}>
+    return <div className={`flex items-center ${className}`}>
         <Coins className="w-5 h-5 mr-2 text-yellow-500 animate-pulse" />
         <span>Carregando créditos...</span>
-      </div>
-    );
+      </div>;
   }
-  
   const creditsRemaining = credits?.credits_remaining || 0;
   const lowCredits = creditsRemaining <= 1;
-  
-  return (
-    <div className={`space-y-2 ${className}`}>
-      <div className="flex items-center">
-        <Coins className={`w-5 h-5 mr-2 ${lowCredits ? 'text-red-400' : 'text-yellow-400'}`} />
-        <span className="font-medium">
-          {creditsRemaining} {creditsRemaining === 1 ? 'crédito' : 'créditos'} restante{creditsRemaining !== 1 ? 's' : ''}
-        </span>
-      </div>
+  return <div className={`space-y-2 ${className}`}>
       
-      {showAlert && lowCredits && (
-        <Alert className="bg-red-500/10 border-red-500/20">
+      
+      {showAlert && lowCredits && <Alert className="bg-red-500/10 border-red-500/20">
           <AlertCircle className="h-4 w-4 text-red-500" />
           <AlertDescription className="text-sm text-red-500">
             Seus créditos estão acabando! 
-            <Button 
-              variant="link"
-              size="sm"
-              className="px-1 h-auto text-red-500 font-medium"
-              onClick={() => navigate('/planos')}
-            >
+            <Button variant="link" size="sm" className="px-1 h-auto text-red-500 font-medium" onClick={() => navigate('/planos')}>
               Compre mais créditos
             </Button>
           </AlertDescription>
-        </Alert>
-      )}
+        </Alert>}
       
-      {showAlert && creditsRemaining === 0 && (
-        <Button 
-          size="sm" 
-          className="w-full bg-yellow-500 hover:bg-yellow-600"
-          onClick={() => navigate('/planos')}
-        >
+      {showAlert && creditsRemaining === 0 && <Button size="sm" className="w-full bg-yellow-500 hover:bg-yellow-600" onClick={() => navigate('/planos')}>
           Comprar créditos agora
-        </Button>
-      )}
-    </div>
-  );
+        </Button>}
+    </div>;
 }
