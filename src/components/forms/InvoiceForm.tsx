@@ -39,6 +39,7 @@ import {
 import {
   Checkbox
 } from '@/components/ui/checkbox';
+import { usePlans } from '@/hooks/use-plans';
 
 interface Client {
   id: string;
@@ -73,9 +74,16 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const { user, isAdmin } = useAuth();
   const { credits, loading: creditsLoading, consumeCredit } = useCredits();
+  const { plans } = usePlans();
   const navigate = useNavigate();
   
-  const hasCredits = credits && credits.credits_remaining > 0;
+  const userPlanName = credits?.plan_id ? 
+    plans.find(p => p.id === credits.plan_id)?.name || 'Basic' : 
+    'Basic';
+    
+  const creditConsumption = plans.find(p => p.name === userPlanName)?.creditConsumption || 9;
+  
+  const hasCredits = credits && credits.credits_remaining >= creditConsumption;
   
   // Carrega a lista de clientes do Supabase, filtrando pelo usuário atual
   useEffect(() => {
@@ -129,7 +137,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     if (!hasCredits) {
       toast({
         title: 'Sem créditos',
-        description: 'Você não tem créditos suficientes para gerar faturas.',
+        description: `Você precisa de ${creditConsumption} créditos para gerar uma fatura.`,
         variant: 'destructive',
       });
       return;
@@ -138,10 +146,10 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     setIsLoading(true);
     
     try {
-      // Consume one credit
-      const creditConsumed = await consumeCredit();
+      // Consume credits based on plan
+      const creditConsumed = await consumeCredit(creditConsumption);
       if (!creditConsumed) {
-        throw new Error('Não foi possível consumir um crédito');
+        throw new Error(`Não foi possível consumir ${creditConsumption} créditos`);
       }
       
       // Encontrar detalhes do cliente
@@ -237,9 +245,10 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       <div className="space-y-4">
         <Alert className="bg-red-500/10 border-red-500/20">
           <AlertCircle className="h-4 w-4 text-red-500" />
-          <AlertTitle className="text-red-500">Sem créditos disponíveis</AlertTitle>
+          <AlertTitle className="text-red-500">Sem créditos suficientes</AlertTitle>
           <AlertDescription className="text-muted-foreground">
-            Você não tem créditos suficientes para gerar faturas.
+            Você precisa de {creditConsumption} créditos para gerar uma fatura.
+            Seu plano atual ({userPlanName}) consome {creditConsumption} créditos por fatura.
             Compre mais créditos para continuar gerando faturas.
           </AlertDescription>
         </Alert>
@@ -265,7 +274,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
               </span>
               <br />
               <span className="text-muted-foreground">
-                Cada fatura gerada consome 1 crédito
+                Cada fatura consome {creditConsumption} créditos no plano {userPlanName}
               </span>
             </AlertDescription>
           </Alert>

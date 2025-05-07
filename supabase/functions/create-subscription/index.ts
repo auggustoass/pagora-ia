@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -108,14 +109,22 @@ serve(async (req) => {
     const backUrl = `${req.headers.get("origin") || "http://localhost:5173"}/planos/obrigado`;
     const notificationUrl = `${supabaseUrl}/functions/v1/process-payment-webhook`;
 
-    // Determine invoice credits based on plan name
+    // Determine total invoice credits based on plan name
     const credits = {
-      Basic: 5,      // R$49 = R$9,80 per invoice
-      Pro: 15,       // R$97 = R$6,46 per invoice
-      Enterprise: 30 // R$197 = R$5,62 per invoice
+      Basic: 45,      // 5 invoices × 9 credits = 45 credits
+      Pro: 90,        // 15 invoices × 6 credits = 90 credits
+      Enterprise: 150  // 30 invoices × 5 credits = 150 credits
+    };
+    
+    const creditsConsumption = {
+      Basic: 9,      // 9 credits per invoice
+      Pro: 6,        // 6 credits per invoice
+      Enterprise: 5  // 5 credits per invoice
     };
     
     const planCredits = credits[plan.name as keyof typeof credits] || 0;
+    const consumptionRate = creditsConsumption[plan.name as keyof typeof creditsConsumption] || 9;
+    const invoiceEstimate = Math.floor(planCredits / consumptionRate);
 
     // Create a single payment for the plan
     const payload = {
@@ -125,7 +134,7 @@ serve(async (req) => {
           quantity: 1,
           currency_id: "BRL",
           unit_price: plan.price,
-          description: `${planCredits} créditos para geração de faturas - Plano ${plan.name} HBLACKPIX`,
+          description: `${planCredits} créditos para ${invoiceEstimate} faturas - Plano ${plan.name} HBLACKPIX`,
         },
       ],
       back_urls: {

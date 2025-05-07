@@ -6,9 +6,16 @@ import { toast } from 'sonner';
 
 // Credits per plan
 const creditsPerPlan = {
-  Basic: 5,     // R$49 = R$9,80 per invoice
-  Pro: 15,      // R$97 = R$6,46 per invoice
-  Enterprise: 30 // R$197 = R$5,62 per invoice
+  Basic: 45,     // 5 invoices × 9 credits = 45 credits
+  Pro: 90,       // 15 invoices × 6 credits = 90 credits
+  Enterprise: 150 // 30 invoices × 5 credits = 150 credits
+};
+
+// Credits consumption per invoice by plan
+const creditsConsumptionPerPlan = {
+  Basic: 9,     // 9 credits per invoice
+  Pro: 6,       // 6 credits per invoice
+  Enterprise: 5 // 5 credits per invoice
 };
 
 export function usePlans() {
@@ -32,7 +39,9 @@ export function usePlans() {
           ...plan,
           features: plan.features as unknown as string[],
           // Add invoice credits based on plan name
-          invoiceCredits: creditsPerPlan[plan.name as keyof typeof creditsPerPlan] || 0
+          invoiceCredits: creditsPerPlan[plan.name as keyof typeof creditsPerPlan] || 0,
+          // Add consumption rate based on plan name
+          creditConsumption: creditsConsumptionPerPlan[plan.name as keyof typeof creditsConsumptionPerPlan] || 9
         }));
         setPlans(formattedPlans);
       }

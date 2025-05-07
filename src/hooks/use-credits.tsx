@@ -97,20 +97,20 @@ export function useCredits() {
   };
 
   // Consume credit (returns true if successful)
-  const consumeCredit = async () => {
+  const consumeCredit = async (amount: number = 1) => {
     if (!user || !credits) return false;
     
-    if (credits.credits_remaining <= 0) {
+    if (credits.credits_remaining < amount) {
       toast({
         title: 'Sem créditos',
-        description: 'Você não tem créditos suficientes para gerar uma fatura.',
+        description: `Você não tem créditos suficientes. Necessário: ${amount} créditos.`,
         variant: 'destructive',
       });
       return false;
     }
     
     try {
-      const newTotal = credits.credits_remaining - 1;
+      const newTotal = credits.credits_remaining - amount;
       
       const { data, error } = await supabase
         .from('user_invoice_credits')
@@ -130,7 +130,7 @@ export function useCredits() {
       console.error('Error consuming credit:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível consumir um crédito.',
+        description: 'Não foi possível consumir os créditos.',
         variant: 'destructive',
       });
       return false;
@@ -161,7 +161,7 @@ export function useCredits() {
         .from('user_invoice_credits')
         .insert({ 
           user_id: user.id,
-          credits_remaining: 1 // One free credit
+          credits_remaining: 9 // One free invoice worth of credits for Basic plan
         })
         .select()
         .single();

@@ -6,6 +6,7 @@ export interface Plan {
   description: string;
   features: string[];
   invoiceCredits?: number;
+  creditConsumption?: number;
 }
 
 export interface PlanColorScheme {

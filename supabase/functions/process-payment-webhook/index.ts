@@ -175,9 +175,9 @@ async function handleCreditPayment(payload) {
 
   // Determine credits based on plan name
   const credits = {
-    Basic: 5,
-    Pro: 15,
-    Enterprise: 30
+    Basic: 45,      // 5 invoices × 9 credits = 45 credits
+    Pro: 90,        // 15 invoices × 6 credits = 90 credits
+    Enterprise: 150  // 30 invoices × 5 credits = 150 credits
   };
 
   const planCredits = credits[plan.name] || 0;

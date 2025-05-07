@@ -15,7 +15,9 @@ interface PlanCardProps {
 
 export const PlanCard = ({ plan, isProcessing, disabled, onSubscribe }: PlanCardProps) => {
   const colorScheme = getPlanColorScheme(plan.name);
-  const pricePerInvoice = plan.price / (plan.invoiceCredits || 1);
+  const creditsPerInvoice = plan.creditConsumption || 9;
+  const totalInvoices = Math.floor((plan.invoiceCredits || 0) / creditsPerInvoice);
+  const pricePerInvoice = plan.price / totalInvoices;
 
   return (
     <Card className="glass-card flex flex-col hover-float relative overflow-hidden">
@@ -34,7 +36,7 @@ export const PlanCard = ({ plan, isProcessing, disabled, onSubscribe }: PlanCard
           <span className="text-4xl font-bold">R${plan.price}</span>
         </div>
         <div className="mt-1 text-sm text-muted-foreground">
-          <span className="font-semibold">{plan.invoiceCredits} faturas</span> (R${pricePerInvoice.toFixed(2)} por fatura)
+          <span className="font-semibold">{totalInvoices} faturas</span> (R${pricePerInvoice.toFixed(2)} por fatura)
         </div>
       </CardHeader>
       
@@ -47,7 +49,10 @@ export const PlanCard = ({ plan, isProcessing, disabled, onSubscribe }: PlanCard
             </li>
           ))}
         </ul>
-        <div className="mt-4 text-sm text-muted-foreground flex items-center justify-center">
+        <div className="mt-3 text-sm text-muted-foreground">
+          <span className="font-semibold">Consumo: {creditsPerInvoice} créditos por fatura</span>
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground flex items-center justify-center">
           <span className="flex items-center">
             🔒 Sem contrato 
             <TooltipProvider>
