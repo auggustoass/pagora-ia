@@ -1,12 +1,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, PieChart, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { CreditsDisplay } from '@/components/dashboard/CreditsDisplay';
+import { usePlans } from '@/hooks/use-plans';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type Message = {
   text: string;
@@ -15,7 +19,7 @@ type Message = {
 };
 
 type ConversationState = {
-  mode: 'chat' | 'client_registration' | 'invoice_creation';
+  mode: 'chat' | 'client_registration' | 'invoice_creation' | 'report_generation';
   step: string;
   data: Record<string, any>;
 };
@@ -32,12 +36,14 @@ export function ConversationalChatAssistant() {
   });
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { user, isAdmin } = useAuth();
+  const { plans } = usePlans();
 
   // Add initial welcome message
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([{
-        text: 'Olá! Sou o assistente virtual do PAGORA. Como posso ajudar hoje? Você pode me pedir para cadastrar um cliente ou gerar uma fatura.',
+        text: 'Olá! Sou o assistente virtual do PAGORA. Como posso ajudar hoje? Você pode me pedir para cadastrar um cliente, gerar uma fatura ou criar relatórios financeiros.',
         isUser: false,
         timestamp: new Date()
       }]);
@@ -106,14 +112,47 @@ export function ConversationalChatAssistant() {
     }
   };
 
+  // Get conversation mode display name
+  const getModeName = () => {
+    switch(conversationState.mode) {
+      case 'client_registration':
+        return 'Cadastro de Cliente';
+      case 'invoice_creation':
+        return 'Geração de Fatura';
+      case 'report_generation':
+        return 'Relatório Financeiro';
+      default:
+        return 'Assistente PAGORA';
+    }
+  };
+
   return (
     <div className="glass-card flex flex-col h-full">
       <div className="p-3 md:p-4 border-b border-white/10">
-        <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>Assistente PAGORA</h2>
-        {conversationState.mode !== 'chat' && (
-          <div className="text-xs text-muted-foreground mt-1">
-            {conversationState.mode === 'client_registration' ? 'Cadastrando novo cliente...' : 'Gerando nova fatura...'}
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>{getModeName()}</h2>
+            {conversationState.mode !== 'chat' && (
+              <div className="text-xs text-muted-foreground mt-1">
+                {conversationState.mode === 'client_registration' && 'Cadastrando novo cliente...'}
+                {conversationState.mode === 'invoice_creation' && 'Gerando nova fatura...'}
+                {conversationState.mode === 'report_generation' && 'Gerando relatório financeiro...'}
+              </div>
+            )}
           </div>
+          {user && (
+            <div className="hidden md:block">
+              <CreditsDisplay showAlert={false} className="text-right" />
+            </div>
+          )}
+        </div>
+        
+        {!user && (
+          <Alert className="mt-2 bg-amber-500/10 border-amber-500/20">
+            <AlertDescription className="text-xs text-amber-200">
+              Para usar todas as funcionalidades do assistente, faça login na sua conta.
+            </AlertDescription>
+          </Alert>
         )}
       </div>
       
@@ -151,6 +190,46 @@ export function ConversationalChatAssistant() {
       </ScrollArea>
       
       <div className="p-2 md:p-4 border-t border-white/10">
+        {user && (
+          <div className="md:hidden mb-2">
+            <CreditsDisplay showAlert={false} className="text-xs" />
+          </div>
+        )}
+        <div className="flex flex-row space-x-1 mb-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="text-xs"
+            onClick={() => {
+              setInput('Cadastrar cliente');
+              setTimeout(() => sendMessage(), 100);
+            }}
+          >
+            <CreditCard className="h-3 w-3 mr-1" /> Novo Cliente
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs"
+            onClick={() => {
+              setInput('Gerar fatura');
+              setTimeout(() => sendMessage(), 100);
+            }}
+          >
+            <CreditCard className="h-3 w-3 mr-1" /> Nova Fatura
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="text-xs"
+            onClick={() => {
+              setInput('Gerar relatório');
+              setTimeout(() => sendMessage(), 100);
+            }}
+          >
+            <PieChart className="h-3 w-3 mr-1" /> Relatório
+          </Button>
+        </div>
         <form onSubmit={sendMessage} className="flex space-x-2">
           <Input 
             value={input} 

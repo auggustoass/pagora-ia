@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
@@ -23,6 +22,323 @@ function formatDate(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
+// Helper function to get user details and plan
+async function getUserDetails(userId: string) {
+  try {
+    // Get user credits and plan
+    const { data: creditsData, error: creditsError } = await adminClient
+      .from('user_invoice_credits')
+      .select('*, plans(*)')
+      .eq('user_id', userId)
+      .single();
+      
+    if (creditsError && creditsError.code !== 'PGRST116') {
+      throw creditsError;
+    }
+    
+    return creditsData;
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    return null;
+  }
+}
+
+// Helper function to consume credits when generating financial reports
+async function consumeCredits(userId: string, amount: number) {
+  try {
+    // Get current credits
+    const { data: credits, error: creditsError } = await adminClient
+      .from('user_invoice_credits')
+      .select('id, credits_remaining')
+      .eq('user_id', userId)
+      .single();
+      
+    if (creditsError) throw creditsError;
+    
+    if (!credits || credits.credits_remaining < amount) {
+      return { success: false, message: 'Insufficient credits' };
+    }
+    
+    // Update credits
+    const newTotal = credits.credits_remaining - amount;
+    const { error: updateError } = await adminClient
+      .from('user_invoice_credits')
+      .update({ 
+        credits_remaining: newTotal,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', credits.id);
+      
+    if (updateError) throw updateError;
+    
+    return { success: true, remainingCredits: newTotal };
+  } catch (error) {
+    console.error('Error consuming credits:', error);
+    return { success: false, message: 'Error processing credits' };
+  }
+}
+
+// Helper function to generate financial reports based on type
+async function generateFinancialReport(userId: string, reportType: string, params: any = {}) {
+  try {
+    const today = new Date();
+    let startDate = params.startDate ? new Date(params.startDate) : new Date(today.getFullYear(), today.getMonth() - 3, 1);
+    let endDate = params.endDate ? new Date(params.endDate) : today;
+    
+    let query = adminClient.from('faturas').select('*');
+    
+    // Limit to user's invoices unless admin and specifying all users
+    if (!params.allUsers) {
+      query = query.eq('user_id', userId);
+    }
+    
+    // Apply date range
+    query = query.gte('created_at', startDate.toISOString())
+                .lte('created_at', endDate.toISOString());
+    
+    const { data: invoices, error } = await query;
+    
+    if (error) throw error;
+    
+    // Generate different reports based on type
+    switch (reportType) {
+      case 'payment_status':
+        return generatePaymentStatusReport(invoices);
+      case 'monthly':
+        return generateMonthlyReport(invoices);
+      case 'dre':
+        return generateDREReport(invoices, params);
+      case 'forecast':
+        return generateForecastReport(invoices);
+      case 'delay_analysis':
+        return generateDelayAnalysisReport(invoices);
+      default:
+        return { error: 'Unknown report type' };
+    }
+  } catch (error) {
+    console.error(`Error generating ${reportType} report:`, error);
+    return { error: `Failed to generate ${reportType} report: ${error.message}` };
+  }
+}
+
+// Payment status report generator
+function generatePaymentStatusReport(invoices: any[]) {
+  const statusCount: Record<string, number> = {};
+  const statusAmount: Record<string, number> = {};
+  let totalAmount = 0;
+  
+  invoices.forEach(invoice => {
+    const status = invoice.status || 'unknown';
+    statusCount[status] = (statusCount[status] || 0) + 1;
+    statusAmount[status] = (statusAmount[status] || 0) + Number(invoice.valor);
+    totalAmount += Number(invoice.valor);
+  });
+  
+  return {
+    title: 'Relatório de Status de Pagamentos',
+    summary: `Total de ${invoices.length} faturas analisadas`,
+    statusDistribution: Object.keys(statusCount).map(status => ({
+      status,
+      count: statusCount[status],
+      amount: statusAmount[status].toFixed(2),
+      percentage: ((statusAmount[status] / totalAmount) * 100).toFixed(1) + '%'
+    })),
+    totalAmount: totalAmount.toFixed(2),
+  };
+}
+
+// Monthly report generator
+function generateMonthlyReport(invoices: any[]) {
+  const monthlyData: Record<string, { count: number, amount: number, paid: number }> = {};
+  
+  invoices.forEach(invoice => {
+    const date = new Date(invoice.created_at);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const monthName = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { 
+        name: monthName,
+        count: 0, 
+        amount: 0,
+        paid: 0 
+      };
+    }
+    
+    monthlyData[monthKey].count += 1;
+    monthlyData[monthKey].amount += Number(invoice.valor);
+    
+    if (invoice.status === 'aprovado' || invoice.payment_status === 'approved') {
+      monthlyData[monthKey].paid += Number(invoice.valor);
+    }
+  });
+  
+  return {
+    title: 'Relatório Mensal de Faturamento',
+    months: Object.keys(monthlyData).sort().map(key => ({
+      period: monthlyData[key].name,
+      invoices: monthlyData[key].count,
+      total: monthlyData[key].amount.toFixed(2),
+      paid: monthlyData[key].paid.toFixed(2),
+      paymentRate: ((monthlyData[key].paid / monthlyData[key].amount) * 100).toFixed(1) + '%'
+    }))
+  };
+}
+
+// DRE report generator
+function generateDREReport(invoices: any[], params: any) {
+  // Simple DRE implementation - in a real app, you would include expenses data
+  const revenue = invoices.reduce((sum, inv) => sum + Number(inv.valor), 0);
+  
+  // Mock expense data - in real app would come from expense tables
+  const expenses = revenue * 0.6; // Assuming 60% expense ratio for the mock
+  const grossProfit = revenue - expenses;
+  const taxes = grossProfit * 0.15; // Assuming 15% tax rate for the mock
+  const netProfit = grossProfit - taxes;
+  
+  return {
+    title: 'Demonstrativo de Resultado (DRE)',
+    revenue: revenue.toFixed(2),
+    expenses: expenses.toFixed(2),
+    grossProfit: grossProfit.toFixed(2),
+    grossMargin: ((grossProfit / revenue) * 100).toFixed(1) + '%',
+    taxes: taxes.toFixed(2),
+    netProfit: netProfit.toFixed(2),
+    netMargin: ((netProfit / revenue) * 100).toFixed(1) + '%'
+  };
+}
+
+// Forecast report generator
+function generateForecastReport(invoices: any[]) {
+  // Simple linear forecasting based on historical data
+  const monthlyData: Record<string, number> = {};
+  
+  invoices.forEach(invoice => {
+    const date = new Date(invoice.created_at);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = 0;
+    }
+    
+    monthlyData[monthKey] += Number(invoice.valor);
+  });
+  
+  const months = Object.keys(monthlyData).sort();
+  
+  // Need at least 3 months of data for forecasting
+  if (months.length < 3) {
+    return {
+      title: 'Previsão de Faturamento',
+      forecast: null,
+      error: 'Dados históricos insuficientes para previsão. Necessário pelo menos 3 meses de dados.'
+    };
+  }
+  
+  const values = months.map(month => monthlyData[month]);
+  
+  // Simple average growth calculation
+  let growthRates = [];
+  for (let i = 1; i < values.length; i++) {
+    if (values[i-1] > 0) {
+      growthRates.push((values[i] - values[i-1]) / values[i-1]);
+    }
+  }
+  
+  const avgGrowth = growthRates.reduce((sum, rate) => sum + rate, 0) / growthRates.length;
+  
+  // Generate 3-month forecast
+  const forecast = [];
+  const lastMonthValue = values[values.length - 1];
+  const lastMonthDate = new Date(months[months.length - 1] + '-01');
+  
+  for (let i = 1; i <= 3; i++) {
+    const forecastDate = new Date(lastMonthDate);
+    forecastDate.setMonth(forecastDate.getMonth() + i);
+    
+    const forecastValue = lastMonthValue * Math.pow(1 + avgGrowth, i);
+    
+    forecast.push({
+      month: forecastDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }),
+      forecast: forecastValue.toFixed(2),
+      growthRate: (avgGrowth * 100).toFixed(1) + '%'
+    });
+  }
+  
+  return {
+    title: 'Previsão de Faturamento - Próximos 3 Meses',
+    historicalGrowth: (avgGrowth * 100).toFixed(1) + '%',
+    forecast
+  };
+}
+
+// Delay analysis report generator
+function generateDelayAnalysisReport(invoices: any[]) {
+  const today = new Date();
+  const delayedInvoices = invoices.filter(invoice => {
+    // Check if invoice is not paid and past due date
+    const isPaid = invoice.status === 'aprovado' || invoice.payment_status === 'approved';
+    
+    if (isPaid) return false;
+    
+    const dueDate = new Date(invoice.vencimento);
+    return dueDate < today;
+  });
+  
+  // Calculate delay statistics
+  const delayStats = delayedInvoices.map(invoice => {
+    const dueDate = new Date(invoice.vencimento);
+    const daysLate = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return {
+      id: invoice.id,
+      client: invoice.nome,
+      amount: Number(invoice.valor).toFixed(2),
+      dueDate: formatDate(dueDate),
+      daysLate,
+      status: invoice.status
+    };
+  });
+  
+  // Group by delay periods
+  const delayGroups = {
+    '1-15': { count: 0, amount: 0 },
+    '16-30': { count: 0, amount: 0 },
+    '31-60': { count: 0, amount: 0 },
+    '60+': { count: 0, amount: 0 }
+  };
+  
+  let totalDelayedAmount = 0;
+  
+  delayStats.forEach(item => {
+    const days = item.daysLate;
+    let group = '60+';
+    
+    if (days <= 15) group = '1-15';
+    else if (days <= 30) group = '16-30';
+    else if (days <= 60) group = '31-60';
+    
+    delayGroups[group].count += 1;
+    delayGroups[group].amount += parseFloat(item.amount);
+    totalDelayedAmount += parseFloat(item.amount);
+  });
+  
+  return {
+    title: 'Análise de Atrasos de Pagamento',
+    summary: `Total de ${delayedInvoices.length} faturas em atraso`,
+    totalDelayedAmount: totalDelayedAmount.toFixed(2),
+    delayGroups: Object.keys(delayGroups).map(key => ({
+      period: key + ' dias',
+      count: delayGroups[key].count,
+      amount: delayGroups[key].amount.toFixed(2),
+      percentage: totalDelayedAmount > 0 
+        ? ((delayGroups[key].amount / totalDelayedAmount) * 100).toFixed(1) + '%'
+        : '0%'
+    })),
+    invoices: delayStats.sort((a, b) => b.daysLate - a.daysLate)
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -30,9 +346,40 @@ serve(async (req) => {
   }
 
   try {
+    // Extract authentication header
+    const authHeader = req.headers.get('Authorization');
+    let userId = null;
+    let userCredits = null;
+    let userPlan = null;
+    
+    // Extract user ID and details if authenticated
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      
+      try {
+        const { data: { user }, error } = await adminClient.auth.getUser(token);
+        
+        if (error) throw error;
+        
+        if (user) {
+          userId = user.id;
+          
+          // Get user credits and plan
+          const userDetails = await getUserDetails(userId);
+          if (userDetails) {
+            userCredits = userDetails.credits_remaining;
+            userPlan = userDetails.plans;
+          }
+        }
+      } catch (authError) {
+        console.error('Auth error:', authError);
+      }
+    }
+    
     const { message, context, conversationState } = await req.json();
     console.log('Received message:', message);
     console.log('Conversation state:', conversationState);
+    console.log('User ID:', userId);
     
     // Initialize state for response
     let updatedConversationState = conversationState || { 
@@ -44,6 +391,7 @@ serve(async (req) => {
     
     // Handle client registration flow
     if (updatedConversationState.mode === 'client_registration') {
+      // ... keep existing code for client registration
       switch (updatedConversationState.step) {
         case 'name':
           // Store name and ask for email
@@ -89,7 +437,8 @@ serve(async (req) => {
                   nome: updatedConversationState.data.nome,
                   email: updatedConversationState.data.email,
                   whatsapp: updatedConversationState.data.whatsapp,
-                  cpf_cnpj: updatedConversationState.data.cpf_cnpj
+                  cpf_cnpj: updatedConversationState.data.cpf_cnpj,
+                  user_id: userId // Now linking client to the authenticated user
                 })
                 .select();
               
@@ -119,6 +468,7 @@ serve(async (req) => {
     } 
     // Handle invoice creation flow
     else if (updatedConversationState.mode === 'invoice_creation') {
+      // ... keep existing code for invoice creation
       switch (updatedConversationState.step) {
         case 'client_selection':
           try {
@@ -204,19 +554,53 @@ serve(async (req) => {
         case 'confirm':
           if (message.toLowerCase() === 'confirmar') {
             try {
+              // Check if user has enough credits to create an invoice
+              if (userId) {
+                // Determine credit consumption based on user's plan
+                let creditCost = 9; // Default for Basic plan
+                
+                if (userPlan) {
+                  if (userPlan.name === 'Pro') {
+                    creditCost = 6;
+                  } else if (userPlan.name === 'Enterprise') {
+                    creditCost = 5;
+                  }
+                }
+                
+                // Check if user has enough credits
+                if (userCredits === null || userCredits < creditCost) {
+                  assistantResponse = `❌ Você não possui créditos suficientes para gerar uma fatura. Necessário: ${creditCost} créditos.`;
+                  updatedConversationState = { mode: 'chat', step: 'initial', data: {} };
+                  break;
+                }
+                
+                // Consume user credits
+                await consumeCredits(userId, creditCost);
+              }
+              
+              // Get client's full details
+              const { data: clientData, error: clientError } = await adminClient
+                .from('clients')
+                .select('*')
+                .eq('id', updatedConversationState.data.client.id)
+                .single();
+                
+              if (clientError) throw clientError;
+              
               // Insert invoice into database
               const { data, error } = await adminClient
                 .from('faturas')
                 .insert({
-                  nome: updatedConversationState.data.client.nome,
-                  email: updatedConversationState.data.client.email,
-                  whatsapp: '', // This would need to be fetched from clients table
-                  cpf_cnpj: '', // This would need to be fetched from clients table
+                  nome: clientData.nome,
+                  email: clientData.email,
+                  whatsapp: clientData.whatsapp,
+                  cpf_cnpj: clientData.cpf_cnpj,
                   valor: updatedConversationState.data.valor,
                   vencimento: updatedConversationState.data.vencimento,
                   descricao: updatedConversationState.data.descricao,
                   status: 'pendente',
-                  client_id: updatedConversationState.data.client.id
+                  client_id: clientData.id,
+                  user_id: userId || clientData.user_id // Use authenticated user or client's user
                 })
                 .select();
               
@@ -244,7 +628,245 @@ serve(async (req) => {
           updatedConversationState.step = 'client_selection';
           assistantResponse = 'Vamos gerar uma nova fatura! Digite o nome do cliente:';
       }
-    } 
+    }
+    // Handle financial report generation flow
+    else if (updatedConversationState.mode === 'report_generation') {
+      switch (updatedConversationState.step) {
+        case 'report_type':
+          // Parse report type from message
+          const reportTypes = {
+            'status': 'payment_status',
+            'pagamento': 'payment_status',
+            'mensal': 'monthly',
+            'mês': 'monthly',
+            'mes': 'monthly',
+            'dre': 'dre',
+            'demonstrativo': 'dre',
+            'resultado': 'dre',
+            'previsão': 'forecast',
+            'previsao': 'forecast',
+            'forecast': 'forecast',
+            'atraso': 'delay_analysis',
+            'inadimplência': 'delay_analysis',
+            'inadimplencia': 'delay_analysis'
+          };
+          
+          let reportType = null;
+          for (const [key, value] of Object.entries(reportTypes)) {
+            if (message.toLowerCase().includes(key)) {
+              reportType = value;
+              break;
+            }
+          }
+          
+          if (!reportType) {
+            assistantResponse = 'Por favor, especifique qual tipo de relatório você deseja gerar:\n\n- Status de pagamentos\n- Relatório mensal\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos';
+            break;
+          }
+          
+          updatedConversationState.data.reportType = reportType;
+          updatedConversationState.step = 'date_range';
+          
+          assistantResponse = 'Para qual período você deseja gerar o relatório? Você pode especificar:\n\n- "Último mês"\n- "Últimos 3 meses"\n- "Este ano"\n- Ou um período específico como "01/01/2023 a 31/03/2023"';
+          break;
+          
+        case 'date_range':
+          // Parse date range from message
+          let startDate = null;
+          let endDate = new Date();
+          
+          const msg = message.toLowerCase();
+          
+          if (msg.includes('último mês') || msg.includes('ultimo mes')) {
+            startDate = new Date();
+            startDate.setMonth(startDate.getMonth() - 1);
+            startDate.setDate(1);
+          } else if (msg.includes('últimos 3 meses') || msg.includes('ultimos 3 meses')) {
+            startDate = new Date();
+            startDate.setMonth(startDate.getMonth() - 3);
+            startDate.setDate(1);
+          } else if (msg.includes('este ano') || msg.includes('ano atual')) {
+            startDate = new Date(new Date().getFullYear(), 0, 1);
+          } else if (msg.includes('a') || msg.includes('até') || msg.includes('ate')) {
+            // Try to parse specific date range format DD/MM/YYYY a DD/MM/YYYY
+            try {
+              const dates = msg.split(/a|até|ate/).map(part => part.trim());
+              
+              if (dates.length === 2) {
+                // Parse start date
+                if (dates[0].includes('/')) {
+                  const [day, month, year] = dates[0].split('/');
+                  startDate = new Date(`${year}-${month}-${day}`);
+                }
+                
+                // Parse end date
+                if (dates[1].includes('/')) {
+                  const [day, month, year] = dates[1].split('/');
+                  endDate = new Date(`${year}-${month}-${day}`);
+                }
+              }
+            } catch (error) {
+              console.error('Error parsing date range:', error);
+            }
+          }
+          
+          // Default to last 3 months if parsing failed
+          if (!startDate) {
+            startDate = new Date();
+            startDate.setMonth(startDate.getMonth() - 3);
+            startDate.setDate(1);
+            
+            assistantResponse = 'Não entendi o período especificado. Usando os últimos 3 meses como padrão.\n\n';
+          }
+          
+          // Store dates in state
+          updatedConversationState.data.startDate = startDate.toISOString();
+          updatedConversationState.data.endDate = endDate.toISOString();
+          
+          // Check if user needs to consume credits for this report
+          let canGenerateReport = true;
+          
+          if (userId) {
+            // Check if user's plan allows this report type
+            let canGenerate = true;
+            let creditCost = 0;
+            
+            // Enterprise plan has all reports
+            // Pro plan has payment status and monthly
+            // Basic plan has only payment status
+            
+            if (userPlan) {
+              if (userPlan.name === 'Basic' && 
+                  updatedConversationState.data.reportType !== 'payment_status') {
+                canGenerate = false;
+                assistantResponse = '❌ Seu plano Basic não permite gerar este tipo de relatório. Faça upgrade para Pro ou Enterprise para acessar relatórios avançados.';
+              } else if (userPlan.name === 'Pro' && 
+                        (updatedConversationState.data.reportType === 'dre' || 
+                         updatedConversationState.data.reportType === 'forecast')) {
+                canGenerate = false;
+                assistantResponse = '❌ Seu plano Pro não permite gerar relatórios de DRE ou previsão. Faça upgrade para Enterprise para acessar esses relatórios.';
+              }
+              
+              // If allowed, determine credit cost
+              if (canGenerate) {
+                if (updatedConversationState.data.reportType === 'payment_status') {
+                  creditCost = 1;
+                } else if (updatedConversationState.data.reportType === 'monthly') {
+                  creditCost = 2;
+                } else {
+                  creditCost = 3;
+                }
+                
+                // Check if user has enough credits
+                if (userCredits === null || userCredits < creditCost) {
+                  canGenerate = false;
+                  assistantResponse = `❌ Você não possui créditos suficientes para gerar este relatório. Necessário: ${creditCost} créditos.`;
+                }
+              }
+            }
+            
+            canGenerateReport = canGenerate;
+            
+            if (canGenerate) {
+              // Consume credits
+              await consumeCredits(userId, creditCost);
+            }
+          }
+          
+          if (canGenerateReport) {
+            // Generate the report
+            const report = await generateFinancialReport(
+              userId,
+              updatedConversationState.data.reportType,
+              {
+                startDate: updatedConversationState.data.startDate,
+                endDate: updatedConversationState.data.endDate
+              }
+            );
+            
+            if (report.error) {
+              assistantResponse += `Erro ao gerar relatório: ${report.error}`;
+            } else {
+              // Format the report response based on type
+              switch (updatedConversationState.data.reportType) {
+                case 'payment_status':
+                  assistantResponse += `📊 ${report.title}\n\n`;
+                  assistantResponse += `${report.summary}\n\n`;
+                  
+                  report.statusDistribution.forEach(item => {
+                    assistantResponse += `- ${item.status}: ${item.count} faturas (R$ ${item.amount}) - ${item.percentage}\n`;
+                  });
+                  
+                  assistantResponse += `\nValor total: R$ ${report.totalAmount}`;
+                  break;
+                  
+                case 'monthly':
+                  assistantResponse += `📊 ${report.title}\n\n`;
+                  
+                  report.months.forEach(month => {
+                    assistantResponse += `📅 ${month.period}\n`;
+                    assistantResponse += `- Faturas emitidas: ${month.invoices}\n`;
+                    assistantResponse += `- Valor total: R$ ${month.total}\n`;
+                    assistantResponse += `- Valor recebido: R$ ${month.paid} (${month.paymentRate})\n\n`;
+                  });
+                  break;
+                  
+                case 'dre':
+                  assistantResponse += `📊 ${report.title}\n\n`;
+                  assistantResponse += `📈 Receita: R$ ${report.revenue}\n`;
+                  assistantResponse += `📉 Despesas: R$ ${report.expenses}\n`;
+                  assistantResponse += `🔷 Lucro bruto: R$ ${report.grossProfit} (${report.grossMargin})\n`;
+                  assistantResponse += `💰 Impostos: R$ ${report.taxes}\n`;
+                  assistantResponse += `💵 Lucro líquido: R$ ${report.netProfit} (${report.netMargin})\n`;
+                  break;
+                  
+                case 'forecast':
+                  assistantResponse += `📊 ${report.title}\n\n`;
+                  
+                  if (report.forecast) {
+                    assistantResponse += `Taxa média de crescimento: ${report.historicalGrowth}\n\n`;
+                    
+                    report.forecast.forEach(item => {
+                      assistantResponse += `📅 ${item.month}\n`;
+                      assistantResponse += `- Previsão: R$ ${item.forecast}\n`;
+                    });
+                  } else {
+                    assistantResponse += report.error;
+                  }
+                  break;
+                  
+                case 'delay_analysis':
+                  assistantResponse += `📊 ${report.title}\n\n`;
+                  assistantResponse += `${report.summary}\n`;
+                  assistantResponse += `Valor total em atraso: R$ ${report.totalDelayedAmount}\n\n`;
+                  
+                  report.delayGroups.forEach(group => {
+                    assistantResponse += `- ${group.period}: ${group.count} faturas (R$ ${group.amount}) - ${group.percentage}\n`;
+                  });
+                  
+                  if (report.invoices.length > 0) {
+                    assistantResponse += `\n🔍 Faturas mais atrasadas:\n`;
+                    // Show top 5 most delayed invoices
+                    const top5 = report.invoices.slice(0, 5);
+                    top5.forEach(inv => {
+                      assistantResponse += `- ${inv.client}: R$ ${inv.amount} (${inv.daysLate} dias de atraso)\n`;
+                    });
+                  }
+                  break;
+              }
+            }
+          }
+          
+          // Reset conversation state
+          updatedConversationState = { mode: 'chat', step: 'initial', data: {} };
+          break;
+          
+        case 'initial':
+        default:
+          updatedConversationState.step = 'report_type';
+          assistantResponse = 'Que tipo de relatório você deseja gerar?\n\n- Status de pagamentos\n- Relatório mensal\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos';
+      }
+    }
     // Handle normal chat mode
     else {
       // Check if the user wants to start client registration flow
@@ -257,23 +879,36 @@ serve(async (req) => {
         updatedConversationState = { mode: 'invoice_creation', step: 'initial', data: {} };
         assistantResponse = 'Vamos gerar uma nova fatura! Digite o nome do cliente:';
       }
+      // Check if user wants to generate financial reports
+      else if (message.toLowerCase().includes('relatório') || 
+              message.toLowerCase().includes('relatorio') || 
+              message.toLowerCase().includes('gerar dre') ||
+              message.toLowerCase().includes('previsão') ||
+              message.toLowerCase().includes('analise financeira')) {
+        updatedConversationState = { mode: 'report_generation', step: 'initial', data: {} };
+        assistantResponse = 'Vamos gerar um relatório financeiro! Que tipo de relatório você precisa?\n\n- Status de pagamentos\n- Relatório mensal\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos';
+      }
       else {
         // Normal chat mode - use OpenAI for responses
-        const systemPrompt = `Você é o assistente virtual do PAGORA, um sistema de gestão de cobranças.
+        const systemPrompt = `Você é o assistente virtual do PAGORA, um sistema de gestão de cobranças e financeiro.
         
         Ajude os usuários com:
         - Cadastro de novos clientes (recolhendo nome, e-mail, WhatsApp com DDD e DDI, e CPF ou CNPJ)
         - Geração de novas faturas (recolhendo cliente, valor, data de vencimento e descrição)
+        - Geração de relatórios financeiros (status de pagamentos, mensais, DRE, previsões, análise de atrasos)
         - Consulta de status das cobranças (pendentes, aprovadas, rejeitadas)
+        - Análise financeira e projeções
         
         Comandos especiais que você pode sugerir:
         - "Cadastrar novo cliente" ou "Novo cliente" - Inicia o fluxo de cadastro de cliente
         - "Gerar fatura" ou "Nova fatura" - Inicia o fluxo de geração de fatura
+        - "Gerar relatório" ou "Relatório financeiro" - Inicia o fluxo de geração de relatório
         - "Ver faturas" ou "Listar faturas" - Redireciona para a página de faturas
         - "Ver clientes" ou "Listar clientes" - Redireciona para a página de clientes
         
-        Se o usuário disser algo como "preciso cadastrar um cliente", sugira usar o comando "Cadastrar novo cliente".
-        Se o usuário disser algo como "preciso emitir uma fatura", sugira usar o comando "Gerar fatura".
+        ${userId ? 'Usuário está autenticado.' : 'Usuário não está autenticado.'}
+        ${userPlan ? `Plano do usuário: ${userPlan.name}` : ''}
+        ${userCredits !== null ? `Créditos disponíveis: ${userCredits}` : ''}
         
         Seu tom deve ser profissional, mas amigável. Use português do Brasil.
         
