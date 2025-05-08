@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, PieChart, CreditCard, UserPlus, RefreshCw, FileText, BarChart3 } from 'lucide-react';
+import { Send, Loader2, PieChart, CreditCard, UserPlus, RefreshCw, FileText, BarChart3, CalendarClock, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
@@ -17,6 +17,10 @@ type Message = {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  metadata?: {
+    reportType?: string;
+    creditCost?: number;
+  };
 };
 
 type ConversationState = {
@@ -61,6 +65,25 @@ export function ConversationalChatAssistant() {
     }
   }, [messages]);
 
+  // Extract report credit cost from message text
+  const extractReportCreditCost = (text: string): number | undefined => {
+    const costMatch = text.match(/Custo: (\d+) créditos/);
+    return costMatch ? parseInt(costMatch[1], 10) : undefined;
+  };
+
+  // Extract report type from message text
+  const extractReportType = (text: string): string | undefined => {
+    if (text.includes('Status de Pagamentos')) return 'payment_status';
+    if (text.includes('Relatório Mensal')) return 'monthly';
+    if (text.includes('Relatório Trimestral')) return 'quarterly';
+    if (text.includes('Relatório Anual')) return 'yearly';
+    if (text.includes('Demonstrativo de Resultado')) return 'dre';
+    if (text.includes('Previsão de Faturamento')) return 'forecast';
+    if (text.includes('Análise de Atrasos')) return 'delay_analysis';
+    if (text.includes('Histórico do Cliente')) return 'client_history';
+    return undefined;
+  };
+
   const sendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -98,11 +121,21 @@ export function ConversationalChatAssistant() {
 
       if (error) throw error;
       if (data) {
+        const responseText = data.response;
+        
+        // Extract report metadata if present
+        const reportType = extractReportType(responseText);
+        const creditCost = extractReportCreditCost(responseText);
+        
         // Add assistant's response
         const assistantMessage: Message = {
-          text: data.response,
+          text: responseText,
           isUser: false,
-          timestamp: new Date()
+          timestamp: new Date(),
+          metadata: {
+            reportType,
+            creditCost
+          }
         };
         setMessages(prev => [...prev, assistantMessage]);
 
@@ -181,8 +214,34 @@ export function ConversationalChatAssistant() {
       icon: <RefreshCw className="h-3 w-3 mr-1" />, 
       action: 'Fazer previsão de faturamento',
       tooltip: 'Criar uma previsão de faturamento futuro' 
+    },
+    { 
+      label: 'Análise', 
+      icon: <Calculator className="h-3 w-3 mr-1" />, 
+      action: 'Analisar faturas em atraso',
+      tooltip: 'Analisar faturas com pagamento em atraso' 
+    },
+    { 
+      label: 'Histórico', 
+      icon: <CalendarClock className="h-3 w-3 mr-1" />, 
+      action: 'Gerar histórico de cliente',
+      tooltip: 'Ver histórico completo de um cliente' 
     }
   ];
+
+  // Render credit cost badge if message has credit cost metadata
+  const renderCreditCostBadge = (message: Message) => {
+    if (message.isUser || !message.metadata?.creditCost) return null;
+    
+    return (
+      <div className="mt-2 flex items-center gap-1">
+        <Badge variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/20 text-amber-300">
+          <Coins className="h-2.5 w-2.5 mr-1" />
+          {message.metadata.creditCost} créditos
+        </Badge>
+      </div>
+    );
+  };
 
   return (
     <div className="glass-card flex flex-col h-full">
@@ -251,12 +310,15 @@ export function ConversationalChatAssistant() {
                 }`}
               >
                 <p className="whitespace-pre-wrap text-gray-50 text-sm md:text-base">{message.text}</p>
-                <p className="text-[10px] md:text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-[10px] md:text-xs opacity-70">
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                  {renderCreditCostBadge(message)}
+                </div>
               </div>
             </div>
           ))}

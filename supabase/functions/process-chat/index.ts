@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
@@ -13,6 +14,18 @@ const corsHeaders = {
 
 // Create a Supabase client with the admin role
 const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+// Report credit costs by type
+const reportCreditCost = {
+  payment_status: 1,
+  monthly: 2,
+  quarterly: 3,
+  yearly: 3,
+  client_history: 2,
+  delay_analysis: 2,
+  dre: 3,
+  forecast: 4
+};
 
 // Helper function to format a date as DD/MM/YYYY
 function formatDate(date: Date): string {
@@ -101,20 +114,43 @@ async function generateFinancialReport(userId: string, reportType: string, param
     if (error) throw error;
     
     // Generate different reports based on type
+    let report;
     switch (reportType) {
       case 'payment_status':
-        return generatePaymentStatusReport(invoices);
+        report = generatePaymentStatusReport(invoices);
+        break;
       case 'monthly':
-        return generateMonthlyReport(invoices);
+        report = generateMonthlyReport(invoices);
+        break;
+      case 'quarterly':
+        report = generateQuarterlyReport(invoices);
+        break;
+      case 'yearly':
+        report = generateYearlyReport(invoices);
+        break;
       case 'dre':
-        return generateDREReport(invoices, params);
+        report = generateDREReport(invoices, params);
+        break;
       case 'forecast':
-        return generateForecastReport(invoices);
+        report = generateForecastReport(invoices);
+        break;
       case 'delay_analysis':
-        return generateDelayAnalysisReport(invoices);
+        report = generateDelayAnalysisReport(invoices);
+        break;
+      case 'client_history':
+        report = await generateClientHistoryReport(userId, params.clientId);
+        break;
       default:
         return { error: 'Unknown report type' };
     }
+    
+    // Add credit cost to report metadata
+    if (report && !report.error) {
+      report.creditCost = reportCreditCost[reportType as keyof typeof reportCreditCost] || 1;
+      report.generatedAt = new Date();
+    }
+    
+    return report;
   } catch (error) {
     console.error(`Error generating ${reportType} report:`, error);
     return { error: `Failed to generate ${reportType} report: ${error.message}` };
@@ -149,7 +185,7 @@ function generatePaymentStatusReport(invoices: any[]) {
 
 // Monthly report generator
 function generateMonthlyReport(invoices: any[]) {
-  const monthlyData: Record<string, { count: number, amount: number, paid: number }> = {};
+  const monthlyData: Record<string, { count: number, amount: number, paid: number, name: string }> = {};
   
   invoices.forEach(invoice => {
     const date = new Date(invoice.created_at);
@@ -183,6 +219,186 @@ function generateMonthlyReport(invoices: any[]) {
       paymentRate: ((monthlyData[key].paid / monthlyData[key].amount) * 100).toFixed(1) + '%'
     }))
   };
+}
+
+// Quarterly report generator
+function generateQuarterlyReport(invoices: any[]) {
+  const quarterlyData: Record<string, { count: number, amount: number, paid: number, name: string }> = {};
+  
+  invoices.forEach(invoice => {
+    const date = new Date(invoice.created_at);
+    const quarter = Math.floor(date.getMonth() / 3) + 1;
+    const quarterKey = `${date.getFullYear()}-Q${quarter}`;
+    const quarterName = `${quarter}º Trimestre de ${date.getFullYear()}`;
+    
+    if (!quarterlyData[quarterKey]) {
+      quarterlyData[quarterKey] = { 
+        name: quarterName,
+        count: 0, 
+        amount: 0,
+        paid: 0 
+      };
+    }
+    
+    quarterlyData[quarterKey].count += 1;
+    quarterlyData[quarterKey].amount += Number(invoice.valor);
+    
+    if (invoice.status === 'aprovado' || invoice.payment_status === 'approved') {
+      quarterlyData[quarterKey].paid += Number(invoice.valor);
+    }
+  });
+  
+  return {
+    title: 'Relatório Trimestral de Faturamento',
+    quarters: Object.keys(quarterlyData).sort().map(key => ({
+      period: quarterlyData[key].name,
+      invoices: quarterlyData[key].count,
+      total: quarterlyData[key].amount.toFixed(2),
+      paid: quarterlyData[key].paid.toFixed(2),
+      paymentRate: quarterlyData[key].amount > 0 ? 
+        ((quarterlyData[key].paid / quarterlyData[key].amount) * 100).toFixed(1) + '%' : 
+        '0%'
+    }))
+  };
+}
+
+// Yearly report generator
+function generateYearlyReport(invoices: any[]) {
+  const yearlyData: Record<string, { count: number, amount: number, paid: number }> = {};
+  
+  invoices.forEach(invoice => {
+    const date = new Date(invoice.created_at);
+    const year = date.getFullYear().toString();
+    
+    if (!yearlyData[year]) {
+      yearlyData[year] = { 
+        count: 0, 
+        amount: 0,
+        paid: 0 
+      };
+    }
+    
+    yearlyData[year].count += 1;
+    yearlyData[year].amount += Number(invoice.valor);
+    
+    if (invoice.status === 'aprovado' || invoice.payment_status === 'approved') {
+      yearlyData[year].paid += Number(invoice.valor);
+    }
+  });
+  
+  return {
+    title: 'Relatório Anual de Faturamento',
+    years: Object.keys(yearlyData).sort().map(year => ({
+      period: `Ano de ${year}`,
+      invoices: yearlyData[year].count,
+      total: yearlyData[year].amount.toFixed(2),
+      paid: yearlyData[year].paid.toFixed(2),
+      paymentRate: ((yearlyData[year].paid / yearlyData[year].amount) * 100).toFixed(1) + '%'
+    }))
+  };
+}
+
+// Client history report generator
+async function generateClientHistoryReport(userId: string, clientId: string) {
+  try {
+    // If clientId is not provided, return error
+    if (!clientId) {
+      return { error: 'Client ID is required for client history report' };
+    }
+    
+    // Get client details
+    const { data: client, error: clientError } = await adminClient
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .eq('user_id', userId)
+      .single();
+      
+    if (clientError) throw clientError;
+    
+    if (!client) {
+      return { error: 'Client not found' };
+    }
+    
+    // Get client's invoices
+    const { data: invoices, error: invoicesError } = await adminClient
+      .from('faturas')
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+      
+    if (invoicesError) throw invoicesError;
+    
+    // Calculate statistics
+    const totalInvoices = invoices.length;
+    const totalAmount = invoices.reduce((sum, inv) => sum + Number(inv.valor), 0);
+    const paidInvoices = invoices.filter(inv => inv.status === 'aprovado' || inv.payment_status === 'approved');
+    const totalPaid = paidInvoices.reduce((sum, inv) => sum + Number(inv.valor), 0);
+    const paymentRate = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
+    
+    // Calculate average days to pay
+    const daysToPayments = paidInvoices
+      .filter(inv => inv.payment_date)
+      .map(inv => {
+        const created = new Date(inv.created_at);
+        const paid = new Date(inv.payment_date);
+        return Math.floor((paid.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+      });
+    
+    const avgDaysToPay = daysToPayments.length > 0 
+      ? daysToPayments.reduce((sum, days) => sum + days, 0) / daysToPayments.length 
+      : 0;
+      
+    // Calculate payment delay statistics
+    const delayedPayments = paidInvoices
+      .filter(inv => inv.payment_date && inv.vencimento)
+      .map(inv => {
+        const dueDate = new Date(inv.vencimento);
+        const paidDate = new Date(inv.payment_date);
+        return Math.floor((paidDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+      })
+      .filter(delay => delay > 0);
+      
+    const avgDelay = delayedPayments.length > 0 
+      ? delayedPayments.reduce((sum, days) => sum + days, 0) / delayedPayments.length 
+      : 0;
+      
+    return {
+      title: `Histórico do Cliente: ${client.nome}`,
+      clientInfo: {
+        id: client.id,
+        nome: client.nome,
+        email: client.email,
+        whatsapp: client.whatsapp,
+        cpf_cnpj: client.cpf_cnpj
+      },
+      summary: {
+        totalInvoices,
+        totalAmount: totalAmount.toFixed(2),
+        totalPaid: totalPaid.toFixed(2),
+        paymentRate: paymentRate.toFixed(1) + '%',
+        avgDaysToPay: Math.round(avgDaysToPay),
+        avgDelay: Math.round(avgDelay),
+        delayedPaymentRate: paidInvoices.length > 0 
+          ? ((delayedPayments.length / paidInvoices.length) * 100).toFixed(1) + '%'
+          : '0%'
+      },
+      invoices: invoices.map(inv => ({
+        id: inv.id,
+        createdAt: formatDate(new Date(inv.created_at)),
+        dueDate: formatDate(new Date(inv.vencimento)),
+        amount: Number(inv.valor).toFixed(2),
+        status: inv.status,
+        description: inv.descricao,
+        paidDate: inv.payment_date ? formatDate(new Date(inv.payment_date)) : null,
+        paidAmount: inv.paid_amount ? Number(inv.paid_amount).toFixed(2) : null
+      }))
+    };
+  } catch (error) {
+    console.error('Error generating client history report:', error);
+    return { error: `Failed to generate client history report: ${error.message}` };
+  }
 }
 
 // DRE report generator
@@ -640,6 +856,10 @@ serve(async (req) => {
             'mensal': 'monthly',
             'mês': 'monthly',
             'mes': 'monthly',
+            'trimestral': 'quarterly',
+            'trimestre': 'quarterly',
+            'anual': 'yearly',
+            'ano': 'yearly',
             'dre': 'dre',
             'demonstrativo': 'dre',
             'resultado': 'dre',
@@ -648,7 +868,10 @@ serve(async (req) => {
             'forecast': 'forecast',
             'atraso': 'delay_analysis',
             'inadimplência': 'delay_analysis',
-            'inadimplencia': 'delay_analysis'
+            'inadimplencia': 'delay_analysis',
+            'cliente': 'client_history',
+            'histórico': 'client_history',
+            'historico': 'client_history'
           };
           
           let reportType = null;
@@ -660,14 +883,55 @@ serve(async (req) => {
           }
           
           if (!reportType) {
-            assistantResponse = 'Por favor, especifique qual tipo de relatório você deseja gerar:\n\n- Status de pagamentos\n- Relatório mensal\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos';
+            assistantResponse = 'Por favor, especifique qual tipo de relatório você deseja gerar:\n\n- Status de pagamentos\n- Relatório mensal\n- Relatório trimestral\n- Relatório anual\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos\n- Histórico de cliente';
             break;
           }
           
           updatedConversationState.data.reportType = reportType;
+          
+          // If client history, ask for client
+          if (reportType === 'client_history') {
+            updatedConversationState.step = 'client_selection';
+            assistantResponse = 'Para qual cliente você deseja gerar o histórico? Digite o nome do cliente:';
+            break;
+          }
+          
           updatedConversationState.step = 'date_range';
           
           assistantResponse = 'Para qual período você deseja gerar o relatório? Você pode especificar:\n\n- "Último mês"\n- "Últimos 3 meses"\n- "Este ano"\n- Ou um período específico como "01/01/2023 a 31/03/2023"';
+          break;
+          
+        case 'client_selection':
+          try {
+            // Try to find the client by name
+            const { data: clients, error } = await adminClient
+              .from('clients')
+              .select('id, nome, email')
+              .eq('user_id', userId)
+              .ilike('nome', `%${message}%`);
+            
+            if (error) throw error;
+            
+            if (clients.length === 0) {
+              assistantResponse = 'Cliente não encontrado. Por favor, tente novamente com outro nome ou digite "cancelar":';
+            } else if (clients.length === 1) {
+              // Found exactly one client
+              updatedConversationState.data.clientId = clients[0].id;
+              updatedConversationState.step = 'confirm_report';
+              assistantResponse = `Cliente ${clients[0].nome} selecionado. Digite "confirmar" para gerar o relatório ou "cancelar" para desistir.`;
+            } else {
+              // Multiple clients found, ask user to be more specific
+              let clientsText = 'Encontrei múltiplos clientes. Por favor, escolha um digitando o nome completo:';
+              clients.forEach(client => {
+                clientsText += `\n- ${client.nome} (${client.email})`;
+              });
+              assistantResponse = clientsText;
+            }
+          } catch (error) {
+            console.error('Error searching for clients:', error);
+            assistantResponse = `Erro ao buscar clientes: ${error.message}. Tente novamente mais tarde.`;
+            updatedConversationState = { mode: 'chat', step: 'initial', data: {} };
+          }
           break;
           
         case 'date_range':
@@ -722,139 +986,202 @@ serve(async (req) => {
           // Store dates in state
           updatedConversationState.data.startDate = startDate.toISOString();
           updatedConversationState.data.endDate = endDate.toISOString();
+          updatedConversationState.step = 'confirm_report';
           
-          // Check if user needs to consume credits for this report
-          let canGenerateReport = true;
+          assistantResponse += `Período selecionado: ${formatDate(startDate)} a ${formatDate(endDate)}.\n\nDigite "confirmar" para gerar o relatório ou "cancelar" para desistir.`;
+          break;
           
-          if (userId) {
-            // Check if user's plan allows this report type
-            let canGenerate = true;
-            let creditCost = 0;
+        case 'confirm_report':
+          if (message.toLowerCase() === 'confirmar') {
+            // Check if user needs to consume credits for this report
+            let canGenerateReport = true;
             
-            // Enterprise plan has all reports
-            // Pro plan has payment status and monthly
-            // Basic plan has only payment status
-            
-            if (userPlan) {
-              if (userPlan.name === 'Basic' && 
-                  updatedConversationState.data.reportType !== 'payment_status') {
-                canGenerate = false;
-                assistantResponse = '❌ Seu plano Basic não permite gerar este tipo de relatório. Faça upgrade para Pro ou Enterprise para acessar relatórios avançados.';
-              } else if (userPlan.name === 'Pro' && 
-                        (updatedConversationState.data.reportType === 'dre' || 
-                         updatedConversationState.data.reportType === 'forecast')) {
-                canGenerate = false;
-                assistantResponse = '❌ Seu plano Pro não permite gerar relatórios de DRE ou previsão. Faça upgrade para Enterprise para acessar esses relatórios.';
-              }
+            if (userId) {
+              // Check if user's plan allows this report type
+              let canGenerate = true;
+              let creditCost = reportCreditCost[updatedConversationState.data.reportType as keyof typeof reportCreditCost] || 1;
               
-              // If allowed, determine credit cost
-              if (canGenerate) {
-                if (updatedConversationState.data.reportType === 'payment_status') {
-                  creditCost = 1;
-                } else if (updatedConversationState.data.reportType === 'monthly') {
-                  creditCost = 2;
-                } else {
-                  creditCost = 3;
+              // Enterprise plan has all reports
+              // Pro plan has payment status, monthly, quarterly, client_history and delay_analysis
+              // Basic plan has only payment status
+              
+              if (userPlan) {
+                if (userPlan.name === 'Basic' && 
+                    updatedConversationState.data.reportType !== 'payment_status') {
+                  canGenerate = false;
+                  assistantResponse = '❌ Seu plano Basic não permite gerar este tipo de relatório. Faça upgrade para Pro ou Enterprise para acessar relatórios avançados.';
+                } else if (userPlan.name === 'Pro' && 
+                          (updatedConversationState.data.reportType === 'dre' || 
+                           updatedConversationState.data.reportType === 'forecast')) {
+                  canGenerate = false;
+                  assistantResponse = '❌ Seu plano Pro não permite gerar relatórios de DRE ou previsão. Faça upgrade para Enterprise para acessar esses relatórios.';
                 }
                 
-                // Check if user has enough credits
-                if (userCredits === null || userCredits < creditCost) {
-                  canGenerate = false;
-                  assistantResponse = `❌ Você não possui créditos suficientes para gerar este relatório. Necessário: ${creditCost} créditos.`;
+                // If allowed, check if user has enough credits
+                if (canGenerate) {
+                  if (userCredits === null || userCredits < creditCost) {
+                    canGenerate = false;
+                    assistantResponse = `❌ Você não possui créditos suficientes para gerar este relatório. Necessário: ${creditCost} créditos.`;
+                  }
+                }
+              }
+              
+              canGenerateReport = canGenerate;
+              
+              if (canGenerate) {
+                // Consume credits
+                await consumeCredits(userId, creditCost);
+              }
+            }
+            
+            if (canGenerateReport) {
+              // Generate the report
+              const report = await generateFinancialReport(
+                userId,
+                updatedConversationState.data.reportType,
+                {
+                  startDate: updatedConversationState.data.startDate,
+                  endDate: updatedConversationState.data.endDate,
+                  clientId: updatedConversationState.data.clientId
+                }
+              );
+              
+              if (report.error) {
+                assistantResponse = `Erro ao gerar relatório: ${report.error}`;
+              } else {
+                // Format the report response based on type
+                switch (updatedConversationState.data.reportType) {
+                  case 'payment_status':
+                    assistantResponse = `📊 ${report.title}\n\n`;
+                    assistantResponse += `${report.summary}\n\n`;
+                    
+                    report.statusDistribution.forEach((item: any) => {
+                      assistantResponse += `- ${item.status}: ${item.count} faturas (R$ ${item.amount}) - ${item.percentage}\n`;
+                    });
+                    
+                    assistantResponse += `\nValor total: R$ ${report.totalAmount}\n`;
+                    assistantResponse += `\n💡 Custo: ${report.creditCost} créditos`;
+                    break;
+                    
+                  case 'monthly':
+                    assistantResponse = `📊 ${report.title}\n\n`;
+                    
+                    report.months.forEach((month: any) => {
+                      assistantResponse += `📅 ${month.period}\n`;
+                      assistantResponse += `- Faturas emitidas: ${month.invoices}\n`;
+                      assistantResponse += `- Valor total: R$ ${month.total}\n`;
+                      assistantResponse += `- Valor recebido: R$ ${month.paid} (${month.paymentRate})\n\n`;
+                    });
+                    
+                    assistantResponse += `\n💡 Custo: ${report.creditCost} créditos`;
+                    break;
+                    
+                  case 'quarterly':
+                    assistantResponse = `📊 ${report.title}\n\n`;
+                    
+                    report.quarters.forEach((quarter: any) => {
+                      assistantResponse += `📅 ${quarter.period}\n`;
+                      assistantResponse += `- Faturas emitidas: ${quarter.invoices}\n`;
+                      assistantResponse += `- Valor total: R$ ${quarter.total}\n`;
+                      assistantResponse += `- Valor recebido: R$ ${quarter.paid} (${quarter.paymentRate})\n\n`;
+                    });
+                    
+                    assistantResponse += `\n💡 Custo: ${report.creditCost} créditos`;
+                    break;
+                    
+                  case 'yearly':
+                    assistantResponse = `📊 ${report.title}\n\n`;
+                    
+                    report.years.forEach((year: any) => {
+                      assistantResponse += `📅 ${year.period}\n`;
+                      assistantResponse += `- Faturas emitidas: ${year.invoices}\n`;
+                      assistantResponse += `- Valor total: R$ ${year.total}\n`;
+                      assistantResponse += `- Valor recebido: R$ ${year.paid} (${year.paymentRate})\n\n`;
+                    });
+                    
+                    assistantResponse += `\n💡 Custo: ${report.creditCost} créditos`;
+                    break;
+                    
+                  case 'dre':
+                    assistantResponse = `📊 ${report.title}\n\n`;
+                    assistantResponse += `📈 Receita: R$ ${report.revenue}\n`;
+                    assistantResponse += `📉 Despesas: R$ ${report.expenses}\n`;
+                    assistantResponse += `🔷 Lucro bruto: R$ ${report.grossProfit} (${report.grossMargin})\n`;
+                    assistantResponse += `💰 Impostos: R$ ${report.taxes}\n`;
+                    assistantResponse += `💵 Lucro líquido: R$ ${report.netProfit} (${report.netMargin})\n`;
+                    assistantResponse += `\n💡 Custo: ${report.creditCost} créditos`;
+                    break;
+                    
+                  case 'forecast':
+                    assistantResponse = `📊 ${report.title}\n\n`;
+                    
+                    if (report.forecast) {
+                      assistantResponse += `Taxa média de crescimento: ${report.historicalGrowth}\n\n`;
+                      
+                      report.forecast.forEach((item: any) => {
+                        assistantResponse += `📅 ${item.month}\n`;
+                        assistantResponse += `- Previsão: R$ ${item.forecast}\n`;
+                      });
+                      
+                      assistantResponse += `\n💡 Custo: ${report.creditCost} créditos`;
+                    } else {
+                      assistantResponse += report.error;
+                    }
+                    break;
+                    
+                  case 'delay_analysis':
+                    assistantResponse = `📊 ${report.title}\n\n`;
+                    assistantResponse += `${report.summary}\n`;
+                    assistantResponse += `Valor total em atraso: R$ ${report.totalDelayedAmount}\n\n`;
+                    
+                    report.delayGroups.forEach((group: any) => {
+                      assistantResponse += `- ${group.period}: ${group.count} faturas (R$ ${group.amount}) - ${group.percentage}\n`;
+                    });
+                    
+                    if (report.invoices.length > 0) {
+                      assistantResponse += `\n🔍 Faturas mais atrasadas:\n`;
+                      // Show top 5 most delayed invoices
+                      const top5 = report.invoices.slice(0, 5);
+                      top5.forEach((inv: any) => {
+                        assistantResponse += `- ${inv.client}: R$ ${inv.amount} (${inv.daysLate} dias de atraso)\n`;
+                      });
+                    }
+                    
+                    assistantResponse += `\n💡 Custo: ${report.creditCost} créditos`;
+                    break;
+                    
+                  case 'client_history':
+                    assistantResponse = `📊 ${report.title}\n\n`;
+                    assistantResponse += `👤 Cliente: ${report.clientInfo.nome}\n`;
+                    assistantResponse += `📧 Email: ${report.clientInfo.email}\n`;
+                    assistantResponse += `📱 WhatsApp: ${report.clientInfo.whatsapp}\n`;
+                    assistantResponse += `🆔 CPF/CNPJ: ${report.clientInfo.cpf_cnpj}\n\n`;
+                    
+                    assistantResponse += `📈 Resumo:\n`;
+                    assistantResponse += `- Total de faturas: ${report.summary.totalInvoices}\n`;
+                    assistantResponse += `- Valor total: R$ ${report.summary.totalAmount}\n`;
+                    assistantResponse += `- Valor pago: R$ ${report.summary.totalPaid} (${report.summary.paymentRate})\n`;
+                    assistantResponse += `- Tempo médio de pagamento: ${report.summary.avgDaysToPay} dias\n`;
+                    assistantResponse += `- Atraso médio: ${report.summary.avgDelay} dias\n`;
+                    assistantResponse += `- Taxa de pagamentos atrasados: ${report.summary.delayedPaymentRate}\n\n`;
+                    
+                    assistantResponse += `🧾 Últimas faturas:\n`;
+                    const recentInvoices = report.invoices.slice(0, 5);
+                    recentInvoices.forEach((inv: any) => {
+                      assistantResponse += `- ${inv.createdAt}: R$ ${inv.amount} (${inv.status})\n`;
+                      assistantResponse += `  Vencimento: ${inv.dueDate}${inv.paidDate ? `, Pago em: ${inv.paidDate}` : ''}\n`;
+                    });
+                    
+                    assistantResponse += `\n💡 Custo: ${report.creditCost} créditos`;
+                    break;
                 }
               }
             }
-            
-            canGenerateReport = canGenerate;
-            
-            if (canGenerate) {
-              // Consume credits
-              await consumeCredits(userId, creditCost);
-            }
-          }
-          
-          if (canGenerateReport) {
-            // Generate the report
-            const report = await generateFinancialReport(
-              userId,
-              updatedConversationState.data.reportType,
-              {
-                startDate: updatedConversationState.data.startDate,
-                endDate: updatedConversationState.data.endDate
-              }
-            );
-            
-            if (report.error) {
-              assistantResponse += `Erro ao gerar relatório: ${report.error}`;
-            } else {
-              // Format the report response based on type
-              switch (updatedConversationState.data.reportType) {
-                case 'payment_status':
-                  assistantResponse += `📊 ${report.title}\n\n`;
-                  assistantResponse += `${report.summary}\n\n`;
-                  
-                  report.statusDistribution.forEach(item => {
-                    assistantResponse += `- ${item.status}: ${item.count} faturas (R$ ${item.amount}) - ${item.percentage}\n`;
-                  });
-                  
-                  assistantResponse += `\nValor total: R$ ${report.totalAmount}`;
-                  break;
-                  
-                case 'monthly':
-                  assistantResponse += `📊 ${report.title}\n\n`;
-                  
-                  report.months.forEach(month => {
-                    assistantResponse += `📅 ${month.period}\n`;
-                    assistantResponse += `- Faturas emitidas: ${month.invoices}\n`;
-                    assistantResponse += `- Valor total: R$ ${month.total}\n`;
-                    assistantResponse += `- Valor recebido: R$ ${month.paid} (${month.paymentRate})\n\n`;
-                  });
-                  break;
-                  
-                case 'dre':
-                  assistantResponse += `📊 ${report.title}\n\n`;
-                  assistantResponse += `📈 Receita: R$ ${report.revenue}\n`;
-                  assistantResponse += `📉 Despesas: R$ ${report.expenses}\n`;
-                  assistantResponse += `🔷 Lucro bruto: R$ ${report.grossProfit} (${report.grossMargin})\n`;
-                  assistantResponse += `💰 Impostos: R$ ${report.taxes}\n`;
-                  assistantResponse += `💵 Lucro líquido: R$ ${report.netProfit} (${report.netMargin})\n`;
-                  break;
-                  
-                case 'forecast':
-                  assistantResponse += `📊 ${report.title}\n\n`;
-                  
-                  if (report.forecast) {
-                    assistantResponse += `Taxa média de crescimento: ${report.historicalGrowth}\n\n`;
-                    
-                    report.forecast.forEach(item => {
-                      assistantResponse += `📅 ${item.month}\n`;
-                      assistantResponse += `- Previsão: R$ ${item.forecast}\n`;
-                    });
-                  } else {
-                    assistantResponse += report.error;
-                  }
-                  break;
-                  
-                case 'delay_analysis':
-                  assistantResponse += `📊 ${report.title}\n\n`;
-                  assistantResponse += `${report.summary}\n`;
-                  assistantResponse += `Valor total em atraso: R$ ${report.totalDelayedAmount}\n\n`;
-                  
-                  report.delayGroups.forEach(group => {
-                    assistantResponse += `- ${group.period}: ${group.count} faturas (R$ ${group.amount}) - ${group.percentage}\n`;
-                  });
-                  
-                  if (report.invoices.length > 0) {
-                    assistantResponse += `\n🔍 Faturas mais atrasadas:\n`;
-                    // Show top 5 most delayed invoices
-                    const top5 = report.invoices.slice(0, 5);
-                    top5.forEach(inv => {
-                      assistantResponse += `- ${inv.client}: R$ ${inv.amount} (${inv.daysLate} dias de atraso)\n`;
-                    });
-                  }
-                  break;
-              }
-            }
+          } else if (message.toLowerCase() === 'cancelar') {
+            assistantResponse = 'Geração de relatório cancelada.';
+          } else {
+            assistantResponse = 'Por favor, digite "confirmar" para gerar o relatório ou "cancelar" para desistir.';
+            break;
           }
           
           // Reset conversation state
@@ -864,7 +1191,7 @@ serve(async (req) => {
         case 'initial':
         default:
           updatedConversationState.step = 'report_type';
-          assistantResponse = 'Que tipo de relatório você deseja gerar?\n\n- Status de pagamentos\n- Relatório mensal\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos';
+          assistantResponse = 'Que tipo de relatório você deseja gerar?\n\n- Status de pagamentos\n- Relatório mensal\n- Relatório trimestral\n- Relatório anual\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos\n- Histórico de cliente';
       }
     }
     // Handle normal chat mode
@@ -886,7 +1213,7 @@ serve(async (req) => {
               message.toLowerCase().includes('previsão') ||
               message.toLowerCase().includes('analise financeira')) {
         updatedConversationState = { mode: 'report_generation', step: 'initial', data: {} };
-        assistantResponse = 'Vamos gerar um relatório financeiro! Que tipo de relatório você precisa?\n\n- Status de pagamentos\n- Relatório mensal\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos';
+        assistantResponse = 'Vamos gerar um relatório financeiro! Que tipo de relatório você precisa?\n\n- Status de pagamentos\n- Relatório mensal\n- Relatório trimestral\n- Relatório anual\n- DRE (Demonstrativo de Resultado)\n- Previsão de faturamento\n- Análise de atrasos\n- Histórico de cliente';
       }
       else {
         // Normal chat mode - use OpenAI for responses
@@ -895,7 +1222,7 @@ serve(async (req) => {
         Ajude os usuários com:
         - Cadastro de novos clientes (recolhendo nome, e-mail, WhatsApp com DDD e DDI, e CPF ou CNPJ)
         - Geração de novas faturas (recolhendo cliente, valor, data de vencimento e descrição)
-        - Geração de relatórios financeiros (status de pagamentos, mensais, DRE, previsões, análise de atrasos)
+        - Geração de relatórios financeiros (status de pagamentos, mensais, trimestrais, anuais, DRE, previsões, análise de atrasos, histórico de clientes)
         - Consulta de status das cobranças (pendentes, aprovadas, rejeitadas)
         - Análise financeira e projeções
         
