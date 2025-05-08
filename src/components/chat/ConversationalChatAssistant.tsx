@@ -7,6 +7,7 @@ import { ChatHeader } from './components/ChatHeader';
 import { MessageList } from './components/MessageList';
 import { ChatFooter } from './components/ChatFooter';
 import { Message, ConversationState } from './types';
+import { useCredits } from '@/hooks/use-credits';
 
 export function ConversationalChatAssistant() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -21,6 +22,7 @@ export function ConversationalChatAssistant() {
   const { toast } = useToast();
   const { user, session } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { credits, consumeCredit, fetchCredits } = useCredits();
 
   // Get and store access token when session changes
   useEffect(() => {
@@ -64,6 +66,28 @@ export function ConversationalChatAssistant() {
   const sendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
+    
+    // Check if user is authenticated for credit consumption
+    if (user) {
+      // Check if user has enough credits (requires at least 1 credit)
+      if (!credits || credits.credits_remaining < 1) {
+        toast({
+          title: 'Sem créditos',
+          description: 'Você não tem créditos suficientes para enviar mensagens. Por favor, adquira mais créditos.',
+          variant: 'destructive'
+        });
+        
+        // Add system message about insufficient credits
+        setMessages(prev => [...prev, {
+          text: 'Você não tem créditos suficientes para continuar a conversa. Por favor, adquira mais créditos para continuar utilizando o assistente.',
+          isUser: false,
+          timestamp: new Date()
+        }]);
+        
+        return;
+      }
+    }
+    
     const userMessage = input;
     setInput('');
     const newMessage: Message = {
@@ -121,6 +145,25 @@ export function ConversationalChatAssistant() {
         // Update conversation state if it was changed
         if (data.conversationState) {
           setConversationState(data.conversationState);
+        }
+        
+        // Consume 1 credit for each message if user is authenticated
+        // Reports already consume credits in the backend, so we don't need to consume additional credits here
+        if (user && !creditCost) {
+          const success = await consumeCredit(1);
+          if (success) {
+            // Refresh credits display after consumption
+            fetchCredits();
+            
+            // Optional: Notify user about credit consumption
+            if (credits && credits.credits_remaining <= 5) {
+              toast({
+                title: 'Crédito consumido',
+                description: `1 crédito foi consumido. Restam ${credits.credits_remaining - 1} créditos.`,
+                variant: 'default'
+              });
+            }
+          }
         }
       }
     } catch (error) {
