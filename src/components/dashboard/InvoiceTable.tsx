@@ -13,6 +13,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 // Type for our invoice data
 export interface Invoice {
@@ -75,6 +84,10 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState<string | null>(null);
   const { user, isAdmin } = useAuth();
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Show 10 invoices per page
 
   // Busca dados do Supabase
   useEffect(() => {
@@ -106,6 +119,8 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
         if (error) throw error;
         
         setInvoices(data as Invoice[]);
+        // Reset to first page when filter changes
+        setCurrentPage(1);
       } catch (error) {
         console.error('Error fetching invoices:', error);
         setInvoices([]);
@@ -148,6 +163,20 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
     
     return matchesSearch;
   });
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+  
+  // Get current page invoices
+  const currentInvoices = filteredInvoices.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   // Format currency for display
   const formatCurrency = (value: number) => {
@@ -257,8 +286,8 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
                 </td>
               </tr>
             ) : (
-              filteredInvoices.length > 0 ? (
-                filteredInvoices.map((invoice) => (
+              currentInvoices.length > 0 ? (
+                currentInvoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="px-4 py-4">
                       <div>
@@ -326,6 +355,135 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!isLoading && filteredInvoices.length > 0 && (
+        <div className="py-4 border-t border-white/10">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                  className={cn(
+                    "border-white/10 bg-white/5 hover:bg-white/10", 
+                    currentPage === 1 && "pointer-events-none opacity-50"
+                  )}
+                  aria-disabled={currentPage === 1}
+                />
+              </PaginationItem>
+              
+              {totalPages <= 5 ? (
+                // Show all pages if 5 or fewer
+                [...Array(totalPages)].map((_, i) => (
+                  <PaginationItem key={i + 1}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(i + 1)}
+                      isActive={currentPage === i + 1}
+                      className={cn(
+                        "border-white/10",
+                        currentPage === i + 1 
+                          ? "bg-white/20" 
+                          : "bg-white/5 hover:bg-white/10"
+                      )}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))
+              ) : (
+                // Show first, last, and pages around current
+                <>
+                  {/* First page */}
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => handlePageChange(1)}
+                      isActive={currentPage === 1}
+                      className={cn(
+                        "border-white/10",
+                        currentPage === 1 
+                          ? "bg-white/20" 
+                          : "bg-white/5 hover:bg-white/10"
+                      )}
+                    >
+                      1
+                    </PaginationLink>
+                  </PaginationItem>
+                  
+                  {/* Ellipsis if needed */}
+                  {currentPage > 3 && (
+                    <PaginationItem>
+                      <PaginationEllipsis className="text-white/50" />
+                    </PaginationItem>
+                  )}
+                  
+                  {/* Pages around current */}
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    if (
+                      pageNum !== 1 && 
+                      pageNum !== totalPages && 
+                      pageNum >= currentPage - 1 && 
+                      pageNum <= currentPage + 1
+                    ) {
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={currentPage === pageNum}
+                            className={cn(
+                              "border-white/10",
+                              currentPage === pageNum 
+                                ? "bg-white/20" 
+                                : "bg-white/5 hover:bg-white/10"
+                            )}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+                  
+                  {/* Ellipsis if needed */}
+                  {currentPage < totalPages - 2 && (
+                    <PaginationItem>
+                      <PaginationEllipsis className="text-white/50" />
+                    </PaginationItem>
+                  )}
+                  
+                  {/* Last page */}
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => handlePageChange(totalPages)}
+                      isActive={currentPage === totalPages}
+                      className={cn(
+                        "border-white/10",
+                        currentPage === totalPages 
+                          ? "bg-white/20" 
+                          : "bg-white/5 hover:bg-white/10"
+                      )}
+                    >
+                      {totalPages}
+                    </PaginationLink>
+                  </PaginationItem>
+                </>
+              )}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                  className={cn(
+                    "border-white/10 bg-white/5 hover:bg-white/10",
+                    currentPage === totalPages && "pointer-events-none opacity-50"
+                  )}
+                  aria-disabled={currentPage === totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   );
 }
