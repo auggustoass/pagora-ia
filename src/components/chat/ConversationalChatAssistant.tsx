@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, PieChart, CreditCard, UserPlus, RefreshCw, FileText, BarChart3, CalendarClock, Calculator } from 'lucide-react';
+import { Send, Loader2, PieChart, CreditCard, UserPlus, RefreshCw, FileText, BarChart3, CalendarClock, Calculator, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
