@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -75,7 +76,7 @@ export function ChatAssistant({ className }: ChatAssistantProps) {
           <Button 
             type="submit" 
             size="icon" 
-            className="bg-pagora-purple hover:bg-pagora-purple/90"
+            className="bg-hblackpix-purple hover:bg-hblackpix-purple/90"
             disabled={isLoading}
           >
             {isLoading ? (

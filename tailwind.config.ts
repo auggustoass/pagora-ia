@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,7 +62,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				pagora: {
+				hblackpix: {
 					green: '#10b981',
 					darkGreen: '#047857',
 					dark: '#121212',
@@ -72,7 +71,8 @@ export default {
 					lightGray: '#F1F1F1',
 					success: '#10b981',
 					pending: '#f59e0b',
-					error: '#ef4444'
+					error: '#ef4444',
+					purple: '#9b87f5' // Added purple color that was defined as pagora-purple
 				}
 			},
 			borderRadius: {

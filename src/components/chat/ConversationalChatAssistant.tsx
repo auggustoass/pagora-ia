@@ -48,7 +48,7 @@ export function ConversationalChatAssistant() {
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([{
-        text: `Olá${user ? ` ${user.user_metadata?.first_name || ''}` : ''}! Sou o assistente virtual do PAGORA. Como posso ajudar hoje? Você pode me pedir para cadastrar um cliente, gerar uma fatura ou criar relatórios financeiros.`,
+        text: `Olá${user ? ` ${user.user_metadata?.first_name || ''}` : ''}! Sou o assistente virtual do HBLACKPIX. Como posso ajudar hoje? Você pode me pedir para cadastrar um cliente, gerar uma fatura ou criar relatórios financeiros.`,
         isUser: false,
         timestamp: new Date()
       }]);
@@ -170,7 +170,7 @@ export function ConversationalChatAssistant() {
       case 'report_generation':
         return 'Relatório Financeiro';
       default:
-        return 'Assistente PAGORA';
+        return 'Assistente HBLACKPIX';
     }
   };
 
