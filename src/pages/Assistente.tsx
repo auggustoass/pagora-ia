@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { ConversationalChatAssistant } from '@/components/chat/ConversationalChatAssistant';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { AlertCircle, ChevronDown, Coins, BarChart3, UserPlus, FileText, PieChart } from 'lucide-react';
+import { AlertCircle, ChevronDown, Coins, BarChart3, UserPlus, FileText, PieChart, TrendingUp, Calculator, CalendarClock, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -89,13 +89,33 @@ const Assistente = () => {
                 </ul>
 
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                  <p className="font-medium">Análises Avançadas:</p>
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <p className="font-medium">Projeções e Análises:</p>
                 </div>
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                   <li>Previsão de faturamento futuro</li>
-                  <li>Tendências de crescimento</li>
-                  <li>Relatórios personalizados</li>
+                  <li>Análise de tendências de crescimento</li>
+                  <li>Fluxo de caixa projetado</li>
+                </ul>
+
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-primary" />
+                  <p className="font-medium">Cálculos Financeiros:</p>
+                </div>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Análises de lucratividade</li>
+                  <li>Cálculo de margens e percentuais</li>
+                  <li>Projeção de resultados</li>
+                </ul>
+
+                <div className="flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-primary" />
+                  <p className="font-medium">Monitoramento e Alertas:</p>
+                </div>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Controle de vencimentos</li>
+                  <li>Análise de atrasos de pagamento</li>
+                  <li>Identificação de clientes inadimplentes</li>
                 </ul>
                 
                 {user && (
@@ -130,8 +150,10 @@ const Assistente = () => {
                     "Fazer previsão de faturamento",
                     "Analisar faturas em atraso",
                     "Gerar demonstrativo de resultados (DRE)",
-                    "Qual é o status do cliente X?",
-                    "Quanto faturei este mês?"
+                    "Calcular margem de lucro do trimestre",
+                    "Quais são meus clientes inadimplentes?",
+                    "Quanto faturei neste mês?",
+                    "Qual a previsão de crescimento para o próximo mês?"
                   ].map((example, index) => (
                     <Button 
                       key={index} 
@@ -153,6 +175,55 @@ const Assistente = () => {
               </div>
             </AccordionContent>
           </AccordionItem>
+          
+          <AccordionItem value="plans">
+            <AccordionTrigger className="text-sm font-medium">
+              Planos e recursos
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="bg-white/5 p-3 rounded-md border border-white/10">
+                    <h3 className="font-medium mb-2 text-blue-400">Plano Basic</h3>
+                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                      <li>Cadastro de clientes</li>
+                      <li>Geração de faturas</li>
+                      <li>Relatório de status de pagamentos</li>
+                      <li>9 créditos por fatura</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-md border border-white/10">
+                    <h3 className="font-medium mb-2 text-indigo-400">Plano Pro</h3>
+                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                      <li>Todos os recursos do Basic</li>
+                      <li>Relatórios mensais</li>
+                      <li>Análise de atrasos</li>
+                      <li>Apenas 6 créditos por fatura</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-md border border-white/10">
+                    <h3 className="font-medium mb-2 text-purple-400">Plano Enterprise</h3>
+                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                      <li>Todos os recursos do Pro</li>
+                      <li>DRE completo</li>
+                      <li>Previsões e forecasting</li>
+                      <li>Apenas 5 créditos por fatura</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                {!user && (
+                  <Button 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => navigate('/planos')}
+                  >
+                    <Coins className="h-4 w-4 mr-2" /> Ver planos
+                  </Button>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
         
         <div className={`flex-1 ${isMobile ? "h-[calc(100vh-14rem)]" : "h-[calc(100vh-16rem)]"}`}>
@@ -164,4 +235,3 @@ const Assistente = () => {
 };
 
 export default Assistente;
-
