@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { 
@@ -123,8 +122,8 @@ const Relatorios = () => {
           }));
           
           setMonthlyData(monthlyDataFormatted.sort((a, b) => {
-            const monthA = new Date(item.month + "-01").getTime();
-            const monthB = new Date(item.month + "-01").getTime();
+            const monthA = new Date(a.month + "-01").getTime();
+            const monthB = new Date(b.month + "-01").getTime();
             return monthA - monthB;
           }));
         }
