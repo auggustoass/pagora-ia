@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, PieChart, CreditCard } from 'lucide-react';
+import { Send, Loader2, PieChart, CreditCard, UserPlus, RefreshCw, FileText, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,6 +11,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { CreditsDisplay } from '@/components/dashboard/CreditsDisplay';
 import { usePlans } from '@/hooks/use-plans';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 type Message = {
   text: string;
@@ -36,19 +37,20 @@ export function ConversationalChatAssistant() {
   });
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { plans } = usePlans();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Add initial welcome message
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([{
-        text: 'Olá! Sou o assistente virtual do PAGORA. Como posso ajudar hoje? Você pode me pedir para cadastrar um cliente, gerar uma fatura ou criar relatórios financeiros.',
+        text: `Olá${user ? ` ${user.user_metadata?.first_name || ''}` : ''}! Sou o assistente virtual do PAGORA. Como posso ajudar hoje? Você pode me pedir para cadastrar um cliente, gerar uma fatura ou criar relatórios financeiros.`,
         isUser: false,
         timestamp: new Date()
       }]);
     }
-  }, []);
+  }, [user]);
 
   // Scroll to bottom of chat when new message arrives
   useEffect(() => {
@@ -72,14 +74,28 @@ export function ConversationalChatAssistant() {
     setMessages(prev => [...prev, newMessage]);
     setIsLoading(true);
     try {
+      // Optional: Add typing indicator
+      const typingTimer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({
+          behavior: 'smooth'
+        });
+      }, 100);
+
       // Call the edge function with the user's message and current conversation state
       const { data, error } = await supabase.functions.invoke('process-chat', {
         body: {
           message: userMessage,
-          context: 'Usuário está usando o sistema de gestão de cobranças PAGORA',
+          context: user ? `Usuário autenticado como ${user.email}` : 'Usuário não autenticado',
           conversationState: conversationState
-        }
+        },
+        headers: user ? {
+          Authorization: `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+        } : undefined
       });
+
+      // Clear typing indicator
+      clearTimeout(typingTimer);
+
       if (error) throw error;
       if (data) {
         // Add assistant's response
@@ -126,19 +142,64 @@ export function ConversationalChatAssistant() {
     }
   };
 
+  // Helper function to get an icon for the current mode
+  const getModeIcon = () => {
+    switch(conversationState.mode) {
+      case 'client_registration':
+        return <UserPlus className="h-5 w-5 text-blue-400" />;
+      case 'invoice_creation':
+        return <FileText className="h-5 w-5 text-green-400" />;
+      case 'report_generation':
+        return <BarChart3 className="h-5 w-5 text-yellow-400" />;
+      default:
+        return null;
+    }
+  };
+
+  // Quick action buttons
+  const quickActions = [
+    { 
+      label: 'Novo Cliente', 
+      icon: <UserPlus className="h-3 w-3 mr-1" />, 
+      action: 'Cadastrar cliente',
+      tooltip: 'Iniciar cadastro de um novo cliente' 
+    },
+    { 
+      label: 'Nova Fatura', 
+      icon: <FileText className="h-3 w-3 mr-1" />, 
+      action: 'Gerar fatura',
+      tooltip: 'Criar uma nova fatura para um cliente' 
+    },
+    { 
+      label: 'Relatório', 
+      icon: <PieChart className="h-3 w-3 mr-1" />, 
+      action: 'Gerar relatório',
+      tooltip: 'Gerar um relatório financeiro' 
+    },
+    { 
+      label: 'Previsão', 
+      icon: <RefreshCw className="h-3 w-3 mr-1" />, 
+      action: 'Fazer previsão de faturamento',
+      tooltip: 'Criar uma previsão de faturamento futuro' 
+    }
+  ];
+
   return (
     <div className="glass-card flex flex-col h-full">
       <div className="p-3 md:p-4 border-b border-white/10">
         <div className="flex justify-between items-center">
-          <div>
-            <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>{getModeName()}</h2>
-            {conversationState.mode !== 'chat' && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {conversationState.mode === 'client_registration' && 'Cadastrando novo cliente...'}
-                {conversationState.mode === 'invoice_creation' && 'Gerando nova fatura...'}
-                {conversationState.mode === 'report_generation' && 'Gerando relatório financeiro...'}
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            {getModeIcon()}
+            <div>
+              <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>{getModeName()}</h2>
+              {conversationState.mode !== 'chat' && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {conversationState.mode === 'client_registration' && 'Cadastrando novo cliente...'}
+                  {conversationState.mode === 'invoice_creation' && 'Gerando nova fatura...'}
+                  {conversationState.mode === 'report_generation' && 'Gerando relatório financeiro...'}
+                </div>
+              )}
+            </div>
           </div>
           {user && (
             <div className="hidden md:block">
@@ -153,6 +214,30 @@ export function ConversationalChatAssistant() {
               Para usar todas as funcionalidades do assistente, faça login na sua conta.
             </AlertDescription>
           </Alert>
+        )}
+        
+        {conversationState.mode !== 'chat' && (
+          <Badge 
+            variant="outline" 
+            className="mt-2 cursor-pointer hover:bg-primary/10 transition-colors" 
+            onClick={() => {
+              setConversationState({
+                mode: 'chat',
+                step: 'initial',
+                data: {}
+              });
+              setMessages(prev => [...prev, {
+                text: 'Operação cancelada. Como posso ajudar?',
+                isUser: false,
+                timestamp: new Date()
+              }]);
+            }}
+          >
+            Cancelar {
+              conversationState.mode === 'client_registration' ? 'cadastro' : 
+              conversationState.mode === 'invoice_creation' ? 'fatura' : 'relatório'
+            }
+          </Badge>
         )}
       </div>
       
@@ -180,7 +265,7 @@ export function ConversationalChatAssistant() {
             <div className="flex justify-start">
               <div className="bg-white/10 rounded-lg px-3 py-2 md:px-4 md:py-2 text-white flex items-center space-x-2">
                 <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
-                <p className="text-sm md:text-base">Digitando...</p>
+                <p className="text-sm md:text-base">Processando...</p>
               </div>
             </div>
           )}
@@ -195,47 +280,36 @@ export function ConversationalChatAssistant() {
             <CreditsDisplay showAlert={false} className="text-xs" />
           </div>
         )}
-        <div className="flex flex-row space-x-1 mb-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-xs"
-            onClick={() => {
-              setInput('Cadastrar cliente');
-              setTimeout(() => sendMessage(), 100);
-            }}
-          >
-            <CreditCard className="h-3 w-3 mr-1" /> Novo Cliente
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs"
-            onClick={() => {
-              setInput('Gerar fatura');
-              setTimeout(() => sendMessage(), 100);
-            }}
-          >
-            <CreditCard className="h-3 w-3 mr-1" /> Nova Fatura
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-xs"
-            onClick={() => {
-              setInput('Gerar relatório');
-              setTimeout(() => sendMessage(), 100);
-            }}
-          >
-            <PieChart className="h-3 w-3 mr-1" /> Relatório
-          </Button>
+        
+        <div className="flex flex-row gap-1 mb-2 flex-wrap">
+          {quickActions.map((action, index) => (
+            <Button 
+              key={index}
+              variant="outline" 
+              size="sm"
+              className="text-xs mb-1"
+              onClick={() => {
+                setInput(action.action);
+                setTimeout(() => {
+                  if (inputRef.current) {
+                    inputRef.current.focus();
+                  }
+                }, 10);
+              }}
+              title={action.tooltip}
+            >
+              {action.icon} {action.label}
+            </Button>
+          ))}
         </div>
+        
         <form onSubmit={sendMessage} className="flex space-x-2">
           <Input 
+            ref={inputRef}
             value={input} 
             onChange={e => setInput(e.target.value)} 
             placeholder="Digite sua mensagem..." 
-            className="bg-white/5 border-white/10 flex-1 h-9 md:h-10 text-sm md:text-base" 
+            className="assistant-input bg-white/5 border-white/10 flex-1 h-9 md:h-10 text-sm md:text-base" 
             disabled={isLoading} 
           />
           <Button 

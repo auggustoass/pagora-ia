@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { ConversationalChatAssistant } from '@/components/chat/ConversationalChatAssistant';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { AlertCircle, ChevronDown } from 'lucide-react';
+import { AlertCircle, ChevronDown, Coins, BarChart3, UserPlus, FileText, PieChart } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -12,14 +12,18 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from '@/components/ui/button';
+import { usePlans } from '@/hooks/use-plans';
+import { CreditsDisplay } from '@/components/dashboard/CreditsDisplay';
 
 const Assistente = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { plans } = usePlans();
   
   return (
-    <Layout>
+    <Layout requireAuth={false}>
       <div className="flex flex-col h-full animate-fade-in space-y-4 md:space-y-6">
         <div className={isMobile ? "pb-2" : ""}>
           <h1 className={`${isMobile ? "text-2xl" : "text-3xl"} font-bold tracking-tight text-glow`}>
@@ -54,17 +58,98 @@ const Assistente = () => {
               O que o assistente pode fazer?
             </AccordionTrigger>
             <AccordionContent>
-              <div className="space-y-2 text-sm">
-                <p className="font-medium">Assistente financeiro completo:</p>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4 text-primary" />
+                  <p className="font-medium">Gerenciamento de Clientes:</p>
+                </div>
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                  <li>Cadastrar novos clientes</li>
-                  <li>Gerar faturas automaticamente</li>
-                  <li>Criar relatórios de status de pagamento</li>
-                  <li>Gerar demonstrativos financeiros (DRE)</li>
-                  <li>Fazer projeções e forecasting de faturamento</li>
-                  <li>Analisar atrasos e inadimplência</li>
-                  <li>Responder dúvidas sobre suas finanças</li>
+                  <li>Cadastrar novos clientes com todos os dados necessários</li>
+                  <li>Consultar informações de clientes existentes</li>
                 </ul>
+                
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <p className="font-medium">Geração de Faturas:</p>
+                </div>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Criar faturas para clientes cadastrados</li>
+                  <li>Definir valores, datas de vencimento e descrições</li>
+                </ul>
+
+                <div className="flex items-center gap-2">
+                  <PieChart className="h-4 w-4 text-primary" />
+                  <p className="font-medium">Relatórios Financeiros:</p>
+                </div>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Status de pagamento de faturas</li>
+                  <li>Relatórios mensais de faturamento</li>
+                  <li>Demonstrativo de Resultado (DRE)</li>
+                  <li>Análise de inadimplência e atrasos</li>
+                </ul>
+
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  <p className="font-medium">Análises Avançadas:</p>
+                </div>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Previsão de faturamento futuro</li>
+                  <li>Tendências de crescimento</li>
+                  <li>Relatórios personalizados</li>
+                </ul>
+                
+                {user && (
+                  <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <Coins className="h-4 w-4 text-green-500" />
+                      <p className="font-medium text-green-500">Seu plano: {
+                        plans.find(p => p.id === (user?.user_metadata?.plan_id || ''))?.name || 'Basic'
+                      }</p>
+                    </div>
+                    <p className="text-xs mt-2 text-muted-foreground">
+                      Clique nos botões de ação rápida abaixo do chat para começar a usar o assistente.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+          
+          <AccordionItem value="examples">
+            <AccordionTrigger className="text-sm font-medium">
+              Exemplos de perguntas
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3 text-sm pb-2">
+                <p className="font-medium">Experimente perguntar:</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {[
+                    "Cadastrar um novo cliente",
+                    "Gerar uma nova fatura",
+                    "Gerar relatório de status de pagamentos",
+                    "Fazer previsão de faturamento",
+                    "Analisar faturas em atraso",
+                    "Gerar demonstrativo de resultados (DRE)",
+                    "Qual é o status do cliente X?",
+                    "Quanto faturei este mês?"
+                  ].map((example, index) => (
+                    <Button 
+                      key={index} 
+                      variant="outline"
+                      size="sm"
+                      className="justify-start text-left h-auto py-2"
+                      onClick={() => {
+                        const textArea = document.querySelector('.assistant-input') as HTMLInputElement;
+                        if (textArea) {
+                          textArea.value = example;
+                          textArea.focus();
+                        }
+                      }}
+                    >
+                      "{example}"
+                    </Button>
+                  ))}
+                </div>
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -79,3 +164,4 @@ const Assistente = () => {
 };
 
 export default Assistente;
+

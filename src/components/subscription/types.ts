@@ -24,3 +24,9 @@ export interface FinancialReport {
   data: any;
   generatedAt: Date;
 }
+
+export interface ReportPermissions {
+  basic: string[];
+  pro: string[];
+  enterprise: string[];
+}
