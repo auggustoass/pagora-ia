@@ -12,14 +12,24 @@ export function ConversationalChatAssistant() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [conversationState, setConversationState] = useState<ConversationState>({
     mode: 'chat',
     step: 'initial',
     data: {}
   });
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get and store access token when session changes
+  useEffect(() => {
+    if (session?.access_token) {
+      setAccessToken(session.access_token);
+    } else {
+      setAccessToken(null);
+    }
+  }, [session]);
 
   // Add initial welcome message
   useEffect(() => {
@@ -69,6 +79,12 @@ export function ConversationalChatAssistant() {
         // This would be handled by the MessagesEndRef in MessageList now
       }, 100);
 
+      // Create headers object with auth token if available
+      const headers: Record<string, string> = {};
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
       // Call the edge function with the user's message and current conversation state
       const { data, error } = await supabase.functions.invoke('process-chat', {
         body: {
@@ -76,9 +92,7 @@ export function ConversationalChatAssistant() {
           context: user ? `Usuário autenticado como ${user.email}` : 'Usuário não autenticado',
           conversationState: conversationState
         },
-        headers: user ? {
-          Authorization: `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
-        } : undefined
+        headers: headers
       });
 
       // Clear typing indicator
