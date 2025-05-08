@@ -305,7 +305,7 @@ export function ConversationalChatAssistant() {
             <div key={index} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
               <div 
                 className={`${isMobile ? 'max-w-[90%]' : 'max-w-[80%]'} rounded-lg px-3 py-2 md:px-4 md:py-2 ${
-                  message.isUser ? 'bg-pagora-purple text-white' : 'bg-white/10 text-white'
+                  message.isUser ? 'bg-hblackpix-purple text-white' : 'bg-white/10 text-white'
                 }`}
               >
                 <p className="whitespace-pre-wrap text-gray-50 text-sm md:text-base">{message.text}</p>
@@ -376,7 +376,7 @@ export function ConversationalChatAssistant() {
           <Button 
             type="submit" 
             size={isMobile ? "sm" : "icon"} 
-            className="bg-pagora-purple hover:bg-pagora-purple/90 h-9 md:h-10" 
+            className="bg-hblackpix-purple hover:bg-hblackpix-purple/90 h-9 md:h-10" 
             disabled={isLoading}
           >
             {isLoading ? (
