@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { 
@@ -17,7 +18,8 @@ import {
 } from 'recharts';
 import {
   ArrowDown, ArrowUp, Calendar, CircleDollarSign, Clock3, PercentIcon,
-  Trash, Users, FileText, Download, BarChart2, PieChartIcon, LineChartIcon
+  Trash, Users, FileText, Download, BarChart2, PieChartIcon, LineChartIcon,
+  AlertCircle, Loader2
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusCard } from '@/components/dashboard/StatusCard';
@@ -27,6 +29,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { ClientStatistics, InvoiceStatistics } from '@/components/chat/types';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Cores para os gráficos
 const COLORS = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F5', '#33FFF5', '#8E33FF'];
@@ -42,7 +45,7 @@ const Relatorios = () => {
   
   // Estado para a data
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subMonths(new Date(), 1),
+    from: subMonths(new Date(), 12), // Expandir para 12 meses para ter mais chance de dados
     to: new Date()
   });
   
@@ -56,6 +59,7 @@ const Relatorios = () => {
   
   // Estado de carregamento
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Tab ativa
   const [activeTab, setActiveTab] = useState<string>('geral');
@@ -72,9 +76,10 @@ const Relatorios = () => {
     
     try {
       setLoading(true);
+      setError(null);
       
       // Prepara dados comuns para todas as chamadas
-      const startDate = dateRange?.from || new Date();
+      const startDate = dateRange?.from || subMonths(new Date(), 12);
       const endDate = dateRange?.to || new Date();
       const requestData = {
         start_date: format(startDate, 'yyyy-MM-dd'),
@@ -82,55 +87,81 @@ const Relatorios = () => {
         user_filter: userFilter === 'all' ? null : userFilter
       };
       
-      // 1. Buscar dados de status de faturas
-      const { data: statusData, error: statusError } = await supabase.functions.invoke(
-        'get_invoice_status_counts', 
-        { body: requestData }
-      );
+      console.log('Fetching data with parameters:', requestData);
       
-      if (statusError) throw statusError;
-      if (statusData) {
-        setStatusData(statusData);
+      // 1. Buscar dados de status de faturas
+      try {
+        const { data: statusData, error: statusError } = await supabase.functions.invoke(
+          'get_invoice_status_counts', 
+          { body: requestData }
+        );
+        
+        console.log('Status data response:', statusData, statusError);
+        
+        if (statusError) throw statusError;
+        if (statusData) {
+          setStatusData(statusData);
+        }
+      } catch (statusErr) {
+        console.error('Error fetching status counts:', statusErr);
+        toast.error('Erro ao buscar dados de status de faturas');
       }
       
       // 2. Buscar estatísticas de clientes
-      const { data: clientData, error: clientError } = await supabase.functions.invoke(
-        'get_client_statistics',
-        { body: requestData }
-      );
-      
-      if (clientError) throw clientError;
-      if (clientData) {
-        setClientStats(clientData);
+      try {
+        const { data: clientData, error: clientError } = await supabase.functions.invoke(
+          'get_client_statistics',
+          { body: requestData }
+        );
+        
+        console.log('Client data response:', clientData, clientError);
+        
+        if (clientError) throw clientError;
+        if (clientData) {
+          setClientStats(clientData);
+        }
+      } catch (clientErr) {
+        console.error('Error fetching client statistics:', clientErr);
+        toast.error('Erro ao buscar estatísticas de clientes');
       }
       
       // 3. Buscar estatísticas de faturas
-      const { data: invoiceData, error: invoiceError } = await supabase.functions.invoke(
-        'get_invoice_statistics',
-        { body: requestData }
-      );
-      
-      if (invoiceError) throw invoiceError;
-      if (invoiceData) {
-        setInvoiceStats(invoiceData);
+      try {
+        const { data: invoiceData, error: invoiceError } = await supabase.functions.invoke(
+          'get_invoice_statistics',
+          { body: requestData }
+        );
         
-        // Formatar dados mensais para o gráfico
-        if (invoiceData.monthlyValues) {
-          const monthlyDataFormatted = invoiceData.monthlyValues.map(item => ({
-            month: format(new Date(item.month + "-01"), 'MMM', { locale: ptBR }),
-            valor: item.value
-          }));
+        console.log('Invoice data response:', invoiceData, invoiceError);
+        
+        if (invoiceError) throw invoiceError;
+        if (invoiceData) {
+          setInvoiceStats(invoiceData);
           
-          setMonthlyData(monthlyDataFormatted.sort((a, b) => {
-            const monthA = new Date(a.month + "-01").getTime();
-            const monthB = new Date(b.month + "-01").getTime();
-            return monthA - monthB;
-          }));
+          // Formatar dados mensais para o gráfico
+          if (invoiceData.monthlyValues && invoiceData.monthlyValues.length > 0) {
+            const monthlyDataFormatted = invoiceData.monthlyValues.map(item => ({
+              month: format(new Date(item.month + "-01"), 'MMM', { locale: ptBR }),
+              valor: item.value
+            }));
+            
+            setMonthlyData(monthlyDataFormatted.sort((a, b) => {
+              const monthA = new Date(a.month + "-01").getTime();
+              const monthB = new Date(b.month + "-01").getTime();
+              return monthA - monthB;
+            }));
+          } else {
+            setMonthlyData([]);
+          }
         }
+      } catch (invoiceErr) {
+        console.error('Error fetching invoice statistics:', invoiceErr);
+        toast.error('Erro ao buscar estatísticas de faturas');
       }
       
     } catch (error) {
       console.error('Erro ao buscar dados para relatórios:', error);
+      setError('Falha ao carregar dados. Tente novamente mais tarde.');
       toast.error('Erro ao carregar relatórios');
     } finally {
       setLoading(false);
@@ -147,6 +178,11 @@ const Relatorios = () => {
   
   // Função para exportar dados em CSV
   const exportData = (data: any[], filename: string) => {
+    if (!data || data.length === 0) {
+      toast.error('Não há dados para exportar');
+      return;
+    }
+    
     // Transformar dados em CSV
     const headers = Object.keys(data[0]).join(',');
     const rows = data.map(item => Object.values(item).join(','));
@@ -164,6 +200,35 @@ const Relatorios = () => {
     
     toast.success(`Relatório ${filename} exportado com sucesso`);
   };
+  
+  // Componente para exibir quando não há dados
+  const NoDataMessage = ({ message = "Não há dados para o período selecionado" }) => (
+    <div className="flex flex-col justify-center items-center h-64 text-center p-4">
+      <AlertCircle className="h-10 w-10 text-muted-foreground mb-4" />
+      <p className="text-muted-foreground">{message}</p>
+      <Button 
+        className="mt-4" 
+        variant="outline"
+        onClick={() => {
+          setDateRange({
+            from: subMonths(new Date(), 12),
+            to: new Date()
+          });
+          toast.info('Período expandido para os últimos 12 meses');
+        }}
+      >
+        Expandir período (12 meses)
+      </Button>
+    </div>
+  );
+  
+  // Componente de carregamento
+  const LoadingSpinner = () => (
+    <div className="flex justify-center items-center h-64">
+      <Loader2 className="h-8 w-8 animate-spin mr-2" />
+      <p>Carregando dados...</p>
+    </div>
+  );
   
   return (
     <Layout>
@@ -213,8 +278,28 @@ const Relatorios = () => {
                 </div>
               )}
             </div>
+            
+            <div className="flex justify-end">
+              <Button 
+                onClick={fetchData}
+                disabled={loading}
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Atualizar dados
+              </Button>
+            </div>
           </CardContent>
         </Card>
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erro</AlertTitle>
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
         
         {/* Tabs para navegar entre relatórios */}
         <Tabs defaultValue="geral" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -276,10 +361,8 @@ const Relatorios = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Carregando dados...</p>
-                    </div>
-                  ) : statusData.length > 0 ? (
+                    <LoadingSpinner />
+                  ) : statusData && statusData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
@@ -302,9 +385,7 @@ const Relatorios = () => {
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Não há dados para o período selecionado</p>
-                    </div>
+                    <NoDataMessage />
                   )}
                 </CardContent>
               </Card>
@@ -320,10 +401,8 @@ const Relatorios = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Carregando dados...</p>
-                    </div>
-                  ) : monthlyData.length > 0 ? (
+                    <LoadingSpinner />
+                  ) : monthlyData && monthlyData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart
                         data={monthlyData}
@@ -343,9 +422,7 @@ const Relatorios = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Não há dados para o período selecionado</p>
-                    </div>
+                    <NoDataMessage />
                   )}
                 </CardContent>
               </Card>
@@ -367,6 +444,7 @@ const Relatorios = () => {
                       variant="outline" 
                       size="sm"
                       onClick={() => clientStats?.monthlyGrowth && exportData(clientStats.monthlyGrowth, 'crescimento-clientes')}
+                      disabled={!clientStats?.monthlyGrowth || clientStats.monthlyGrowth.length === 0}
                     >
                       <Download size={16} className="mr-2" />
                       Exportar
@@ -376,9 +454,7 @@ const Relatorios = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Carregando dados...</p>
-                    </div>
+                    <LoadingSpinner />
                   ) : clientStats?.monthlyGrowth && clientStats.monthlyGrowth.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <AreaChart
@@ -402,9 +478,7 @@ const Relatorios = () => {
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Não há dados para o período selecionado</p>
-                    </div>
+                    <NoDataMessage />
                   )}
                 </CardContent>
               </Card>
@@ -420,6 +494,7 @@ const Relatorios = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => clientStats?.topClients && exportData(clientStats.topClients, 'top-clientes')}
+                    disabled={!clientStats?.topClients || clientStats.topClients.length === 0}
                   >
                     <Download size={16} className="mr-2" />
                     Exportar
@@ -427,9 +502,7 @@ const Relatorios = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Carregando dados...</p>
-                    </div>
+                    <LoadingSpinner />
                   ) : clientStats?.topClients && clientStats.topClients.length > 0 ? (
                     <div className="overflow-x-auto">
                       <Table>
@@ -450,9 +523,7 @@ const Relatorios = () => {
                       </Table>
                     </div>
                   ) : (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Não há dados para o período selecionado</p>
-                    </div>
+                    <NoDataMessage />
                   )}
                 </CardContent>
               </Card>
@@ -473,9 +544,7 @@ const Relatorios = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Carregando dados...</p>
-                    </div>
+                    <LoadingSpinner />
                   ) : invoiceStats?.monthlyValues && invoiceStats.monthlyValues.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <LineChart
@@ -500,9 +569,7 @@ const Relatorios = () => {
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Não há dados para o período selecionado</p>
-                    </div>
+                    <NoDataMessage />
                   )}
                 </CardContent>
               </Card>
@@ -518,6 +585,7 @@ const Relatorios = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => invoiceStats?.valueRanges && exportData(invoiceStats.valueRanges, 'faixas-valor')}
+                    disabled={!invoiceStats?.valueRanges || invoiceStats.valueRanges.length === 0}
                   >
                     <Download size={16} className="mr-2" />
                     Exportar
@@ -525,9 +593,7 @@ const Relatorios = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Carregando dados...</p>
-                    </div>
+                    <LoadingSpinner />
                   ) : invoiceStats?.valueRanges && invoiceStats.valueRanges.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart
@@ -548,9 +614,7 @@ const Relatorios = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex justify-center items-center h-64">
-                      <p>Não há dados para o período selecionado</p>
-                    </div>
+                    <NoDataMessage />
                   )}
                 </CardContent>
               </Card>

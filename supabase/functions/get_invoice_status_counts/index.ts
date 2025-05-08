@@ -31,11 +31,12 @@ serve(async (req) => {
 
     // Parse the request body
     const { start_date, end_date, user_filter } = await req.json()
+    console.log('Request params:', { start_date, end_date, user_filter })
 
-    // Build the query with date range
+    // Fix: Instead of using group() which is not available, we'll count each status manually
     let query = supabaseClient
       .from('faturas')
-      .select('status, count(*)', { count: 'exact', head: false })
+      .select('status')
       .gte('created_at', start_date)
       .lte('created_at', end_date)
 
@@ -44,18 +45,33 @@ serve(async (req) => {
       query = query.eq('user_id', user_filter)
     }
 
-    // Execute the query with group by
-    const { data, error } = await query.group('status')
+    const { data, error } = await query
 
     if (error) {
+      console.error('Database query error:', error)
       throw error
     }
 
-    // Format the data to match the expected StatusCount interface
-    const formattedData = data.map(item => ({
-      status: item.status,
-      count: parseInt(item.count, 10)
+    console.log('Query returned data count:', data?.length || 0)
+
+    // Count statuses manually
+    const statusCounts = {}
+    if (data && data.length > 0) {
+      data.forEach(item => {
+        if (!statusCounts[item.status]) {
+          statusCounts[item.status] = 0
+        }
+        statusCounts[item.status]++
+      })
+    }
+
+    // Convert to the expected format
+    const formattedData = Object.entries(statusCounts).map(([status, count]) => ({
+      status,
+      count
     }))
+    
+    console.log('Formatted status counts:', formattedData)
 
     // Return the response
     return new Response(JSON.stringify(formattedData), {

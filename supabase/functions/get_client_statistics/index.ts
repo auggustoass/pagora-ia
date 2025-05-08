@@ -31,6 +31,7 @@ serve(async (req) => {
 
     // Parse the request body
     const { start_date, end_date, user_filter } = await req.json()
+    console.log('Request params for client statistics:', { start_date, end_date, user_filter })
 
     // Get total clients count
     let clientsQuery = supabaseClient
@@ -51,7 +52,12 @@ serve(async (req) => {
 
     const { count: totalClients, error: clientsError } = await clientsQuery
 
-    if (clientsError) throw clientsError
+    if (clientsError) {
+      console.error('Error getting client count:', clientsError)
+      throw clientsError
+    }
+    
+    console.log('Total clients found:', totalClients)
 
     // Get new clients per month (for growth chart)
     let clientGrowthQuery = supabaseClient
@@ -73,11 +79,16 @@ serve(async (req) => {
 
     const { data: clientsData, error: growthError } = await clientGrowthQuery
 
-    if (growthError) throw growthError
+    if (growthError) {
+      console.error('Error getting client growth data:', growthError)
+      throw growthError
+    }
+    
+    console.log('Clients data for growth chart:', clientsData?.length || 0, 'records')
 
     // Process client growth data by month
     const monthlyGrowth = {}
-    if (clientsData) {
+    if (clientsData && clientsData.length > 0) {
       clientsData.forEach(client => {
         const date = new Date(client.created_at)
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -88,6 +99,8 @@ serve(async (req) => {
         
         monthlyGrowth[monthKey]++
       })
+    } else {
+      console.log('No client data available for growth chart')
     }
 
     // Get top clients by invoice value
@@ -100,7 +113,12 @@ serve(async (req) => {
       `)
       .limit(10)
 
-    if (topClientsError) throw topClientsError
+    if (topClientsError) {
+      console.error('Error getting top clients:', topClientsError)
+      throw topClientsError
+    }
+    
+    console.log('Top clients data:', topClients?.length || 0, 'records')
 
     // Calculate total invoice value for each client
     const topClientsWithTotals = topClients
@@ -111,6 +129,8 @@ serve(async (req) => {
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10)
+    
+    console.log('Top clients with calculated totals:', topClientsWithTotals.length)
 
     // Prepare and return the response
     const response = {
@@ -121,13 +141,15 @@ serve(async (req) => {
       })),
       topClients: topClientsWithTotals
     }
+    
+    console.log('Response prepared successfully')
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    console.error('Error processing request:', error)
+    console.error('Error processing client statistics request:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
