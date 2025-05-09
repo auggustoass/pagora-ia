@@ -39,3 +39,5 @@ enabled = true
 [edge_functions.process-chat]
 [edge_functions.process-payment-webhook]
 [edge_functions.verify-subscriptions]
+[edge_functions.generate-notification]
+[edge_functions.check-notification-triggers]

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Check, Clock, Ban, Search, Filter, Edit, CreditCard, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { toast } from 'sonner';
+import { NotificationsService } from '@/services/notificationsService';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -212,7 +212,18 @@ export function InvoiceTable({ onEditInvoice }: InvoiceTableProps) {
       
       if (data.success && data.payment_url) {
         toast.success('Link de pagamento gerado com sucesso!');
-        // The real-time subscription will update the invoice in the UI
+        
+        // Generate notification for payment link creation
+        const invoice = invoices.find(inv => inv.id === invoiceId);
+        if (invoice) {
+          await NotificationsService.createNotification({
+            userId: user.id,
+            type: 'payment_update',
+            title: 'Link de pagamento gerado',
+            content: `O link de pagamento para a fatura de ${formatCurrency(invoice.valor)} do cliente ${invoice.nome} foi gerado com sucesso.`,
+            relatedId: invoiceId
+          });
+        }
       }
     } catch (error) {
       console.error('Error generating payment link:', error);

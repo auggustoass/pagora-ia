@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Bell, CreditCard, MessageSquare, Settings, Search, Menu, Coins } from 'lucide-react';
+import { MessageSquare, Settings, Search, Menu, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -9,6 +9,7 @@ import { Badge } from '../ui/badge';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { useCredits } from '@/hooks/use-credits';
+import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 
 export function Header() {
   const { user } = useAuth();
@@ -50,19 +51,9 @@ export function Header() {
         
         <div className="h-6 w-[1px] bg-border"></div>
         
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative bg-secondary/20 rounded-full h-9 w-9">
-                <Bell size={18} />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="bg-card border-border">
-              <p>Notificações</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {user && (
+          <NotificationsDropdown />
+        )}
         
         <TooltipProvider>
           <Tooltip>
