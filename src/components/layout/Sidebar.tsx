@@ -77,7 +77,7 @@ export function Sidebar({
 
       <div className={cn("px-4 py-6 flex items-center", collapsed ? "justify-center" : "justify-start")}>
         {collapsed ? <div className="w-10 h-10 rounded-full overflow-hidden bg-primary flex items-center justify-center">
-            <img alt="HBLACKPIX" className="w-full h-full object-cover" src="/lovable-uploads/e5bf1321-032a-4b7f-bfa9-073c67d8af7f.png" />
+            <img alt="HBLACKPIX" className="w-full h-full object-cover" src="/lovable-uploads/0e8fcb5a-bcde-4b8a-be24-77413a0562ce.png" />
           </div> : <div className="flex flex-col items-start">
             <div className="h-10 w-full flex items-center">
               <img alt="HBLACKPIX" className="h-8 mr-2" src="/lovable-uploads/55eb28cc-ed54-4fb2-adeb-e214cf7f1972.png" />
