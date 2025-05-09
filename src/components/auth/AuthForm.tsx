@@ -207,7 +207,7 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
                 <Input 
                   id="whatsapp" 
                   type="tel" 
-                  placeholder="+5511999999999" 
+                  placeholder="11999999999" 
                   value={phone} 
                   onChange={e => setPhone(e.target.value)} 
                   className="bg-secondary/40 border-border h-10 focus:border-primary/50"
