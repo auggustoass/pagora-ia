@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { MessageSquare, Settings, Search, Menu, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -10,18 +10,20 @@ import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { useCredits } from '@/hooks/use-credits';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 export function Header() {
   const { user } = useAuth();
   const { credits } = useCredits();
+  const isMobile = useIsMobile();
 
   return (
-    <header className="px-6 py-4 flex items-center justify-between border-b border-border backdrop-blur-md bg-background/50">
+    <header className={cn(
+      "sticky top-0 z-10 px-6 py-4 flex items-center justify-between border-b border-border backdrop-blur-md bg-background/50",
+      "transition-all duration-300"
+    )}>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground">
-          <Menu size={20} />
-        </Button>
-        
         <div className="relative w-64 hidden md:flex">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input

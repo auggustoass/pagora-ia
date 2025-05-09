@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   Home, 
@@ -18,7 +19,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SidebarProps {
   className?: string;
@@ -30,6 +32,7 @@ interface NavItemProps {
   to: string;
   isActive?: boolean;
   onClick?: () => void;
+  collapsed?: boolean;
 }
 
 const NavItem = ({
@@ -37,7 +40,8 @@ const NavItem = ({
   label,
   to,
   isActive = false,
-  onClick
+  onClick,
+  collapsed = false
 }: NavItemProps) => (
   <TooltipProvider delayDuration={300}>
     <Tooltip>
@@ -57,13 +61,15 @@ const NavItem = ({
               <div className="w-5 h-5 flex items-center justify-center">
                 {icon}
               </div>
-              <span className="ml-1">{label}</span>
+              {!collapsed && <span className="ml-1">{label}</span>}
+              {isActive && !collapsed && <div className="ml-auto w-1 h-6 bg-primary rounded-full"></div>}
             </Button>
           ) : (
             <Link
               to={to}
               className={cn(
                 "flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all",
+                collapsed ? "justify-center" : "",
                 isActive
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -72,8 +78,8 @@ const NavItem = ({
               <div className="w-5 h-5 flex items-center justify-center">
                 {icon}
               </div>
-              <span className="ml-1">{label}</span>
-              {isActive && <div className="ml-auto w-1 h-6 bg-primary rounded-full"></div>}
+              {!collapsed && <span className="ml-1">{label}</span>}
+              {isActive && !collapsed && <div className="ml-auto w-1 h-6 bg-primary rounded-full"></div>}
             </Link>
           )}
         </li>
@@ -89,6 +95,14 @@ export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+  
+  // Auto-collapse on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(true);
+    }
+  }, [isMobile]);
 
   const handleSignOut = () => {
     signOut();
@@ -96,9 +110,9 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <div className={cn(
-      "h-full flex flex-col bg-sidebar border-r border-border relative",
+      "h-screen fixed left-0 top-0 flex flex-col bg-sidebar border-r border-border",
       collapsed ? "w-20" : "w-60",
-      "transition-all duration-300 ease-in-out",
+      "transition-all duration-300 ease-in-out z-20",
       className
     )}>
       <Button 
@@ -117,19 +131,19 @@ export function Sidebar({ className }: SidebarProps) {
         "px-4 py-6 flex items-center",
         collapsed ? "justify-center" : "justify-start"
       )}>
-        <div className={cn(
-          "transition-all duration-300 ease-in-out",
-          collapsed ? "scale-0 w-0" : "scale-100 w-auto"
-        )}>
-          <h2 className="text-2xl font-bold text-gradient text-glow mb-1">HBLACKPIX</h2>
-          <p className="text-xs text-muted-foreground">Assistente de Cobrança</p>
-        </div>
-        <div className={cn(
-          "transition-all duration-300 ease-in-out text-3xl font-bold text-primary",
-          collapsed ? "scale-100" : "scale-0 w-0"
-        )}>
-          H
-        </div>
+        {collapsed ? (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-primary flex items-center justify-center">
+            <img src="/placeholder.svg" alt="HBLACKPIX" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="flex flex-col items-start">
+            <div className="h-10 w-full flex items-center">
+              <img src="/placeholder.svg" alt="HBLACKPIX" className="h-8 mr-2" />
+              <h2 className="text-2xl font-bold text-gradient text-glow">HBLACKPIX</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Assistente de Cobrança</p>
+          </div>
+        )}
       </div>
       
       <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin">
@@ -138,42 +152,48 @@ export function Sidebar({ className }: SidebarProps) {
             icon={<Home size={18} />} 
             label="Dashboard" 
             to="/dashboard" 
-            isActive={location.pathname === '/dashboard'} 
+            isActive={location.pathname === '/dashboard'}
+            collapsed={collapsed}
           />
           
           <NavItem 
             icon={<Users size={18} />} 
             label="Clientes" 
             to="/clientes" 
-            isActive={location.pathname === '/clientes'} 
+            isActive={location.pathname === '/clientes'}
+            collapsed={collapsed}
           />
           
           <NavItem 
             icon={<FileText size={18} />} 
             label="Faturas" 
             to="/faturas" 
-            isActive={location.pathname === '/faturas'} 
+            isActive={location.pathname === '/faturas'}
+            collapsed={collapsed}
           />
           
           <NavItem 
             icon={<MessagesSquare size={18} />} 
             label="Assistente" 
             to="/assistente" 
-            isActive={location.pathname === '/assistente'} 
+            isActive={location.pathname === '/assistente'}
+            collapsed={collapsed}
           />
           
           <NavItem 
             icon={<PieChart size={18} />} 
             label="Relatórios" 
             to="/relatorios" 
-            isActive={location.pathname === '/relatorios'} 
+            isActive={location.pathname === '/relatorios'}
+            collapsed={collapsed}
           />
           
           <NavItem 
             icon={<CreditCard size={18} />} 
             label="Planos" 
             to="/planos" 
-            isActive={location.pathname === '/planos'} 
+            isActive={location.pathname === '/planos'}
+            collapsed={collapsed}
           />
           
           {isAdmin && (
@@ -181,7 +201,8 @@ export function Sidebar({ className }: SidebarProps) {
               icon={<Shield size={18} />} 
               label="Admin" 
               to="/admin" 
-              isActive={location.pathname === '/admin'} 
+              isActive={location.pathname === '/admin'}
+              collapsed={collapsed}
             />
           )}
           
@@ -189,14 +210,16 @@ export function Sidebar({ className }: SidebarProps) {
             icon={<Settings size={18} />} 
             label="Configurações" 
             to="/configuracoes" 
-            isActive={location.pathname === '/configuracoes'} 
+            isActive={location.pathname === '/configuracoes'}
+            collapsed={collapsed}
           />
           
           <NavItem 
             icon={<HelpCircle size={18} />} 
             label="Ajuda" 
             to="/ajuda" 
-            isActive={location.pathname === '/ajuda'} 
+            isActive={location.pathname === '/ajuda'}
+            collapsed={collapsed}
           />
           
           {user && (
@@ -204,31 +227,31 @@ export function Sidebar({ className }: SidebarProps) {
               icon={<LogOut size={18} />} 
               label="Sair" 
               to="#" 
-              onClick={handleSignOut} 
+              onClick={handleSignOut}
+              collapsed={collapsed}
             />
           )}
         </ul>
       </nav>
       
-      <div className={cn(
-        "p-4 mt-auto",
-        collapsed ? "hidden" : "block"
-      )}>
-        <div className="glass-card p-4 text-center bg-gradient-to-br from-card to-card/40">
-          <p className="text-sm text-muted-foreground mb-2">Precisa de ajuda?</p>
-          <a 
-            href="https://wa.me/5511998115159" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md w-full block hover:opacity-90 transition-all btn-hover-fx"
-          >
-            <div className="flex items-center justify-center gap-2">
-              <MessageSquare size={16} />
-              Fale com o Suporte
-            </div>
-          </a>
+      {!collapsed && (
+        <div className="p-4 mt-auto">
+          <div className="glass-card p-4 text-center bg-gradient-to-br from-card to-card/40">
+            <p className="text-sm text-muted-foreground mb-2">Precisa de ajuda?</p>
+            <a 
+              href="https://wa.me/5511998115159" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-md w-full block hover:opacity-90 transition-all btn-hover-fx"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <MessageSquare size={16} />
+                Fale com o Suporte
+              </div>
+            </a>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

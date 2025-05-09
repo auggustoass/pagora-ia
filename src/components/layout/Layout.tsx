@@ -63,7 +63,10 @@ export function Layout({
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className={cn(
+        "flex-1 flex flex-col",
+        isMobile ? "ml-20" : "ml-60"
+      )}>
         <Header />
         <main className={`flex-1 ${isMobile ? 'p-3' : 'p-6 md:p-8'} overflow-auto scrollbar-thin`}>
           {children}
@@ -74,3 +77,6 @@ export function Layout({
     </div>
   );
 }
+
+// Add the missing cn import to Layout.tsx
+import { cn } from '@/lib/utils';
