@@ -32,6 +32,26 @@ serve(async (req) => {
     // Parse the request body
     const { start_date, end_date, user_filter } = await req.json()
     console.log('Request params for client statistics:', { start_date, end_date, user_filter })
+    
+    // Get current user information to check if admin
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    
+    if (userError) {
+      console.error('Error getting user:', userError)
+      throw userError
+    }
+    
+    // Check if user is admin
+    const { data: roleData, error: roleError } = await supabaseClient
+      .rpc('is_admin')
+    
+    if (roleError) {
+      console.error('Error checking admin status:', roleError)
+      throw roleError
+    }
+    
+    const isAdmin = roleData || false
+    console.log('User admin status:', isAdmin)
 
     // Get total clients count
     let clientsQuery = supabaseClient
@@ -46,8 +66,16 @@ serve(async (req) => {
     }
 
     // Apply user filter if needed
-    if (user_filter && user_filter !== 'all') {
+    // For admins: if user_filter is specified, filter by that user_id, otherwise show all
+    // For regular users: always filter by their user_id regardless of user_filter
+    if (!isAdmin) {
+      // Regular users can only see their own data
+      clientsQuery = clientsQuery.eq('user_id', user.id)
+      console.log('Filtering clients for regular user:', user.id)
+    } else if (user_filter && user_filter !== 'all') {
+      // Admin can filter by specific user
       clientsQuery = clientsQuery.eq('user_id', user_filter)
+      console.log('Admin filtering clients by specific user:', user_filter)
     }
 
     const { count: totalClients, error: clientsError } = await clientsQuery
@@ -72,8 +100,10 @@ serve(async (req) => {
         .lte('created_at', end_date)
     }
 
-    // Apply user filter if needed
-    if (user_filter && user_filter !== 'all') {
+    // Apply same user filtering logic as above
+    if (!isAdmin) {
+      clientGrowthQuery = clientGrowthQuery.eq('user_id', user.id)
+    } else if (user_filter && user_filter !== 'all') {
       clientGrowthQuery = clientGrowthQuery.eq('user_id', user_filter)
     }
 
@@ -104,14 +134,25 @@ serve(async (req) => {
     }
 
     // Get top clients by invoice value
-    const { data: topClients, error: topClientsError } = await supabaseClient
+    let topClientsQuery = supabaseClient
       .from('clients')
       .select(`
         id,
         nome,
         faturas:faturas(valor)
       `)
-      .limit(10)
+
+    // Apply same user filtering logic
+    if (!isAdmin) {
+      topClientsQuery = topClientsQuery.eq('user_id', user.id)
+    } else if (user_filter && user_filter !== 'all') {
+      topClientsQuery = topClientsQuery.eq('user_id', user_filter)
+    }
+    
+    // Apply limit
+    topClientsQuery = topClientsQuery.limit(10)
+    
+    const { data: topClients, error: topClientsError } = await topClientsQuery
 
     if (topClientsError) {
       console.error('Error getting top clients:', topClientsError)

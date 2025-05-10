@@ -32,17 +32,49 @@ serve(async (req) => {
     // Parse the request body
     const { start_date, end_date, user_filter } = await req.json()
     console.log('Request params:', { start_date, end_date, user_filter })
+    
+    // Get current user information to check if admin
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    
+    if (userError) {
+      console.error('Error getting user:', userError)
+      throw userError
+    }
+    
+    // Check if user is admin
+    const { data: roleData, error: roleError } = await supabaseClient
+      .rpc('is_admin')
+    
+    if (roleError) {
+      console.error('Error checking admin status:', roleError)
+      throw roleError
+    }
+    
+    const isAdmin = roleData || false
+    console.log('User admin status:', isAdmin)
 
     // Fix: Instead of using group() which is not available, we'll count each status manually
     let query = supabaseClient
       .from('faturas')
       .select('status')
-      .gte('created_at', start_date)
-      .lte('created_at', end_date)
+      
+    // Apply date filters  
+    if (start_date && end_date) {
+      query = query.gte('created_at', start_date)
+               .lte('created_at', end_date)
+    }
 
-    // Apply user filter if needed
-    if (user_filter) {
+    // Apply user filtering logic:
+    // For admins: if user_filter is specified, filter by that user_id, otherwise show all
+    // For regular users: always filter by their user_id regardless of user_filter
+    if (!isAdmin) {
+      // Regular users can only see their own data
+      query = query.eq('user_id', user.id)
+      console.log('Filtering invoice status for regular user:', user.id)
+    } else if (user_filter && user_filter !== 'all') {
+      // Admin can filter by specific user
       query = query.eq('user_id', user_filter)
+      console.log('Admin filtering invoice status by specific user:', user_filter)
     }
 
     const { data, error } = await query
