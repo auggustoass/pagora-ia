@@ -200,6 +200,18 @@
     @apply bg-primary/10 rounded-full;
   }
   
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-none {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  .scrollbar-none::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
+  }
+  
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }

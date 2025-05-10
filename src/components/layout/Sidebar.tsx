@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+
 interface SidebarProps {
   className?: string;
 }
@@ -29,7 +30,7 @@ const NavItem = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <li className="mb-2">
-          {onClick ? <Button variant="ghost" className={cn("flex w-full items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all justify-start font-normal", isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground")} onClick={onClick}>
+          {onClick ? <Button variant="ghost" className={cn("flex w-full items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all justify-start font-normal", isActive ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={onClick}>
               <div className="w-5 h-5 flex items-center justify-center">
                 {icon}
               </div>
@@ -87,7 +88,7 @@ export function Sidebar({
           </div>}
       </div>
       
-      <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-none">
         <ul className="space-y-1">
           <NavItem icon={<Home size={18} />} label="Dashboard" to="/dashboard" isActive={location.pathname === '/dashboard'} collapsed={collapsed} />
           
