@@ -9,6 +9,7 @@ import { ClientForm } from '@/components/forms/ClientForm';
 import { ClientEditForm } from '@/components/forms/ClientEditForm';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface Client {
   id: string;
@@ -41,6 +51,10 @@ const Clientes = () => {
   const [newClientDialogOpen, setNewClientDialogOpen] = useState(false);
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
   const { user, isAdmin } = useAuth();
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Show 10 clients per page
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -101,6 +115,20 @@ const Clientes = () => {
     
     return matchesSearch;
   });
+  
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+  
+  // Get current page clients
+  const currentClients = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const handleNewClientSuccess = () => {
     setNewClientDialogOpen(false);
@@ -172,7 +200,7 @@ const Clientes = () => {
                   </TableCell>
                 </TableRow>
               ) : filteredClients.length > 0 ? (
-                filteredClients.map((client) => (
+                currentClients.map((client) => (
                   <TableRow key={client.id} className="border-white/5 hover:bg-white/5">
                     <TableCell className="font-medium">{client.nome}</TableCell>
                     <TableCell>{client.email}</TableCell>
@@ -200,6 +228,135 @@ const Clientes = () => {
               )}
             </TableBody>
           </Table>
+          
+          {/* Pagination */}
+          {!isLoading && filteredClients.length > 0 && (
+            <div className="py-4 border-t border-white/10">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                      className={cn(
+                        "border-white/10 bg-white/5 hover:bg-white/10", 
+                        currentPage === 1 && "pointer-events-none opacity-50"
+                      )}
+                      aria-disabled={currentPage === 1}
+                    />
+                  </PaginationItem>
+                  
+                  {totalPages <= 5 ? (
+                    // Show all pages if 5 or fewer
+                    [...Array(totalPages)].map((_, i) => (
+                      <PaginationItem key={i + 1}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(i + 1)}
+                          isActive={currentPage === i + 1}
+                          className={cn(
+                            "border-white/10",
+                            currentPage === i + 1 
+                              ? "bg-white/20" 
+                              : "bg-white/5 hover:bg-white/10"
+                          )}
+                        >
+                          {i + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))
+                  ) : (
+                    // Show first, last, and pages around current
+                    <>
+                      {/* First page */}
+                      <PaginationItem>
+                        <PaginationLink
+                          onClick={() => handlePageChange(1)}
+                          isActive={currentPage === 1}
+                          className={cn(
+                            "border-white/10",
+                            currentPage === 1 
+                              ? "bg-white/20" 
+                              : "bg-white/5 hover:bg-white/10"
+                          )}
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                      
+                      {/* Ellipsis if needed */}
+                      {currentPage > 3 && (
+                        <PaginationItem>
+                          <PaginationEllipsis className="text-white/50" />
+                        </PaginationItem>
+                      )}
+                      
+                      {/* Pages around current */}
+                      {[...Array(totalPages)].map((_, i) => {
+                        const pageNum = i + 1;
+                        if (
+                          pageNum !== 1 && 
+                          pageNum !== totalPages && 
+                          pageNum >= currentPage - 1 && 
+                          pageNum <= currentPage + 1
+                        ) {
+                          return (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink
+                                onClick={() => handlePageChange(pageNum)}
+                                isActive={currentPage === pageNum}
+                                className={cn(
+                                  "border-white/10",
+                                  currentPage === pageNum 
+                                    ? "bg-white/20" 
+                                    : "bg-white/5 hover:bg-white/10"
+                                )}
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        }
+                        return null;
+                      })}
+                      
+                      {/* Ellipsis if needed */}
+                      {currentPage < totalPages - 2 && (
+                        <PaginationItem>
+                          <PaginationEllipsis className="text-white/50" />
+                        </PaginationItem>
+                      )}
+                      
+                      {/* Last page */}
+                      <PaginationItem>
+                        <PaginationLink
+                          onClick={() => handlePageChange(totalPages)}
+                          isActive={currentPage === totalPages}
+                          className={cn(
+                            "border-white/10",
+                            currentPage === totalPages 
+                              ? "bg-white/20" 
+                              : "bg-white/5 hover:bg-white/10"
+                          )}
+                        >
+                          {totalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                      className={cn(
+                        "border-white/10 bg-white/5 hover:bg-white/10",
+                        currentPage === totalPages && "pointer-events-none opacity-50"
+                      )}
+                      aria-disabled={currentPage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
       </div>
       
