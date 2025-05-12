@@ -52,40 +52,25 @@ serve(async (req) => {
       );
     }
 
-    // First check if the user has Mercado Pago credentials
+    // Check if the user has their own Mercado Pago credentials
     const { data: userCredentials, error: userCredentialsError } = await supabase
       .from("mercado_pago_credentials")
       .select("*")
       .eq("user_id", invoice.user_id)
       .single();
 
-    // If the user doesn't have credentials, fall back to admin credentials
-    let credentials;
+    // If the user doesn't have credentials, return an error (no admin fallback)
     if (userCredentialsError || !userCredentials) {
-      console.log(`User ${invoice.user_id} has no Mercado Pago credentials, falling back to admin credentials`);
-      
-      const { data: adminCredentials, error: adminCredentialsError } = await supabase
-        .from("admin_mercado_pago_credentials")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-        
-      if (adminCredentialsError || !adminCredentials) {
-        console.error("No payment credentials found:", adminCredentialsError);
-        return new Response(
-          JSON.stringify({ error: "No payment credentials found" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-        );
-      }
-      
-      credentials = adminCredentials;
-      console.log("Using admin credentials for payment processing");
-    } else {
-      credentials = userCredentials;
-      console.log(`Using user's own credentials for payment processing (User ID: ${invoice.user_id})`);
+      console.error(`User ${invoice.user_id} has no Mercado Pago credentials`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Mercado Pago credentials not found", 
+          details: "You must configure your Mercado Pago credentials before generating payment links" 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
-
+    
     // Create a Mercado Pago preference
     const backUrl = `${req.headers.get("origin") || "https://app.lovable.dev"}/faturas`;
     const webhookUrl = `${supabaseUrl}/functions/v1/process-payment-webhook`;
@@ -114,11 +99,11 @@ serve(async (req) => {
       auto_return: "approved",
     };
 
-    console.log(`Creating payment preference for invoice ${invoice.id}`);
+    console.log(`Creating payment preference for invoice ${invoice.id} using user's credentials`);
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${credentials.access_token}`,
+        "Authorization": `Bearer ${userCredentials.access_token}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify(preference)

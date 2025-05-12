@@ -75,65 +75,21 @@ async function handleCreditPayment(payload) {
     );
   }
 
-  // Get admin credentials to verify the payment
-  const { data: adminCredentials, error: adminCredentialsError } = await supabase
-    .from("admin_mercado_pago_credentials")
-    .select("access_token")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  
-  if (adminCredentialsError || !adminCredentials?.access_token) {
-    console.error("No admin credentials found for API validation:", adminCredentialsError);
-    
-    // Try to get any user credentials as fallback
-    const { data: userCredentials, error: userCredentialsError } = await supabase
-      .from("mercado_pago_credentials")
-      .select("access_token")
-      .limit(1)
-      .maybeSingle();
-      
-    if (userCredentialsError || !userCredentials?.access_token) {
-      console.error("No user credentials found for API validation:", userCredentialsError);
-      return new Response(
-        JSON.stringify({ error: "Failed to validate with Mercado Pago: No credentials available" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-      );
-    }
-    
-    adminCredentials = userCredentials;
-  }
-
-  // Get the payment details from Mercado Pago API
-  console.log(`Fetching payment details for ID: ${paymentId}`);
-  const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-    headers: {
-      "Authorization": `Bearer ${adminCredentials.access_token}`,
-    },
-  });
-
-  if (!mpResponse.ok) {
-    console.error(`Mercado Pago API error: ${mpResponse.status}`);
-    const errorText = await mpResponse.text();
-    console.error(`Error response: ${errorText}`);
-    return new Response(
-      JSON.stringify({ error: "Failed to verify payment with Mercado Pago" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
-  }
-
-  const mpData = await mpResponse.json();
-  console.log("Payment data:", mpData);
-
   // Extract plan ID and user ID from external_reference
   // Format: plan_purchase_PLAN_ID_user_USER_ID
-  const externalRef = mpData.external_reference;
+  const externalRef = payload.data?.external_reference;
   if (!externalRef || !externalRef.startsWith('plan_purchase_')) {
-    console.error("Invalid external_reference format:", externalRef);
-    return new Response(
-      JSON.stringify({ error: "Invalid payment reference" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-    );
+    // This might be a regular invoice payment, not a plan purchase
+    // Try to look up the invoice by the external reference
+    try {
+      return await handleInvoicePayment(payload, externalRef || paymentId.toString());
+    } catch (error) {
+      console.error("Error handling potential invoice payment:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid payment reference" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
   }
 
   const refParts = externalRef.split('_');
@@ -157,6 +113,42 @@ async function handleCreditPayment(payload) {
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
     );
   }
+
+  // Get user's Mercado Pago credentials for verification
+  const { data: userCredentials, error: credentialsError } = await supabase
+    .from("mercado_pago_credentials")
+    .select("access_token")
+    .eq("user_id", userId)
+    .maybeSingle();
+  
+  if (credentialsError || !userCredentials?.access_token) {
+    console.error("Error fetching user's Mercado Pago credentials:", credentialsError);
+    return new Response(
+      JSON.stringify({ error: "Failed to validate with Mercado Pago: No user credentials available" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+
+  // Get the payment details from Mercado Pago API using user's credentials
+  console.log(`Fetching payment details for ID: ${paymentId} using user's credentials`);
+  const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    headers: {
+      "Authorization": `Bearer ${userCredentials.access_token}`,
+    },
+  });
+
+  if (!mpResponse.ok) {
+    console.error(`Mercado Pago API error: ${mpResponse.status}`);
+    const errorText = await mpResponse.text();
+    console.error(`Error response: ${errorText}`);
+    return new Response(
+      JSON.stringify({ error: "Failed to verify payment with Mercado Pago" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+
+  const mpData = await mpResponse.json();
+  console.log("Payment data:", mpData);
 
   // Get plan details to know how many credits to add
   const { data: plan, error: planError } = await supabase
@@ -298,6 +290,96 @@ async function handleCreditPayment(payload) {
 
   console.log("Payment webhook processed successfully");
   
+  return new Response(
+    JSON.stringify({ success: true }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+  );
+}
+
+async function handleInvoicePayment(payload, referenceId) {
+  const paymentId = payload.data?.id;
+  if (!paymentId) {
+    throw new Error("Missing payment ID");
+  }
+
+  // Try to find the invoice using the reference ID
+  const { data: invoice, error: invoiceError } = await supabase
+    .from("faturas")
+    .select("*, user_id")
+    .eq("id", referenceId)
+    .maybeSingle();
+
+  if (invoiceError || !invoice) {
+    console.error("Error finding invoice:", invoiceError);
+    throw new Error("Invoice not found");
+  }
+
+  // Get the user's credentials to verify the payment
+  const { data: userCredentials, error: credentialsError } = await supabase
+    .from("mercado_pago_credentials")
+    .select("access_token")
+    .eq("user_id", invoice.user_id)
+    .maybeSingle();
+
+  if (credentialsError || !userCredentials?.access_token) {
+    console.error("User has no Mercado Pago credentials:", credentialsError);
+    throw new Error("User has no Mercado Pago credentials");
+  }
+
+  // Verify payment with Mercado Pago using user's credentials
+  console.log(`Verifying invoice payment for ID: ${paymentId} using user's credentials`);
+  const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    headers: {
+      "Authorization": `Bearer ${userCredentials.access_token}`,
+    },
+  });
+
+  if (!mpResponse.ok) {
+    console.error(`Mercado Pago API error: ${mpResponse.status}`);
+    throw new Error("Failed to verify payment with Mercado Pago");
+  }
+
+  const mpData = await mpResponse.json();
+  
+  // Map payment status
+  let paymentStatus;
+  switch (mpData.status) {
+    case "approved":
+      paymentStatus = "approved";
+      break;
+    case "pending":
+    case "in_process":
+      paymentStatus = "pending";
+      break;
+    case "rejected":
+      paymentStatus = "rejected";
+      break;
+    case "refunded":
+      paymentStatus = "refunded";
+      break;
+    case "cancelled":
+      paymentStatus = "cancelled";
+      break;
+    default:
+      paymentStatus = "pending";
+  }
+
+  // Update the invoice with payment information
+  const { error: updateError } = await supabase
+    .from("faturas")
+    .update({
+      payment_status: paymentStatus,
+      payment_date: new Date().toISOString(),
+      paid_amount: mpData.transaction_amount || invoice.valor
+    })
+    .eq("id", invoice.id);
+
+  if (updateError) {
+    console.error("Error updating invoice payment status:", updateError);
+    throw new Error("Failed to update invoice payment status");
+  }
+
+  console.log(`Updated invoice ${invoice.id} payment status to ${paymentStatus}`);
   return new Response(
     JSON.stringify({ success: true }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }

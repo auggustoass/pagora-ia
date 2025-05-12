@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { CreditCard, CalendarClock, MessageSquare, DollarSign, User } from 'lucide-react';
+import { CreditCard, CalendarClock, MessageSquare, DollarSign, User, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,8 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useCredits } from '@/hooks/use-credits';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useMercadoPago } from '@/hooks/use-mercado-pago';
 import {
   Form,
   FormControl,
@@ -74,6 +75,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const { user, isAdmin } = useAuth();
   const { credits, loading: creditsLoading, consumeCredit } = useCredits();
+  const { hasMpCredentials, isLoading: mpLoading } = useMercadoPago();
   const { plans } = usePlans();
   const navigate = useNavigate();
   
@@ -143,6 +145,16 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       return;
     }
 
+    // Check if the user has Mercado Pago credentials if they want to generate a payment link
+    if (values.generatePaymentLink && !hasMpCredentials) {
+      toast({
+        title: 'Credenciais não configuradas',
+        description: 'É necessário configurar suas credenciais do Mercado Pago para gerar links de pagamento.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -181,7 +193,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       if (error) throw error;
       
       // If the user wants to generate a payment link
-      if (values.generatePaymentLink && invoice) {
+      if (values.generatePaymentLink && invoice && hasMpCredentials) {
         setIsGeneratingPaymentLink(true);
         
         try {
@@ -204,6 +216,11 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           }
         } catch (paymentGenError) {
           console.error('Error calling payment generation:', paymentGenError);
+          toast({
+            title: 'Erro',
+            description: 'Ocorreu um erro ao gerar o link de pagamento. Verifique se suas credenciais do Mercado Pago estão corretas.',
+            variant: 'destructive',
+          });
         } finally {
           setIsGeneratingPaymentLink(false);
         }
@@ -232,7 +249,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     }
   };
   
-  if (creditsLoading) {
+  if (creditsLoading || mpLoading) {
     return (
       <div className="flex justify-center items-center p-4">
         <p>Carregando...</p>
@@ -267,6 +284,29 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
+          {!hasMpCredentials && (
+            <Alert className="bg-amber-500/10 border-amber-500/20">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-sm">
+                <span className="font-medium text-amber-500">
+                  Você ainda não configurou suas credenciais do Mercado Pago.
+                </span>
+                <br />
+                <span className="text-muted-foreground">
+                  A opção de gerar link de pagamento não estará disponível até que você configure suas credenciais.
+                </span>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 border-amber-500/30 text-amber-500 hover:bg-amber-500/20"
+                  onClick={() => navigate('/configuracoes')}
+                >
+                  Configurar Mercado Pago
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Alert className="bg-blue-500/10 border-blue-500/20">
             <AlertDescription className="text-sm">
               <span className="font-medium">
@@ -396,14 +436,16 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                   <Checkbox
                     checked={field.value}
                     onCheckedChange={field.onChange}
+                    disabled={!hasMpCredentials}
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel>
+                  <FormLabel className={!hasMpCredentials ? 'text-muted-foreground' : ''}>
                     Gerar link de pagamento
                   </FormLabel>
                   <p className="text-sm text-muted-foreground">
                     Cria automaticamente um link de pagamento via Mercado Pago para esta fatura
+                    {!hasMpCredentials && " (requer configuração de credenciais)"}
                   </p>
                 </div>
               </FormItem>

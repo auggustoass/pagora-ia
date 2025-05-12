@@ -4,15 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 export function useMercadoPago() {
-  const [hasMpCredentials, setHasMpCredentials] = useState(true);
-  const [hasAdminMpCredentials, setHasAdminMpCredentials] = useState(false);
+  const [hasMpCredentials, setHasMpCredentials] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
   async function checkMercadoPagoCredentials() {
     try {
-      if (!user) return;
+      setIsLoading(true);
+      if (!user) {
+        setHasMpCredentials(false);
+        return;
+      }
       
-      // First check if user has their own credentials
+      // Only check if user has their own credentials (no admin fallback)
       const { data, error } = await supabase
         .from('mercado_pago_credentials')
         .select('access_token')
@@ -23,39 +27,20 @@ export function useMercadoPago() {
         console.error('Error checking Mercado Pago credentials:', error);
       }
       
-      const userHasCredentials = !!data?.access_token;
-      setHasMpCredentials(userHasCredentials);
-      
-      // If user doesn't have credentials, check if admin credentials exist
-      if (!userHasCredentials) {
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin_mercado_pago_credentials')
-          .select('access_token')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-          
-        if (adminError) {
-          console.error('Error checking admin Mercado Pago credentials:', adminError);
-        }
-        
-        setHasAdminMpCredentials(!!adminData?.access_token);
-        // If admin has credentials, we can use them
-        if (adminData?.access_token) {
-          setHasMpCredentials(true);
-        }
-      }
+      // User has credentials only if they have set up their own
+      setHasMpCredentials(!!data?.access_token);
     } catch (error) {
       console.error('Error checking Mercado Pago credentials:', error);
+      setHasMpCredentials(false);
+    } finally {
+      setIsLoading(false);
     }
   }
 
   // Load credentials when user changes
   useEffect(() => {
-    if (user) {
-      checkMercadoPagoCredentials();
-    }
+    checkMercadoPagoCredentials();
   }, [user]);
 
-  return { hasMpCredentials, hasAdminMpCredentials, checkMercadoPagoCredentials };
+  return { hasMpCredentials, isLoading, checkMercadoPagoCredentials };
 }

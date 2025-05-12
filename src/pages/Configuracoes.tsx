@@ -4,7 +4,7 @@ import { Layout } from '@/components/layout/Layout';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
-import { CreditCard, Shield, Check, X } from 'lucide-react';
+import { CreditCard, Shield, Check, X, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
@@ -17,6 +17,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Card,
@@ -32,14 +33,23 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import {
+  Alert,
+  AlertDescription,
+} from '@/components/ui/alert';
+import { useMercadoPago } from '@/hooks/use-mercado-pago';
 
 // Form validation schema
 const mercadoPagoSchema = z.object({
-  access_token: z.string().min(5, {
-    message: 'O Access Token é obrigatório',
+  access_token: z.string().min(10, {
+    message: 'O Access Token é obrigatório e deve ter pelo menos 10 caracteres',
+  }).refine(val => val.startsWith('APP_USR-'), {
+    message: 'O Access Token deve começar com APP_USR-',
   }),
-  public_key: z.string().min(5, {
-    message: 'A Public Key é obrigatória',
+  public_key: z.string().min(10, {
+    message: 'A Public Key é obrigatória e deve ter pelo menos 10 caracteres',
+  }).refine(val => val.startsWith('APP_USR-'), {
+    message: 'A Public Key deve começar com APP_USR-',
   }),
   user_mercado_pago_id: z.string().min(1, {
     message: 'O User ID é obrigatório',
@@ -50,8 +60,9 @@ type MercadoPagoFormValues = z.infer<typeof mercadoPagoSchema>;
 
 const Configuracoes = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isConfigured, setIsConfigured] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const { user } = useAuth();
+  const { hasMpCredentials, checkMercadoPagoCredentials } = useMercadoPago();
   
   const form = useForm<MercadoPagoFormValues>({
     resolver: zodResolver(mercadoPagoSchema),
@@ -68,6 +79,7 @@ const Configuracoes = () => {
       if (!user) return;
 
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('mercado_pago_credentials')
           .select('*')
@@ -85,10 +97,11 @@ const Configuracoes = () => {
           form.setValue('access_token', data.access_token || '');
           form.setValue('public_key', data.public_key || '');
           form.setValue('user_mercado_pago_id', data.user_mercado_pago_id || '');
-          setIsConfigured(true);
         }
       } catch (error) {
         console.error('Error fetching Mercado Pago config:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -125,10 +138,11 @@ const Configuracoes = () => {
       
       toast({
         title: 'Configurações salvas',
-        description: 'Suas configurações do Mercado Pago foram salvas com sucesso.',
+        description: 'Suas credenciais do Mercado Pago foram salvas com sucesso.',
       });
       
-      setIsConfigured(true);
+      // Update the hasMpCredentials status
+      checkMercadoPagoCredentials();
     } catch (error) {
       console.error('Error saving Mercado Pago config:', error);
       toast({
@@ -142,26 +156,51 @@ const Configuracoes = () => {
   };
 
   const testConnection = async () => {
-    setIsLoading(true);
+    setIsTesting(true);
     
     try {
-      // In a real implementation, we would test the connection with the Mercado Pago API
-      // For now, we'll just simulate a successful connection after a short delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const values = form.getValues();
+      
+      // Test the Mercado Pago connection
+      if (!values.access_token) {
+        throw new Error('Access Token não informado');
+      }
+      
+      const response = await fetch('https://api.mercadopago.com/users/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${values.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao conectar com Mercado Pago: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.id && values.user_mercado_pago_id !== data.id.toString()) {
+        form.setValue('user_mercado_pago_id', data.id.toString());
+        toast({
+          title: 'Atenção',
+          description: `O ID do usuário foi atualizado para ${data.id} conforme informações da API.`,
+        });
+      }
       
       toast({
         title: 'Conexão bem-sucedida',
-        description: 'A conexão com o Mercado Pago foi estabelecida com sucesso.',
+        description: `Conectado como ${data.first_name} ${data.last_name} (${data.email})`,
       });
     } catch (error) {
       console.error('Error testing connection:', error);
       toast({
         title: 'Erro de conexão',
-        description: 'Não foi possível conectar ao Mercado Pago. Verifique suas credenciais.',
+        description: error instanceof Error ? error.message : 'Não foi possível conectar ao Mercado Pago. Verifique suas credenciais.',
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setIsTesting(false);
     }
   };
 
@@ -193,36 +232,61 @@ const Configuracoes = () => {
                   Mercado Pago
                 </CardTitle>
                 <CardDescription>
-                  Configure sua integração com o Mercado Pago para processar pagamentos.
+                  Configure sua integração com o Mercado Pago para receber pagamentos diretamente em sua conta.
                 </CardDescription>
               </CardHeader>
               
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmitMercadoPago)}>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center gap-2 mb-6 p-2 rounded-md bg-white/5">
-                      {isConfigured ? (
+                    <div className="flex items-center gap-2 mb-6 p-3 rounded-md bg-white/5 border border-white/10">
+                      {hasMpCredentials ? (
                         <>
                           <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
                             <Check className="w-4 h-4 text-green-500" />
                           </div>
                           <div>
                             <p className="text-sm font-medium">Mercado Pago configurado</p>
-                            <p className="text-xs text-muted-foreground">Sua conta está conectada e pronta para processar pagamentos.</p>
+                            <p className="text-xs text-muted-foreground">Sua conta está conectada e pronta para receber pagamentos diretamente.</p>
                           </div>
                         </>
                       ) : (
                         <>
-                          <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                            <X className="w-4 h-4 text-amber-500" />
+                          <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                            <X className="w-4 h-4 text-red-500" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium">Mercado Pago não configurado</p>
-                            <p className="text-xs text-muted-foreground">Adicione suas credenciais para começar a processar pagamentos.</p>
+                            <p className="text-sm font-medium text-red-500">Mercado Pago não configurado</p>
+                            <p className="text-xs text-muted-foreground">
+                              Você não poderá gerar links de pagamento até configurar suas credenciais.
+                            </p>
                           </div>
                         </>
                       )}
                     </div>
+
+                    <Alert className="bg-blue-500/10 border-blue-500/20 mb-4">
+                      <AlertDescription className="flex flex-col gap-2">
+                        <p className="text-blue-500 font-medium">Onde encontrar suas credenciais?</p>
+                        <p className="text-sm text-muted-foreground">
+                          1. Acesse o <a 
+                            href="https://www.mercadopago.com.br/developers/panel/app" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline inline-flex items-center"
+                          >
+                            Painel de Desenvolvedores do Mercado Pago 
+                            <ExternalLink className="ml-1 h-3 w-3" />
+                          </a>
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          2. Na seção "Suas integrações", selecione ou crie uma nova aplicação
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          3. Acesse "Credenciais de produção" para obter o Access Token e Public Key
+                        </p>
+                      </AlertDescription>
+                    </Alert>
                     
                     <FormField
                       control={form.control}
@@ -233,11 +297,14 @@ const Configuracoes = () => {
                           <FormControl>
                             <Input
                               type="password"
-                              className="bg-white/5 border-white/10"
+                              className="bg-white/5 border-white/10 font-mono text-sm"
                               placeholder="APP_USR-0000000000000000-000000-00000000000000000000000000000000-000000000"
                               {...field}
                             />
                           </FormControl>
+                          <FormDescription className="text-xs">
+                            O token de acesso é necessário para criar preferências de pagamento.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -251,11 +318,14 @@ const Configuracoes = () => {
                           <FormLabel>Public Key</FormLabel>
                           <FormControl>
                             <Input
-                              className="bg-white/5 border-white/10"
+                              className="bg-white/5 border-white/10 font-mono text-sm"
                               placeholder="APP_USR-00000000-0000-0000-0000-000000000000"
                               {...field}
                             />
                           </FormControl>
+                          <FormDescription className="text-xs">
+                            A chave pública é usada para interações do cliente com o Mercado Pago.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -266,30 +336,21 @@ const Configuracoes = () => {
                       name="user_mercado_pago_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>User ID</FormLabel>
+                          <FormLabel>ID do Usuário</FormLabel>
                           <FormControl>
                             <Input
-                              className="bg-white/5 border-white/10"
+                              className="bg-white/5 border-white/10 font-mono text-sm"
                               placeholder="000000000"
                               {...field}
                             />
                           </FormControl>
+                          <FormDescription className="text-xs">
+                            Este campo será preenchido automaticamente ao testar a conexão.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
-                    <div className="text-sm text-muted-foreground">
-                      <p>Você pode encontrar estas credenciais no painel do Mercado Pago, na seção de integrações.</p>
-                      <a 
-                        href="https://www.mercadopago.com.br/developers/panel/app" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-pagora-purple hover:underline"
-                      >
-                        Acessar painel do Mercado Pago
-                      </a>
-                    </div>
                   </CardContent>
                   
                   <CardFooter className="flex flex-col sm:flex-row gap-3">
@@ -298,7 +359,12 @@ const Configuracoes = () => {
                       className="bg-pagora-purple hover:bg-pagora-purple/90 w-full sm:w-auto"
                       disabled={isLoading}
                     >
-                      {isLoading ? 'Salvando...' : 'Salvar configurações'}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : 'Salvar credenciais'}
                     </Button>
                     
                     <Button 
@@ -306,9 +372,24 @@ const Configuracoes = () => {
                       variant="outline" 
                       className="border-white/10 w-full sm:w-auto"
                       onClick={testConnection}
-                      disabled={isLoading || !isConfigured}
+                      disabled={isTesting || !form.getValues().access_token}
                     >
-                      Testar conexão
+                      {isTesting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Testando...
+                        </>
+                      ) : 'Testar conexão'}
+                    </Button>
+                    
+                    <Button 
+                      type="button"
+                      variant="ghost"
+                      className="w-full sm:w-auto"
+                      onClick={() => window.open('https://www.mercadopago.com.br/developers/panel/app', '_blank')}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Acessar Mercado Pago
                     </Button>
                   </CardFooter>
                 </form>

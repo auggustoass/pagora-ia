@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { UserCredits } from '@/hooks/use-credits';
+import { AlertCircle, CreditCard } from 'lucide-react';
 
 interface WarningBannersProps {
   user: any;
@@ -15,17 +16,23 @@ export const WarningBanners = ({ user, hasMpCredentials, credits }: WarningBanne
   const navigate = useNavigate();
 
   return (
-    <>
+    <div className="space-y-4">
       {user && !hasMpCredentials && (
-        <Alert className="bg-yellow-500/10 border-yellow-500/20">
-          <AlertDescription className="text-yellow-500">
-            Para comprar créditos, é necessário que você ou o administrador configure as credenciais do Mercado Pago.
+        <Alert className="bg-red-500/10 border-red-500/20">
+          <AlertCircle className="h-4 w-4 text-red-500" />
+          <AlertTitle className="text-red-500">Credenciais do Mercado Pago não configuradas</AlertTitle>
+          <AlertDescription className="text-red-500/90">
+            <p className="mb-2">
+              Para receber pagamentos em seu próprio Mercado Pago, é necessário configurar suas credenciais.
+              Sem essa configuração, não será possível gerar links de pagamento para as faturas.
+            </p>
             <Button 
-              variant="link" 
-              className="text-yellow-500 p-0 h-auto ml-1"
+              variant="outline" 
+              className="bg-red-500/20 border-red-500/30 text-red-500 hover:bg-red-500/30 mt-1"
               onClick={() => navigate('/configuracoes')}
             >
-              Ir para Configurações
+              <CreditCard className="w-4 h-4 mr-2" />
+              Configurar Mercado Pago
             </Button>
           </AlertDescription>
         </Alert>
@@ -38,6 +45,6 @@ export const WarningBanners = ({ user, hasMpCredentials, credits }: WarningBanne
           </AlertDescription>
         </Alert>
       )}
-    </>
+    </div>
   );
 };
