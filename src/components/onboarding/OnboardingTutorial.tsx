@@ -7,6 +7,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 
+interface OnboardingTutorialProps {
+  onClose?: () => void;
+}
+
 const tutorialSteps = [
   {
     title: "Bem-vindo ao HBLACKPIX!",
@@ -67,7 +71,7 @@ const tutorialSteps = [
   }
 ];
 
-export function OnboardingTutorial() {
+export function OnboardingTutorial({ onClose }: OnboardingTutorialProps) {
   const [open, setOpen] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
@@ -91,7 +95,7 @@ export function OnboardingTutorial() {
     const action = tutorialSteps[currentStep].action;
     if (action) {
       navigate(action.route);
-      setOpen(false);
+      handleClose();
     }
   };
 
@@ -109,12 +113,20 @@ export function OnboardingTutorial() {
         console.error('Error updating first login status:', error);
       }
     }
+    
+    // Call the onClose prop if provided
+    if (onClose) {
+      onClose();
+    }
   };
 
   const step = tutorialSteps[currentStep];
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) handleClose();
+    }}>
       <DialogContent className="sm:max-w-[500px] bg-pagora-dark border-white/10">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold tracking-tight text-center">{step.title}</DialogTitle>
