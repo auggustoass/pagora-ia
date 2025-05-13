@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Session } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 type AuthContextType = {
   supabaseClient: typeof supabase;
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     // Set up authentication state listener
@@ -28,6 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      
+      // Check for events that indicate a new registration
+      if (event === 'SIGNED_IN' && !session) {
+        // This potentially indicates a new sign in
+        // We'll check if this is a new user in the getInitialSession function
+      }
       
       // Check for admin role when session changes
       if (newSession?.user) {
@@ -46,6 +54,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
         
         if (initialSession?.user) {
+          // Check for first login to identify new users
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('first_login')
+            .eq('id', initialSession.user.id)
+            .maybeSingle();
+            
+          // If first_login is true, this is a new user
+          if (profileData && profileData.first_login === true) {
+            setIsNewUser(true);
+            
+            // Mark that the user has logged in
+            await supabase
+              .from('profiles')
+              .update({ first_login: false })
+              .eq('id', initialSession.user.id);
+              
+            // Show welcome toast
+            toast({
+              title: 'Bem-vindo!',
+              description: 'Recebeu 10 créditos gratuitos para começar a usar o sistema.',
+            });
+          }
+          
           await checkAdminRole(initialSession.user.id);
         }
       } catch (error) {

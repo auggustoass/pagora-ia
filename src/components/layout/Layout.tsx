@@ -27,6 +27,7 @@ export function Layout({
   const [showTutorial, setShowTutorial] = useState(false);
   const { addFreeCredit } = useCredits();
   const [tutorialChecked, setTutorialChecked] = useState(false);
+  const [creditsAdded, setCreditsAdded] = useState(false);
   
   useEffect(() => {
     // Check if this is user's first login
@@ -56,7 +57,10 @@ export function Layout({
           setShowTutorial(true);
           
           // Add free credit for new user
-          await addFreeCredit();
+          if (!creditsAdded) {
+            await addFreeCredit();
+            setCreditsAdded(true);
+          }
         }
         
         setTutorialChecked(true);
@@ -68,7 +72,7 @@ export function Layout({
     if (user && !isLoading) {
       checkFirstLogin();
     }
-  }, [user, isLoading, tutorialChecked]);
+  }, [user, isLoading, tutorialChecked, addFreeCredit, creditsAdded]);
   
   // Function to handle tutorial close that can be passed to the OnboardingTutorial
   const handleTutorialClose = () => {

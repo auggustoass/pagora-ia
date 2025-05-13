@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -137,7 +136,7 @@ export function useCredits() {
     }
   };
 
-  // Add free credit for new users
+  // Add free credit for new users - Updated to 10 credits
   const addFreeCredit = async () => {
     if (!user) return null;
     
@@ -153,20 +152,26 @@ export function useCredits() {
         throw checkError;
       }
       
-      // If user already has credits, don't add free one
+      // If user already has credits, don't add free ones
       if (existingCredits) return existingCredits;
       
-      // Add free credit for new user
+      // Add free credit for new user - now 10 credits instead of 9
       const { data, error } = await supabase
         .from('user_invoice_credits')
         .insert({ 
           user_id: user.id,
-          credits_remaining: 9 // One free invoice worth of credits for Basic plan
+          credits_remaining: 10 // Updated: 10 free credits for new users
         })
         .select()
         .single();
         
       if (error) throw error;
+      
+      // Show a toast notification about the free credits
+      toast({
+        title: 'Créditos gratuitos adicionados!',
+        description: 'Você recebeu 10 créditos gratuitos para começar.',
+      });
       
       setCredits(data);
       return data;

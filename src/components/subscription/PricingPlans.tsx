@@ -11,14 +11,38 @@ import { useMercadoPago } from '@/hooks/use-mercado-pago';
 import { PlanGrid } from './PlanGrid';
 import { WarningBanners } from './WarningBanners';
 import { PlanInfoBanner } from './PlanInfoBanner';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
 
 export function PricingPlans() {
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { updateCredits, credits } = useCredits();
+  const { updateCredits, credits, addFreeCredit } = useCredits();
   const { plans, loading } = usePlans();
   const { hasMpCredentials } = useMercadoPago();
+  const [showFreeCreditsInfo, setShowFreeCreditsInfo] = useState(false);
+  
+  useEffect(() => {
+    // Check if we should show the free credits info
+    // If the user has credits but they're a new user (credits <= 10)
+    if (user && credits && credits.credits_remaining <= 10 && credits.credits_remaining > 0) {
+      setShowFreeCreditsInfo(true);
+    } else {
+      setShowFreeCreditsInfo(false);
+    }
+    
+    // For new users that don't have credits yet, automatically add them
+    const addInitialCredits = async () => {
+      if (user && !credits) {
+        await addFreeCredit();
+      }
+    };
+    
+    if (user) {
+      addInitialCredits();
+    }
+  }, [user, credits, addFreeCredit]);
 
   async function handleSubscribe(planId: string, planName: string) {
     if (!user) {
@@ -106,6 +130,17 @@ export function PricingPlans() {
 
   return (
     <div className="space-y-6">
+      {/* Free Credits Info Alert */}
+      {showFreeCreditsInfo && (
+        <Alert className="bg-green-500/10 border-green-500/20">
+          <InfoIcon className="h-4 w-4 text-green-500" />
+          <AlertTitle className="text-green-500">Você tem créditos gratuitos!</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            Você recebeu 10 créditos gratuitos para começar a usar o sistema. Use-os para gerar suas primeiras faturas!
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <WarningBanners 
         user={user} 
         hasMpCredentials={hasMpCredentials}
