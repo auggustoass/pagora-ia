@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 // Base URL of your n8n installation
-const N8N_API_BASE_URL = 'https://n8n.your-domain.com/webhook'; // Replace with your actual n8n webhook URL
+const N8N_API_BASE_URL = 'https://webhook.hblackbot.online/webhook'; // Updated to the correct webhook URL
 
 /**
  * Service responsible for making authenticated API calls to n8n backend
@@ -72,10 +72,6 @@ export class ApiService {
   static async listInvoices(params?: any): Promise<any> {
     const queryParams = params ? `?${new URLSearchParams(params).toString()}` : '';
     return this.makeAuthenticatedRequest(`invoices/list${queryParams}`);
-  }
-  
-  static async generatePaymentLink(invoiceId: string): Promise<any> {
-    return this.makeAuthenticatedRequest('payments/generate', 'POST', { invoiceId });
   }
   
   // Client-related endpoints
