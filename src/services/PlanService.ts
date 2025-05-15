@@ -1,6 +1,18 @@
 
 import { ApiService } from './ApiService';
 import { toast } from 'sonner';
+import { Plan } from '@/components/subscription/types';
+
+// Define interfaces for API responses
+interface SubscriptionResponse {
+  url: string;
+  [key: string]: any;
+}
+
+interface PlansResponse {
+  plans: Plan[];
+  [key: string]: any;
+}
 
 export class PlanService {
   /**
@@ -11,7 +23,7 @@ export class PlanService {
    */
   static async subscribeToPlan(planId: string, userId: string): Promise<string | null> {
     try {
-      const result = await ApiService.makeAuthenticatedRequest('plans/subscribe', 'POST', {
+      const result = await ApiService.makeAuthenticatedRequest<SubscriptionResponse>('plans/subscribe', 'POST', {
         planId,
         userId
       });
@@ -32,9 +44,9 @@ export class PlanService {
    * Retrieve available plans with pricing and features
    * @returns Array of plan objects 
    */
-  static async getPlans(): Promise<any[]> {
+  static async getPlans(): Promise<Plan[]> {
     try {
-      const result = await ApiService.makeAuthenticatedRequest('plans/list');
+      const result = await ApiService.makeAuthenticatedRequest<PlansResponse>('plans/list');
       return result.plans || [];
     } catch (error: any) {
       console.error('Error fetching plans:', error);
