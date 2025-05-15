@@ -21,6 +21,7 @@ import Admin from "./pages/Admin";
 import PlanosObrigado from "./pages/PlanosObrigado";
 import ConfiguracoesAssinatura from "./pages/ConfiguracoesAssinatura";
 import Assistente from "./pages/Assistente";
+import ApiTester from "./pages/ApiTester";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,11 @@ const App = () => (
               <Route path="/planos" element={<Planos />} />
               <Route path="/planos/obrigado" element={<PlanosObrigado />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/api-tester" element={
+                <RequireAuth>
+                  <ApiTester />
+                </RequireAuth>
+              } />
               
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />
