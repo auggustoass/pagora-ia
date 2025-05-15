@@ -4,7 +4,6 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useCredits } from '@/hooks/use-credits';
 import { usePlans } from '@/hooks/use-plans';
 import { useMercadoPago } from '@/hooks/use-mercado-pago';
@@ -13,6 +12,7 @@ import { WarningBanners } from './WarningBanners';
 import { PlanInfoBanner } from './PlanInfoBanner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
+import { PlanService } from '@/services/PlanService';
 
 export function PricingPlans() {
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
@@ -61,43 +61,16 @@ export function PricingPlans() {
         return;
       }
       
-      // Get invoice credits for this plan
-      const plan = plans.find(p => p.id === planId);
-      if (!plan || !plan.invoiceCredits) {
-        toast.error('Plano não encontrado ou inválido');
-        return;
-      }
-
-      // Get auth session
-      const { data: authData } = await supabase.auth.getSession();
-      if (!authData.session) {
-        throw new Error('Sessão expirada');
-      }
+      // Use the new PlanService to get checkout URL via n8n
+      const checkoutUrl = await PlanService.subscribeToPlan(planId, user.id);
       
-      console.log('Creating Mercado Pago payment...');
-      
-      // Call our edge function to create the Mercado Pago payment
-      const response = await supabase.functions.invoke('create-subscription', {
-        body: {
-          planId,
-          userId: user.id,
-          token: authData.session.access_token
-        },
-      });
-      
-      console.log('Edge function response:', response);
-      
-      if (response.error) {
-        throw new Error(response.error || 'Falha ao processar pagamento');
-      }
-      
-      if (response.data.checkout_url) {
-        // Redirect to Mercado Pago checkout
-        toast.success('Redirecionando para pagamento...');
-        window.location.href = response.data.checkout_url;
-      } else {
+      if (!checkoutUrl) {
         throw new Error('URL de checkout não recebida');
       }
+      
+      // Redirect to Mercado Pago checkout
+      toast.success('Redirecionando para pagamento...');
+      window.location.href = checkoutUrl;
       
     } catch (error: any) {
       console.error('Error creating Mercado Pago payment:', error);

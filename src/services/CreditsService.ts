@@ -19,4 +19,22 @@ export class CreditsService {
       throw error;
     }
   }
+  
+  /**
+   * Consume credits for invoice generation
+   * @param amount Number of credits to consume
+   */
+  static async consumeCredits(amount: number) {
+    try {
+      const result = await ApiService.makeAuthenticatedRequest('credits/consume', 'POST', { amount });
+      return result;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao consumir créditos",
+        description: error.message || "Não foi possível consumir seus créditos. Tente novamente.",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  }
 }

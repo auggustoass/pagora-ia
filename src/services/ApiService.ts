@@ -84,8 +84,17 @@ export class ApiService {
     return this.makeAuthenticatedRequest(`clients/list${queryParams}`);
   }
   
-  // Credits-related endpoints (for admin operations)
+  // Credits-related endpoints
   static async getCredits(): Promise<any> {
     return this.makeAuthenticatedRequest('credits/get');
+  }
+  
+  // Plan-related endpoints
+  static async subscribeToPlan(planData: any): Promise<any> {
+    return this.makeAuthenticatedRequest('plans/subscribe', 'POST', planData);
+  }
+  
+  static async listPlans(): Promise<any> {
+    return this.makeAuthenticatedRequest('plans/list');
   }
 }
