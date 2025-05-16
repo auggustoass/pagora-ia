@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { CreditsService } from '@/services/CreditsService';
 import { toast } from 'sonner';
+import { ApiService } from '@/services/ApiService';
 
 export interface UserCredits {
   id?: string;
