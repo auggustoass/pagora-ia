@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -123,11 +122,7 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
         }
       } catch (error) {
         console.error('Error fetching invoice data:', error);
-        toast({
-          title: 'Erro ao carregar dados da fatura',
-          description: 'Não foi possível carregar os dados da fatura. Tente novamente.',
-          variant: 'destructive',
-        });
+        toast.error('Não foi possível carregar os dados da fatura. Tente novamente.');
       } finally {
         setIsLoadingInitialData(false);
       }
@@ -140,11 +135,7 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
   
   const onSubmit = async (values: FormValues) => {
     if (!user) {
-      toast({
-        title: 'Erro',
-        description: 'Você precisa estar logado para editar faturas.',
-        variant: 'destructive',
-      });
+      toast.error('Você precisa estar logado para editar faturas.');
       return;
     }
 
@@ -177,10 +168,7 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
         
       if (error) throw error;
       
-      toast({
-        title: 'Fatura atualizada com sucesso',
-        description: `Fatura no valor de R$ ${values.valor} para ${client.nome} foi atualizada.`,
-      });
+      toast.success(`Fatura no valor de R$ ${values.valor} para ${client.nome} foi atualizada.`);
       
       // Execute callback if provided
       if (onSuccess) {
@@ -188,11 +176,7 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
       }
     } catch (error) {
       console.error('Error updating invoice:', error);
-      toast({
-        title: 'Erro ao atualizar fatura',
-        description: 'Ocorreu um erro ao tentar atualizar a fatura. Tente novamente.',
-        variant: 'destructive',
-      });
+      toast.error('Ocorreu um erro ao tentar atualizar a fatura. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

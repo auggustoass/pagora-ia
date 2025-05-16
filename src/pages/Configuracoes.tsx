@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -110,11 +109,7 @@ const Configuracoes = () => {
 
   const onSubmitMercadoPago = async (values: MercadoPagoFormValues) => {
     if (!user) {
-      toast({
-        title: 'Erro',
-        description: 'Você precisa estar logado para salvar configurações.',
-        variant: 'destructive',
-      });
+      toast.error('Você precisa estar logado para salvar configurações.');
       return;
     }
 
@@ -136,20 +131,13 @@ const Configuracoes = () => {
         
       if (error) throw error;
       
-      toast({
-        title: 'Configurações salvas',
-        description: 'Suas credenciais do Mercado Pago foram salvas com sucesso.',
-      });
+      toast.success('Suas credenciais do Mercado Pago foram salvas com sucesso.');
       
       // Update the hasMpCredentials status
       checkMercadoPagoCredentials();
     } catch (error) {
       console.error('Error saving Mercado Pago config:', error);
-      toast({
-        title: 'Erro ao salvar',
-        description: 'Ocorreu um erro ao tentar salvar as configurações. Tente novamente.',
-        variant: 'destructive',
-      });
+      toast.error('Ocorreu um erro ao tentar salvar as configurações. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -182,23 +170,13 @@ const Configuracoes = () => {
       
       if (data.id && values.user_mercado_pago_id !== data.id.toString()) {
         form.setValue('user_mercado_pago_id', data.id.toString());
-        toast({
-          title: 'Atenção',
-          description: `O ID do usuário foi atualizado para ${data.id} conforme informações da API.`,
-        });
+        toast.info(`O ID do usuário foi atualizado para ${data.id} conforme informações da API.`);
       }
       
-      toast({
-        title: 'Conexão bem-sucedida',
-        description: `Conectado como ${data.first_name} ${data.last_name} (${data.email})`,
-      });
+      toast.success(`Conectado como ${data.first_name} ${data.last_name} (${data.email})`);
     } catch (error) {
       console.error('Error testing connection:', error);
-      toast({
-        title: 'Erro de conexão',
-        description: error instanceof Error ? error.message : 'Não foi possível conectar ao Mercado Pago. Verifique suas credenciais.',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Não foi possível conectar ao Mercado Pago. Verifique suas credenciais.');
     } finally {
       setIsTesting(false);
     }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -72,11 +71,7 @@ export function ClientEditForm({ clientId, onSuccess }: ClientEditFormProps) {
         }
       } catch (error) {
         console.error('Error fetching client data:', error);
-        toast({
-          title: 'Erro ao carregar dados do cliente',
-          description: 'Não foi possível carregar os dados do cliente. Tente novamente.',
-          variant: 'destructive',
-        });
+        toast.error('Não foi possível carregar os dados do cliente. Tente novamente.');
       } finally {
         setIsLoadingInitialData(false);
       }
@@ -110,10 +105,7 @@ export function ClientEditForm({ clientId, onSuccess }: ClientEditFormProps) {
         
       if (error) throw error;
       
-      toast({
-        title: 'Cliente atualizado com sucesso',
-        description: `Os dados de ${values.nome} foram atualizados.`,
-      });
+      toast.success(`Os dados de ${values.nome} foram atualizados.`);
       
       // Execute callback if provided
       if (onSuccess) {
@@ -121,11 +113,7 @@ export function ClientEditForm({ clientId, onSuccess }: ClientEditFormProps) {
       }
     } catch (error) {
       console.error('Error updating client:', error);
-      toast({
-        title: 'Erro ao atualizar cliente',
-        description: 'Ocorreu um erro ao tentar atualizar o cliente. Tente novamente.',
-        variant: 'destructive',
-      });
+      toast.error('Ocorreu um erro ao tentar atualizar o cliente. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

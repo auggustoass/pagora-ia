@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,11 +70,7 @@ export function AdminMercadoPago() {
 
   const handleTest = async () => {
     if (!accessToken) {
-      toast({
-        title: 'Erro',
-        description: 'Por favor, insira um token de acesso',
-        variant: 'destructive',
-      });
+      toast.error('Por favor, insira um token de acesso');
       return;
     }
 
@@ -85,11 +80,7 @@ export function AdminMercadoPago() {
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({
-          title: 'Erro',
-          description: 'Sessão expirada. Por favor, faça login novamente.',
-          variant: 'destructive',
-        });
+        toast.error('Sessão expirada. Por favor, faça login novamente.');
         return;
       }
 
@@ -102,39 +93,20 @@ export function AdminMercadoPago() {
 
       if (error) {
         console.error('Error response from function:', error);
-        toast({
-          title: 'Erro ao testar credenciais',
-          description: error.message || 'Falha ao verificar credenciais',
-          variant: 'destructive',
-        });
+        toast.error(error.message || 'Falha ao verificar credenciais');
         return;
       }
 
       if (data.success) {
-        toast({
-          title: 'Sucesso',
-          description: 'Credenciais válidas!',
-        });
+        toast.success('Credenciais válidas!');
       } else if (data.error) {
-        toast({
-          title: 'Credenciais inválidas',
-          description: data.error,
-          variant: 'destructive',
-        });
+        toast.error(data.error);
       } else {
-        toast({
-          title: 'Resultado inesperado',
-          description: 'Não foi possível determinar a validade das credenciais',
-          variant: 'destructive',
-        });
+        toast.error('Não foi possível determinar a validade das credenciais');
       }
     } catch (error: any) {
       console.error('Error testing credentials:', error);
-      toast({
-        title: 'Erro',
-        description: `Erro ao testar credenciais: ${error.message || 'Erro desconhecido'}`,
-        variant: 'destructive',
-      });
+      toast.error(`Erro ao testar credenciais: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsTesting(false);
     }
@@ -142,11 +114,7 @@ export function AdminMercadoPago() {
 
   const handleSave = async () => {
     if (!accessToken || !publicKey || !userId) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'Por favor, preencha todos os campos',
-        variant: 'destructive',
-      });
+      toast.error('Por favor, preencha todos os campos');
       return;
     }
 
@@ -156,11 +124,7 @@ export function AdminMercadoPago() {
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({
-          title: 'Erro',
-          description: 'Sessão expirada. Por favor, faça login novamente.',
-          variant: 'destructive',
-        });
+        toast.error('Sessão expirada. Por favor, faça login novamente.');
         return;
       }
 
@@ -178,37 +142,22 @@ export function AdminMercadoPago() {
 
       if (error) {
         console.error('Error from edge function:', error);
-        toast({
-          title: 'Erro',
-          description: `Erro ao salvar credenciais: ${error.message || 'Erro desconhecido'}`,
-          variant: 'destructive',
-        });
+        toast.error(`Erro ao salvar credenciais: ${error.message || 'Erro desconhecido'}`);
         return;
       }
 
       if (data.error) {
-        toast({
-          title: 'Erro',
-          description: `Falha ao salvar: ${data.error}`,
-          variant: 'destructive',
-        });
+        toast.error(`Falha ao salvar: ${data.error}`);
         return;
       }
 
-      toast({
-        title: 'Sucesso',
-        description: 'Credenciais salvas com sucesso!',
-      });
+      toast.success('Credenciais salvas com sucesso!');
       
       setHasCredentials(true);
       setAccessToken(''); // Clear for security
     } catch (error: any) {
       console.error('Error saving credentials:', error);
-      toast({
-        title: 'Erro',
-        description: `Erro ao salvar credenciais: ${error.message || 'Erro desconhecido'}`,
-        variant: 'destructive',
-      });
+      toast.error(`Erro ao salvar credenciais: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
     }

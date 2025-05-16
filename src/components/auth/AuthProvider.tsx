@@ -72,10 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .eq('id', initialSession.user.id);
               
             // Show welcome toast
-            toast({
-              title: 'Bem-vindo!',
-              description: 'Recebeu 10 créditos gratuitos para começar a usar o sistema.',
-            });
+            toast.info('Recebeu 10 créditos gratuitos para começar a usar o sistema.');
           }
           
           await checkAdminRole(initialSession.user.id);
@@ -131,7 +128,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     isAdmin,
-    signOut,
+    signOut: async () => {
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        console.error('Error signing out:', error);
+      }
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

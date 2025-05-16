@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -65,10 +64,7 @@ export function SecureInvoiceForm({ onSuccess, clientId }: SecureInvoiceFormProp
       
       await InvoiceService.createInvoice(invoiceData);
       
-      toast({
-        title: "Fatura criada com sucesso",
-        description: "Sua fatura foi criada e um crédito foi consumido.",
-      });
+      toast.success("Sua fatura foi criada e um crédito foi consumido.");
       
       onSuccess();
     } catch (error) {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -67,10 +66,7 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
         
       if (error) throw error;
       
-      toast({
-        title: 'Cliente cadastrado com sucesso',
-        description: `${values.nome} foi adicionado à sua base de clientes.`,
-      });
+      toast.success(`${values.nome} foi adicionado à sua base de clientes.`);
       
       form.reset();
       
@@ -80,11 +76,7 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
       }
     } catch (error) {
       console.error('Error creating client:', error);
-      toast({
-        title: 'Erro ao cadastrar cliente',
-        description: 'Ocorreu um erro ao tentar cadastrar o cliente. Tente novamente.',
-        variant: 'destructive',
-      });
+      toast.error('Ocorreu um erro ao tentar cadastrar o cliente. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

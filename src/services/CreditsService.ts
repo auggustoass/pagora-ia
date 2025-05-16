@@ -1,6 +1,6 @@
 
 import { ApiService } from './ApiService';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 
 // Define interfaces for API responses
 interface CreditsResponse {

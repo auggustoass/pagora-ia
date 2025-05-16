@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -127,31 +126,19 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   
   const onSubmit = async (values: FormValues) => {
     if (!user) {
-      toast({
-        title: 'Erro',
-        description: 'Você precisa estar logado para criar faturas.',
-        variant: 'destructive',
-      });
+      toast.error('Você precisa estar logado para criar faturas.');
       return;
     }
 
     // Check if user has available credits
     if (!hasCredits) {
-      toast({
-        title: 'Sem créditos',
-        description: `Você precisa de ${creditConsumption} créditos para gerar uma fatura.`,
-        variant: 'destructive',
-      });
+      toast.error(`Você precisa de ${creditConsumption} créditos para gerar uma fatura.`);
       return;
     }
 
     // Check if the user has Mercado Pago credentials if they want to generate a payment link
     if (values.generatePaymentLink && !hasMpCredentials) {
-      toast({
-        title: 'Credenciais não configuradas',
-        description: 'É necessário configurar suas credenciais do Mercado Pago para gerar links de pagamento.',
-        variant: 'destructive',
-      });
+      toast.error('É necessário configurar suas credenciais do Mercado Pago para gerar links de pagamento.');
       return;
     }
 
@@ -203,33 +190,19 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           
           if (paymentError) {
             console.error('Error generating payment link:', paymentError);
-            toast({
-              title: 'Aviso',
-              description: 'Fatura criada, mas não foi possível gerar o link de pagamento.',
-              variant: 'default',
-            });
+            toast.warning('Fatura criada, mas não foi possível gerar o link de pagamento.');
           } else if (paymentData && paymentData.payment_url) {
-            toast({
-              title: 'Link de pagamento gerado',
-              description: 'O link de pagamento foi gerado com sucesso.',
-            });
+            toast.success('O link de pagamento foi gerado com sucesso.');
           }
         } catch (paymentGenError) {
           console.error('Error calling payment generation:', paymentGenError);
-          toast({
-            title: 'Erro',
-            description: 'Ocorreu um erro ao gerar o link de pagamento. Verifique se suas credenciais do Mercado Pago estão corretas.',
-            variant: 'destructive',
-          });
+          toast.error('Ocorreu um erro ao gerar o link de pagamento. Verifique se suas credenciais do Mercado Pago estão corretas.');
         } finally {
           setIsGeneratingPaymentLink(false);
         }
       }
       
-      toast({
-        title: 'Fatura gerada com sucesso',
-        description: `Fatura no valor de R$ ${values.valor} criada para ${client.nome}.`,
-      });
+      toast.success(`Fatura no valor de R$ ${values.valor} criada para ${client.nome}.`);
       
       form.reset();
       
@@ -239,11 +212,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       }
     } catch (error) {
       console.error('Error creating invoice:', error);
-      toast({
-        title: 'Erro ao gerar fatura',
-        description: 'Ocorreu um erro ao tentar gerar a fatura. Tente novamente.',
-        variant: 'destructive',
-      });
+      toast.error('Ocorreu um erro ao tentar gerar a fatura. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

@@ -5,8 +5,11 @@ import { useToast as useToastOriginal } from "@/hooks/use-toast";
 // Export the original useToast hook for backward compatibility
 export const useToast = useToastOriginal;
 
-// Export an adapter version of toast that maps to sonner toast
-export const toast = {
+// Create a proxy function that can be called directly or via methods
+const toastFn = (props: any) => sonnerToast(props);
+
+// Extend the toast function with all the methods from sonnerToast
+export const toast = Object.assign(toastFn, {
   ...sonnerToast,
   // Map the shadcn/ui toast variants to sonner toast functions
   success: (message: string, options?: any) => sonnerToast.success(message, options),
@@ -14,14 +17,4 @@ export const toast = {
   warning: (message: string, options?: any) => sonnerToast.warning(message, options),
   info: (message: string, options?: any) => sonnerToast.info(message, options),
   destructive: (message: string, options?: any) => sonnerToast.error(message, options),
-  // Original toast function (avoid direct call)
-  __call: (props: any) => {
-    console.warn('Direct toast() call is deprecated, use toast.info() instead');
-    return sonnerToast(props);
-  }
-};
-
-// Make the toast object callable for backward compatibility
-Object.defineProperty(toast, Symbol.hasInstance, {
-  value: () => true
 });
