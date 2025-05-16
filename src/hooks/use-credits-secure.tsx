@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { CreditsService } from '@/services/CreditsService';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/ApiService';
 
 export interface UserCredits {
@@ -11,6 +11,12 @@ export interface UserCredits {
   plan_id?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+interface AddFreeCreditsResponse {
+  success: boolean;
+  credits_remaining?: number;
+  message?: string;
 }
 
 export function useSecureCredits() {
@@ -75,9 +81,11 @@ export function useSecureCredits() {
     
     try {
       // We'll call the same endpoint but with a negative amount to add credits
-      const result = await ApiService.makeAuthenticatedRequest('credits/add_free', 'POST', { 
-        amount: 10 // 10 free credits for new users
-      });
+      const result = await ApiService.makeAuthenticatedRequest<AddFreeCreditsResponse>(
+        'credits/add_free', 
+        'POST', 
+        { amount: 10 } // 10 free credits for new users
+      );
       
       if (result && result.success) {
         toast.success('Você recebeu 10 créditos gratuitos para começar!');
