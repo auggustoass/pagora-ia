@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -156,6 +155,57 @@ export function ApiEndpointTester() {
     }
   };
 
+  // Test plan subscription endpoint (new function)
+  const testSubscribeToPlan = async () => {
+    setLoading(prev => ({ ...prev, subscribeToPlan: true }));
+    setResults(prev => ({ ...prev, subscribeToPlan: null }));
+    
+    try {
+      // For testing purposes, we'll use a test plan ID and user ID
+      // In a real scenario, these would come from the authenticated user and selected plan
+      const testPlanId = 'test-plan-id';
+      const testUserId = 'test-user-id'; 
+      
+      // Call the subscribe endpoint
+      const checkoutUrl = await PlanService.subscribeToPlan(testPlanId, testUserId);
+      
+      if (checkoutUrl) {
+        setResults(prev => ({
+          ...prev, 
+          subscribeToPlan: {
+            success: true,
+            message: 'Sucesso! URL de checkout do Mercado Pago gerada.',
+            data: { url: checkoutUrl }
+          }
+        }));
+        toast.success('Endpoint de assinatura de plano funcionando corretamente!');
+      } else {
+        setResults(prev => ({
+          ...prev, 
+          subscribeToPlan: {
+            success: false,
+            message: 'O endpoint retornou uma resposta inválida ou vazia',
+            data: { url: checkoutUrl }
+          }
+        }));
+        toast.error('Endpoint de assinatura de plano retornou dados inválidos');
+      }
+    } catch (error: any) {
+      console.error('Error testing plans/subscribe endpoint:', error);
+      setResults(prev => ({
+        ...prev, 
+        subscribeToPlan: {
+          success: false,
+          message: error.message || 'Erro ao testar o endpoint',
+          error
+        }
+      }));
+      toast.error(`Falha no endpoint de assinatura de plano: ${error.message}`);
+    } finally {
+      setLoading(prev => ({ ...prev, subscribeToPlan: false }));
+    }
+  };
+
   // Render test result as an alert component
   const renderTestResult = (endpointKey: string) => {
     const result = results[endpointKey];
@@ -262,6 +312,25 @@ export function ApiEndpointTester() {
                 ) : "Testar Consumo de Créditos"}
               </Button>
               {renderTestResult('consumeCredits')}
+            </div>
+
+            {/* New section for Subscribe to Plan endpoint */}
+            <div>
+              <h3 className="text-lg font-medium">Endpoint de Assinatura de Plano</h3>
+              <p className="text-sm text-muted-foreground mb-2">Testa o endpoint que processa a assinatura de um plano</p>
+              <Button 
+                onClick={testSubscribeToPlan} 
+                disabled={loading.subscribeToPlan}
+                variant="outline"
+              >
+                {loading.subscribeToPlan ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Testando...
+                  </>
+                ) : "Testar Assinatura de Plano"}
+              </Button>
+              {renderTestResult('subscribeToPlan')}
             </div>
           </div>
         </CardContent>
