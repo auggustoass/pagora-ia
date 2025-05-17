@@ -6,6 +6,7 @@ import { Plan } from '@/components/subscription/types';
 // Define interfaces for API responses
 interface SubscriptionResponse {
   url: string;
+  success?: boolean;
   [key: string]: any;
 }
 

@@ -61,7 +61,7 @@ export function PricingPlans() {
         return;
       }
       
-      // Use the new PlanService to get checkout URL via n8n
+      // Use the PlanService to get checkout URL via n8n
       const checkoutUrl = await PlanService.subscribeToPlan(planId, user.id);
       
       if (!checkoutUrl) {
