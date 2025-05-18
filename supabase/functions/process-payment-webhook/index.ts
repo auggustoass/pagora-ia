@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -76,9 +75,9 @@ async function handleCreditPayment(payload) {
   }
 
   // Extract plan ID and user ID from external_reference
-  // Format: plan_purchase_PLAN_ID_user_USER_ID
+  // Support both formats: "plan_purchase_PLAN_ID_user_USER_ID" and "credit-USER_ID-PLAN_ID" 
   const externalRef = payload.data?.external_reference;
-  if (!externalRef || !externalRef.startsWith('plan_purchase_')) {
+  if (!externalRef) {
     // This might be a regular invoice payment, not a plan purchase
     // Try to look up the invoice by the external reference
     try {
@@ -91,23 +90,30 @@ async function handleCreditPayment(payload) {
       );
     }
   }
-
-  const refParts = externalRef.split('_');
-  if (refParts.length < 5) {
-    console.error("External reference doesn't contain enough parts:", refParts);
-    return new Response(
-      JSON.stringify({ error: "Invalid payment reference format" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-    );
+  
+  let userId, planId;
+  
+  // Handle the new format: "credit-USER_ID-PLAN_ID"
+  if (externalRef.startsWith('credit-')) {
+    const refParts = externalRef.split('-');
+    if (refParts.length >= 3) {
+      userId = refParts[1];
+      planId = refParts[2];
+      console.log(`Found new format reference: userId: ${userId}, planId: ${planId}`);
+    }
+  } 
+  // Handle the old format: "plan_purchase_PLAN_ID_user_USER_ID"
+  else if (externalRef.startsWith('plan_purchase_')) {
+    const refParts = externalRef.split('_');
+    if (refParts.length >= 5) {
+      planId = refParts[2];
+      userId = refParts[4];
+      console.log(`Found old format reference: planId: ${planId}, userId: ${userId}`);
+    }
   }
 
-  const planId = refParts[2];
-  const userId = refParts[4];
-
-  console.log(`Found planId: ${planId}, userId: ${userId} in external_reference`);
-
   if (!planId || !userId) {
-    console.error("Could not extract plan or user ID from external_reference");
+    console.error("Could not extract plan or user ID from external_reference:", externalRef);
     return new Response(
       JSON.stringify({ error: "Invalid payment reference data" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
@@ -121,19 +127,36 @@ async function handleCreditPayment(payload) {
     .eq("user_id", userId)
     .maybeSingle();
   
+  // If user has no credentials, try to use admin credentials
+  let accessToken = null;
   if (credentialsError || !userCredentials?.access_token) {
-    console.error("Error fetching user's Mercado Pago credentials:", credentialsError);
-    return new Response(
-      JSON.stringify({ error: "Failed to validate with Mercado Pago: No user credentials available" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+    console.log("User has no MP credentials, trying admin credentials");
+    
+    const { data: adminCredentials, error: adminError } = await supabase
+      .from("admin_mercado_pago_credentials")
+      .select("access_token")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    if (adminError || !adminCredentials?.access_token) {
+      console.error("Error fetching admin credentials:", adminError || "No admin credentials found");
+      return new Response(
+        JSON.stringify({ error: "Failed to validate with Mercado Pago: No credentials available" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+    
+    accessToken = adminCredentials.access_token;
+  } else {
+    accessToken = userCredentials.access_token;
   }
 
-  // Get the payment details from Mercado Pago API using user's credentials
-  console.log(`Fetching payment details for ID: ${paymentId} using user's credentials`);
+  // Get the payment details from Mercado Pago API
+  console.log(`Fetching payment details for ID: ${paymentId} using credentials`);
   const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: {
-      "Authorization": `Bearer ${userCredentials.access_token}`,
+      "Authorization": `Bearer ${accessToken}`,
     },
   });
 
@@ -204,23 +227,27 @@ async function handleCreditPayment(payload) {
       paymentStatus = "pending";
   }
 
-  // Update the payment status in our database
-  const { data: paymentRecord, error: paymentError } = await supabase
-    .from("subscription_payments")
-    .update({
-      status: paymentStatus,
-      payment_id: paymentId.toString(),
-      payment_date: new Date().toISOString()
-    })
-    .eq("user_id", userId)
-    .eq("plan_id", planId)
-    .eq("status", "pending")
-    .select()
-    .maybeSingle();
+  // Update or create a payment record in subscription_payments
+  try {
+    const { error: paymentError } = await supabase
+      .from("subscription_payments")
+      .insert({
+        user_id: userId,
+        plan_id: planId,
+        status: paymentStatus,
+        payment_id: paymentId.toString(),
+        amount: mpData.transaction_amount || 0,
+        payment_date: new Date().toISOString()
+      })
+      .select();
 
-  if (paymentError) {
-    console.error("Error updating payment record:", paymentError);
-    // Continue anyway, we might still need to add credits
+    if (paymentError) {
+      console.error("Error creating payment record:", paymentError);
+      // Continue anyway, we might still need to add credits
+    }
+  } catch (error) {
+    console.error("Error in payment record upsert:", error);
+    // Continue anyway
   }
 
   // If payment is approved, add the credits

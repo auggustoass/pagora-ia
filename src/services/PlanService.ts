@@ -7,6 +7,7 @@ import { Plan } from '@/components/subscription/types';
 interface SubscriptionResponse {
   url: string;
   success?: boolean;
+  checkout_url?: string;
   [key: string]: any;
 }
 
@@ -29,11 +30,13 @@ export class PlanService {
         userId
       });
       
-      if (!result.url) {
+      // Handle different response formats (url or checkout_url)
+      const checkoutUrl = result.checkout_url || result.url;
+      if (!checkoutUrl) {
         throw new Error('No checkout URL received from payment service');
       }
       
-      return result.url;
+      return checkoutUrl;
     } catch (error: any) {
       console.error('Error subscribing to plan:', error);
       toast.error(`Erro ao processar pagamento: ${error.message || 'Falha ao comunicar com servidor de pagamento'}`);

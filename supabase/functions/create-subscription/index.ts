@@ -126,6 +126,9 @@ serve(async (req) => {
     const consumptionRate = creditsConsumption[plan.name as keyof typeof creditsConsumption] || 9;
     const invoiceEstimate = Math.floor(planCredits / consumptionRate);
 
+    // Update external reference format to match webhook expectations
+    const externalReference = `credit-${userId}-${planId}`;
+
     // Create a single payment for the plan
     const payload = {
       items: [
@@ -143,7 +146,7 @@ serve(async (req) => {
         pending: backUrl,
       },
       notification_url: notificationUrl,
-      external_reference: `plan_purchase_${planId}_user_${userId}`,
+      external_reference: externalReference,
       payer: {
         email: userData.user.email,
       },
