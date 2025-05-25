@@ -22,6 +22,7 @@ import PlanosObrigado from "./pages/PlanosObrigado";
 import ConfiguracoesAssinatura from "./pages/ConfiguracoesAssinatura";
 import Assistente from "./pages/Assistente";
 import ApiTester from "./pages/ApiTester";
+import PendingApproval from "./pages/PendingApproval";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
                 </RequireAuth>
               } />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/pending-approval" element={<PendingApproval />} />
               
               {/* Protected routes */}
               <Route path="/dashboard" element={

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Loader } from 'lucide-react';
+import { Loader, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AuthFormProps {
   initialTab?: string;
@@ -16,12 +17,21 @@ interface AuthFormProps {
 
 export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const isRejected = searchParams.get('rejected') === 'true';
+  
+  useEffect(() => {
+    if (isRejected) {
+      toast.error('Sua conta foi rejeitada pelo administrador. Entre em contato para mais informações.');
+    }
+  }, [isRejected]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +77,7 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('Cadastro realizado com sucesso! Verifique seu email.');
+        toast.success('Cadastro realizado com sucesso! Sua conta está sendo analisada pela nossa equipe.');
         setEmail('');
         setPassword('');
         setFirstName('');
@@ -94,6 +104,17 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
           Assistente de Cobrança Inteligente
         </CardDescription>
       </CardHeader>
+      
+      {isRejected && (
+        <div className="px-6 pb-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Sua conta foi rejeitada pelo administrador. Entre em contato conosco para mais informações.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       
       <Tabs defaultValue={initialTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4 rounded-lg bg-secondary/40">
@@ -164,6 +185,12 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
         
         <TabsContent value="signup">
           <CardContent className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-800">
+                📋 Sua conta será analisada pela nossa equipe antes da aprovação.
+              </p>
+            </div>
+            
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

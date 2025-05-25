@@ -11,6 +11,8 @@ type AuthContextType = {
   user: any | null;
   isLoading: boolean;
   isAdmin: boolean;
+  isApproved: boolean;
+  userStatus: 'pending' | 'approved' | 'rejected' | null;
   signOut: () => Promise<void>;
 };
 
@@ -21,6 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isApproved, setIsApproved] = useState(false);
+  const [userStatus, setUserStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
@@ -37,11 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // We'll check if this is a new user in the getInitialSession function
       }
       
-      // Check for admin role when session changes
+      // Check for admin role and approval status when session changes
       if (newSession?.user) {
-        checkAdminRole(newSession.user.id);
+        checkUserStatus(newSession.user.id);
       } else {
         setIsAdmin(false);
+        setIsApproved(false);
+        setUserStatus(null);
       }
     });
 
@@ -57,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Check for first login to identify new users
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('first_login')
+            .select('first_login, approved, status')
             .eq('id', initialSession.user.id)
             .maybeSingle();
             
@@ -71,11 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .update({ first_login: false })
               .eq('id', initialSession.user.id);
               
-            // Show welcome toast
-            toast.info('Recebeu 10 créditos gratuitos para começar a usar o sistema.');
+            // Show welcome toast only for approved users
+            if (profileData.approved) {
+              toast.info('Recebeu 10 créditos gratuitos para começar a usar o sistema.');
+            }
           }
           
-          await checkAdminRole(initialSession.user.id);
+          await checkUserStatus(initialSession.user.id);
         }
       } catch (error) {
         console.error('Error fetching initial session:', error);
@@ -92,15 +100,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const checkAdminRole = async (userId: string) => {
+  const checkUserStatus = async (userId: string) => {
     try {
-      const { data: roles, error } = await supabase
+      // Check user profile for approval status
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('approved, status')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        setIsApproved(false);
+        setUserStatus(null);
+        return;
+      }
+
+      setIsApproved(profileData.approved);
+      setUserStatus(profileData.status);
+
+      // Check admin role
+      const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
 
-      if (error) {
-        console.error('Error fetching user roles:', error);
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
         setIsAdmin(false);
         return;
       }
@@ -109,7 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isAdminUser = roles?.some(role => role.role === 'admin');
       setIsAdmin(isAdminUser);
     } catch (error) {
-      console.error('Error checking admin role:', error);
+      console.error('Error checking user status:', error);
+      setIsApproved(false);
+      setUserStatus(null);
       setIsAdmin(false);
     }
   };
@@ -128,6 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     isAdmin,
+    isApproved,
+    userStatus,
     signOut: async () => {
       try {
         await supabase.auth.signOut();

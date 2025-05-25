@@ -235,30 +235,42 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved: boolean
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           first_login: boolean | null
           first_name: string | null
           id: string
           last_name: string | null
           phone: string | null
+          status: Database["public"]["Enums"]["user_status"]
           updated_at: string
         }
         Insert: {
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           first_login?: boolean | null
           first_name?: string | null
           id: string
           last_name?: string | null
           phone?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
         Update: {
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           first_login?: boolean | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           phone?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
         Relationships: []
@@ -440,6 +452,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_user: {
+        Args: { target_user_id: string; approver_user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -451,9 +467,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      reject_user: {
+        Args: { target_user_id: string; rejector_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
+      user_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -570,6 +591,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      user_status: ["pending", "approved", "rejected"],
     },
   },
 } as const
