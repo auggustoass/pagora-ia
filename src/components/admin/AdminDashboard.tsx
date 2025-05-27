@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusCard } from '@/components/dashboard/StatusCard';
-import { Users, FileText, CreditCard, Calendar, Settings, Clock } from 'lucide-react';
+import { Users, FileText, CreditCard, Calendar, Settings, Clock, Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { UsersList } from './UsersList';
 import { PlansList } from './PlansList';
@@ -11,6 +11,7 @@ import { SubscriptionsList } from './SubscriptionsList';
 import { InvoicesList } from './InvoicesList';
 import { AdminMercadoPago } from './AdminMercadoPago';
 import { PendingUsersList } from './PendingUsersList';
+import { CreditsList } from './CreditsList';
 
 interface AdminStats {
   totalUsers: number;
@@ -18,6 +19,7 @@ interface AdminStats {
   totalPlans: number;
   totalInvoices: number;
   pendingUsers: number;
+  totalCredits: number;
 }
 
 export function AdminDashboard() {
@@ -26,7 +28,8 @@ export function AdminDashboard() {
     totalSubscriptions: 0,
     totalPlans: 0,
     totalInvoices: 0,
-    pendingUsers: 0
+    pendingUsers: 0,
+    totalCredits: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -62,9 +65,19 @@ export function AdminDashboard() {
       const { count: invoicesCount, error: invoicesError } = await supabase
         .from('faturas')
         .select('*', { count: 'exact', head: true });
+
+      // Fetch total credits
+      const { data: creditsData, error: creditsError } = await supabase
+        .from('user_invoice_credits')
+        .select('credits_remaining');
+
+      const totalCredits = creditsData?.reduce(
+        (sum, user) => sum + (user.credits_remaining || 0), 
+        0
+      ) || 0;
         
-      if (usersError || subscriptionsError || plansError || invoicesError || pendingError) {
-        console.error('Error fetching stats:', { usersError, subscriptionsError, plansError, invoicesError, pendingError });
+      if (usersError || subscriptionsError || plansError || invoicesError || pendingError || creditsError) {
+        console.error('Error fetching stats:', { usersError, subscriptionsError, plansError, invoicesError, pendingError, creditsError });
         return;
       }
       
@@ -73,7 +86,8 @@ export function AdminDashboard() {
         totalSubscriptions: subscriptionsCount || 0,
         totalPlans: plansCount || 0,
         totalInvoices: invoicesCount || 0,
-        pendingUsers: pendingCount || 0
+        pendingUsers: pendingCount || 0,
+        totalCredits
       });
     } catch (error) {
       console.error('Error fetching admin stats:', error);
@@ -86,7 +100,7 @@ export function AdminDashboard() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Painel de Administração</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
         <StatusCard
           title="Usuários" 
           value={loading ? "..." : String(stats.totalUsers)} 
@@ -100,6 +114,13 @@ export function AdminDashboard() {
           icon={<Clock className="h-5 w-5" />} 
           className={stats.pendingUsers > 0 ? "pulse-glow" : ""}
           variant={stats.pendingUsers > 0 ? "pending" : "default"}
+        />
+        <StatusCard
+          title="Créditos" 
+          value={loading ? "..." : String(stats.totalCredits)} 
+          icon={<Coins className="h-5 w-5" />} 
+          className="pulse-glow"
+          variant="success"
         />
         <StatusCard 
           title="Assinaturas" 
@@ -124,11 +145,11 @@ export function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Gerenciamento</CardTitle>
-          <CardDescription>Gerencie usuários, planos, assinaturas, faturas e configurações</CardDescription>
+          <CardDescription>Gerencie usuários, créditos, planos, assinaturas, faturas e configurações</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid grid-cols-6">
+            <TabsList className="grid grid-cols-7">
               <TabsTrigger value="pending">
                 Pendentes
                 {stats.pendingUsers > 0 && (
@@ -138,6 +159,7 @@ export function AdminDashboard() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
+              <TabsTrigger value="credits">Créditos</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
               <TabsTrigger value="invoices">Faturas</TabsTrigger>
@@ -148,6 +170,9 @@ export function AdminDashboard() {
             </TabsContent>
             <TabsContent value="users">
               <UsersList onUpdate={fetchStats} />
+            </TabsContent>
+            <TabsContent value="credits">
+              <CreditsList />
             </TabsContent>
             <TabsContent value="plans">
               <PlansList onUpdate={fetchStats} />

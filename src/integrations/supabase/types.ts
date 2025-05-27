@@ -69,6 +69,42 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_transactions: {
+        Row: {
+          admin_user_id: string
+          amount: number
+          created_at: string
+          id: string
+          new_balance: number
+          previous_balance: number
+          reason: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          new_balance: number
+          previous_balance: number
+          reason?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          new_balance?: number
+          previous_balance?: number
+          reason?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       faturas: {
         Row: {
           client_id: string | null
@@ -452,6 +488,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_user_credits: {
+        Args: {
+          target_user_id: string
+          new_amount: number
+          transaction_type: string
+          reason?: string
+        }
+        Returns: undefined
+      }
       approve_user: {
         Args: { target_user_id: string; approver_user_id: string }
         Returns: undefined
