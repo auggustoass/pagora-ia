@@ -18,7 +18,6 @@ import Ajuda from "./pages/Ajuda";
 import Auth from "./pages/Auth";
 import Planos from "./pages/Planos";
 import Admin from "./pages/Admin";
-import PlanosObrigado from "./pages/PlanosObrigado";
 import ConfiguracoesAssinatura from "./pages/ConfiguracoesAssinatura";
 import ApiTester from "./pages/ApiTester";
 import PendingApproval from "./pages/PendingApproval";
@@ -80,7 +79,6 @@ const App = () => (
                 </RequireAuth>
               } />
               <Route path="/planos" element={<Planos />} />
-              <Route path="/planos/obrigado" element={<PlanosObrigado />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/api-tester" element={
                 <RequireAuth>

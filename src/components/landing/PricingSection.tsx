@@ -1,141 +1,152 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Star } from 'lucide-react';
+import { Check, Users, CreditCard, FileText, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-
-interface PlanFeature {
-  text: string;
-  included: boolean;
-}
-
-interface PricingPlan {
-  id: string;
-  name: string;
-  price: number;
-  invoicesPerMonth: number;
-  popular: boolean;
-  features: PlanFeature[];
-}
-
-const plans: PricingPlan[] = [
-  {
-    id: "basic",
-    name: "Basic",
-    price: 49,
-    invoicesPerMonth: 5,
-    popular: false,
-    features: [
-      { text: "5 cobranças/mês", included: true },
-      { text: "Cobranças via WhatsApp", included: true },
-      { text: "Pagamento via Pix", included: true },
-      { text: "IA básica para mensagens", included: true },
-      { text: "Suporte por e-mail", included: true },
-      { text: "Dashboard básico", included: true },
-    ]
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 97,
-    invoicesPerMonth: 15,
-    popular: true,
-    features: [
-      { text: "15 cobranças/mês", included: true },
-      { text: "Cobranças via WhatsApp", included: true },
-      { text: "Pagamento via Pix", included: true },
-      { text: "IA avançada para mensagens", included: true },
-      { text: "Lembretes automáticos", included: true },
-      { text: "Suporte por chat", included: true },
-      { text: "Dashboard completo", included: true },
-    ]
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 197,
-    invoicesPerMonth: 50,
-    popular: false,
-    features: [
-      { text: "50 cobranças/mês", included: true },
-      { text: "Cobranças via WhatsApp", included: true },
-      { text: "Pagamento via Pix", included: true },
-      { text: "IA avançada personalizada", included: true },
-      { text: "Lembretes programáveis", included: true },
-      { text: "Suporte prioritário", included: true },
-      { text: "Dashboard completo + Relatórios exportáveis", included: true },
-    ]
-  }
-];
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const PricingSection = () => {
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-2xl md:text-4xl font-bold mb-4">Planos para quem quer parar de perder tempo cobrando</h2>
+          <h2 className="text-2xl md:text-4xl font-bold mb-4">Como Funciona Nossa Plataforma</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Escolha o plano ideal para o seu negócio e comece a automatizar suas cobranças hoje mesmo.
+            Sistema simplificado e flexível. Pague apenas pelos créditos que usar.
           </p>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {plans.map((plan) => (
-            <div 
-              key={plan.id} 
-              className={cn(
-                "glass-card relative p-6 flex flex-col hover-float transition-all",
-                plan.popular ? "border-[#aaff00] ring-1 ring-[#aaff00]" : ""
-              )}
-            >
-              {plan.popular && (
-                <Badge className="absolute top-0 right-6 -translate-y-1/2 bg-[#aaff00] text-black px-3 py-1 flex items-center text-sm font-medium">
-                  <Star className="h-4 w-4 mr-1 fill-current" /> Mais vendido
-                </Badge>
-              )}
-              
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                <div className="flex items-baseline justify-center">
-                  <span className="text-4xl font-bold">R${plan.price}</span>
-                  <span className="text-muted-foreground ml-2">/mês</span>
-                </div>
-                <div className="mt-2 text-muted-foreground">
-                  {plan.invoicesPerMonth} cobranças/mês
-                </div>
+        <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto mb-12">
+          <Card className="glass-card text-center hover-float">
+            <CardHeader>
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Users className="w-8 h-8 text-blue-600" />
+              </div>
+              <CardTitle className="text-xl">1. Cadastro</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Crie sua conta gratuita em menos de 2 minutos
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card text-center hover-float">
+            <CardHeader>
+              <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-8 h-8 text-yellow-600" />
+              </div>
+              <CardTitle className="text-xl">2. Aprovação</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Nossa equipe analisa e aprova em até 24-48h
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card text-center hover-float">
+            <CardHeader>
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CreditCard className="w-8 h-8 text-green-600" />
+              </div>
+              <CardTitle className="text-xl">3. Créditos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Solicite créditos conforme sua necessidade
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card text-center hover-float">
+            <CardHeader>
+              <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                <FileText className="w-8 h-8 text-purple-600" />
+              </div>
+              <CardTitle className="text-xl">4. Use</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Crie faturas e gerencie cobranças
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="glass-card max-w-4xl mx-auto">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Sistema de Créditos Flexível</CardTitle>
+            <CardDescription>
+              Modelo justo e transparente - pague apenas pelo que usar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="font-semibold mb-4 flex items-center">
+                  <Check className="h-5 w-5 text-[#aaff00] mr-2" />
+                  Vantagens
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-[#aaff00] mr-2 flex-shrink-0" />
+                    <span>Sem mensalidades fixas</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-[#aaff00] mr-2 flex-shrink-0" />
+                    <span>Pague apenas pelo que usar</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-[#aaff00] mr-2 flex-shrink-0" />
+                    <span>Controle total de gastos</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-[#aaff00] mr-2 flex-shrink-0" />
+                    <span>Suporte personalizado</span>
+                  </li>
+                </ul>
               </div>
               
-              <div className="space-y-3 mb-8 flex-grow">
-                {plan.features.map((feature, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center"
-                  >
-                    <Check className="h-5 w-5 text-[#aaff00] mr-2 flex-shrink-0" />
-                    <span>{feature.text}</span>
-                  </div>
-                ))}
+              <div>
+                <h3 className="font-semibold mb-4 flex items-center">
+                  <Check className="h-5 w-5 text-[#aaff00] mr-2" />
+                  Funcionalidades
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-[#aaff00] mr-2 flex-shrink-0" />
+                    <span>Cobranças via WhatsApp</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-[#aaff00] mr-2 flex-shrink-0" />
+                    <span>Pagamento via Pix</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-[#aaff00] mr-2 flex-shrink-0" />
+                    <span>IA para mensagens</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-[#aaff00] mr-2 flex-shrink-0" />
+                    <span>Dashboard completo</span>
+                  </li>
+                </ul>
               </div>
-              
+            </div>
+            
+            <div className="text-center mt-8">
               <Button 
                 asChild 
                 size="lg" 
-                className={cn(
-                  "w-full",
-                  plan.popular 
-                    ? "bg-[#aaff00] hover:bg-[#88cc00] text-black" 
-                    : "bg-primary/80 hover:bg-primary"
-                )}
+                className="bg-[#aaff00] hover:bg-[#88cc00] text-black text-lg px-8 py-3"
               >
                 <Link to="/auth?tab=signup">
-                  Começar agora
+                  Começar Agora - É Grátis
                 </Link>
               </Button>
             </div>
-          ))}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </section>
   );
