@@ -4,6 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { SecurityService } from '@/services/SecurityService';
 
 type AuthContextType = {
   supabaseClient: typeof supabase;
@@ -25,7 +26,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [userStatus, setUserStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
-  const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     // Set up authentication state listener
@@ -35,15 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       
-      // Check for events that indicate a new registration
-      if (event === 'SIGNED_IN' && !session) {
-        // This potentially indicates a new sign in
-        // We'll check if this is a new user in the getInitialSession function
-      }
-      
       // Check for admin role and approval status when session changes
       if (newSession?.user) {
-        checkUserStatus(newSession.user.id);
+        setTimeout(() => {
+          checkUserStatus(newSession.user.id);
+        }, 0);
       } else {
         setIsAdmin(false);
         setIsApproved(false);
@@ -69,8 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
           // If first_login is true, this is a new user
           if (profileData && profileData.first_login === true) {
-            setIsNewUser(true);
-            
             // Mark that the user has logged in
             await supabase
               .from('profiles')
@@ -79,14 +73,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
             // Show welcome toast only for approved users
             if (profileData.approved) {
-              toast.info('Recebeu 10 créditos gratuitos para começar a usar o sistema.');
+              toast({
+                title: "Bem-vindo!",
+                description: "Recebeu 10 créditos gratuitos para começar a usar o sistema."
+              });
             }
           }
           
           await checkUserStatus(initialSession.user.id);
         }
       } catch (error) {
-        console.error('Error fetching initial session:', error);
+        console.error('Error fetching initial session:', SecurityService.cleanSensitiveData(error));
       } finally {
         setIsLoading(false);
       }
@@ -102,6 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkUserStatus = async (userId: string) => {
     try {
+      // Validate userId format (should be UUID)
+      if (!userId || typeof userId !== 'string' || userId.length < 36) {
+        console.error('Invalid user ID provided');
+        return;
+      }
+
       // Check user profile for approval status
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -110,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (profileError) {
-        console.error('Error fetching profile:', profileError);
+        console.error('Error fetching profile:', SecurityService.cleanSensitiveData(profileError));
         setIsApproved(false);
         setUserStatus(null);
         return;
@@ -126,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId);
 
       if (rolesError) {
-        console.error('Error fetching user roles:', rolesError);
+        console.error('Error fetching user roles:', SecurityService.cleanSensitiveData(rolesError));
         setIsAdmin(false);
         return;
       }
@@ -135,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isAdminUser = roles?.some(role => role.role === 'admin');
       setIsAdmin(isAdminUser);
     } catch (error) {
-      console.error('Error checking user status:', error);
+      console.error('Error checking user status:', SecurityService.cleanSensitiveData(error));
       setIsApproved(false);
       setUserStatus(null);
       setIsAdmin(false);
@@ -144,9 +147,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      // Clear any sensitive data from localStorage
+      const keysToRemove = Object.keys(localStorage).filter(key => 
+        key.includes('token') || key.includes('auth') || key.includes('session')
+      );
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      await supabase.auth.signOut({ scope: 'global' });
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error signing out:', SecurityService.cleanSensitiveData(error));
     }
   };
 
@@ -158,13 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin,
     isApproved,
     userStatus,
-    signOut: async () => {
-      try {
-        await supabase.auth.signOut();
-      } catch (error) {
-        console.error('Error signing out:', error);
-      }
-    },
+    signOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

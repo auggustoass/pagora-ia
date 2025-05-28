@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Loader, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SecurityService } from '@/services/SecurityService';
 
 interface AuthFormProps {
   initialTab?: string;
@@ -24,6 +25,7 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
   
   const isRejected = searchParams.get('rejected') === 'true';
   
@@ -35,23 +37,52 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Rate limiting for login attempts
+    if (!SecurityService.checkRateLimit(`login_${email}`, 5, 15 * 60 * 1000)) {
+      toast.error('Muitas tentativas de login. Tente novamente em 15 minutos.');
+      return;
+    }
+    
+    // Validate inputs
+    if (!SecurityService.isValidEmail(email)) {
+      toast.error('Email inválido');
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast.error('Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    
     setLoading(true);
     try {
-      const {
-        error
-      } = await supabase.auth.signInWithPassword({
-        email,
+      // Sanitize inputs
+      const sanitizedEmail = SecurityService.sanitizeInput(email.toLowerCase().trim());
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email: sanitizedEmail,
         password
       });
+      
       if (error) {
-        toast.error(error.message);
+        setLoginAttempts(prev => prev + 1);
+        console.error('Login error:', SecurityService.cleanSensitiveData(error));
+        
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Credenciais inválidas');
+        } else {
+          toast.error('Erro ao fazer login');
+        }
       } else {
         toast.success('Login realizado com sucesso!');
+        // Clear any rate limiting data on successful login
+        localStorage.removeItem(`rate_limit_login_${email}`);
         navigate('/dashboard');
       }
     } catch (error) {
+      console.error('Login error:', SecurityService.cleanSensitiveData(error));
       toast.error('Erro ao fazer login');
-      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
@@ -59,25 +90,67 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
   
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Rate limiting for signup attempts
+    if (!SecurityService.checkRateLimit('signup', 3, 60 * 60 * 1000)) {
+      toast.error('Muitas tentativas de cadastro. Tente novamente em 1 hora.');
+      return;
+    }
+    
+    // Validate inputs
+    if (!SecurityService.isValidEmail(email)) {
+      toast.error('Email inválido');
+      return;
+    }
+    
+    if (!SecurityService.isValidPhone(phone)) {
+      toast.error('Telefone inválido');
+      return;
+    }
+    
+    if (password.length < 8) {
+      toast.error('Senha deve ter pelo menos 8 caracteres');
+      return;
+    }
+    
+    if (firstName.length < 2 || lastName.length < 2) {
+      toast.error('Nome e sobrenome são obrigatórios');
+      return;
+    }
+    
     setLoading(true);
     try {
-      const {
-        error
-      } = await supabase.auth.signUp({
-        email,
+      // Sanitize inputs
+      const sanitizedData = SecurityService.sanitizeInput({
+        email: email.toLowerCase().trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.replace(/\D/g, '')
+      });
+      
+      const { error } = await supabase.auth.signUp({
+        email: sanitizedData.email,
         password,
         options: {
           data: {
-            first_name: firstName,
-            last_name: lastName,
-            phone: phone // Store phone in user metadata
+            first_name: sanitizedData.firstName,
+            last_name: sanitizedData.lastName,
+            phone: sanitizedData.phone
           }
         }
       });
+      
       if (error) {
-        toast.error(error.message);
+        console.error('Signup error:', SecurityService.cleanSensitiveData(error));
+        
+        if (error.message.includes('already registered')) {
+          toast.error('Este email já está cadastrado');
+        } else {
+          toast.error('Erro ao criar conta');
+        }
       } else {
         toast.success('Cadastro realizado com sucesso! Sua conta está sendo analisada pela nossa equipe.');
+        // Clear form
         setEmail('');
         setPassword('');
         setFirstName('');
@@ -85,8 +158,8 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
         setPhone('');
       }
     } catch (error) {
+      console.error('Signup error:', SecurityService.cleanSensitiveData(error));
       toast.error('Erro ao criar conta');
-      console.error('Signup error:', error);
     } finally {
       setLoading(false);
     }
@@ -145,15 +218,14 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
                   onChange={e => setEmail(e.target.value)} 
                   className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
+                  maxLength={100}
+                  autoComplete="email"
                 />
               </div>
               
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
-                  <a href="#" className="text-xs text-muted-foreground hover:text-primary">
-                    Esqueceu a senha?
-                  </a>
                 </div>
                 <Input 
                   id="password" 
@@ -162,6 +234,9 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
                   onChange={e => setPassword(e.target.value)} 
                   className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
+                  minLength={6}
+                  maxLength={100}
+                  autoComplete="current-password"
                 />
               </div>
               
@@ -172,7 +247,7 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
               >
                 {loading ? (
                   <div className="flex items-center">
-                    <Loader size={16} className="animate-spinner mr-2" />
+                    <Loader size={16} className="animate-spin mr-2" />
                     <span>Entrando...</span>
                   </div>
                 ) : (
@@ -201,6 +276,8 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
                     onChange={e => setFirstName(e.target.value)} 
                     className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                     required 
+                    maxLength={50}
+                    autoComplete="given-name"
                   />
                 </div>
                 
@@ -212,6 +289,8 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
                     onChange={e => setLastName(e.target.value)} 
                     className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                     required 
+                    maxLength={50}
+                    autoComplete="family-name"
                   />
                 </div>
               </div>
@@ -226,6 +305,8 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
                   onChange={e => setEmail(e.target.value)} 
                   className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
+                  maxLength={100}
+                  autoComplete="email"
                 />
               </div>
               
@@ -239,6 +320,8 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
                   onChange={e => setPhone(e.target.value)} 
                   className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
+                  maxLength={20}
+                  autoComplete="tel"
                 />
               </div>
               
@@ -251,6 +334,9 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
                   onChange={e => setPassword(e.target.value)} 
                   className="bg-secondary/40 border-border h-10 focus:border-primary/50"
                   required 
+                  minLength={8}
+                  maxLength={100}
+                  autoComplete="new-password"
                 />
               </div>
               
@@ -261,7 +347,7 @@ export function AuthForm({ initialTab = 'login' }: AuthFormProps) {
               >
                 {loading ? (
                   <div className="flex items-center">
-                    <Loader size={16} className="animate-spinner mr-2" />
+                    <Loader size={16} className="animate-spin mr-2" />
                     <span>Criando conta...</span>
                   </div>
                 ) : (
