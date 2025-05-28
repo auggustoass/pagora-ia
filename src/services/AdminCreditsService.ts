@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -101,7 +100,11 @@ export class AdminCreditsService {
 
       if (error) throw error;
 
-      return data || [];
+      // Fazer type assertion para garantir que transaction_type seja do tipo correto
+      return (data || []).map(transaction => ({
+        ...transaction,
+        transaction_type: transaction.transaction_type as 'add' | 'remove' | 'set'
+      }));
     } catch (error) {
       console.error('Error fetching credit transactions:', error);
       toast.error('Erro ao carregar histórico de transações');
