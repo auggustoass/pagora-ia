@@ -7,7 +7,6 @@ import { Users, FileText, Clock, Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { UsersList } from './UsersList';
 import { InvoicesList } from './InvoicesList';
-import { AdminMercadoPago } from './AdminMercadoPago';
 import { PendingUsersList } from './PendingUsersList';
 import { CreditsList } from './CreditsList';
 
@@ -115,11 +114,11 @@ export function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Gerenciamento</CardTitle>
-          <CardDescription>Gerencie usuários, créditos, faturas e configurações</CardDescription>
+          <CardDescription>Gerencie usuários, créditos e faturas</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid grid-cols-5">
+            <TabsList className="grid grid-cols-4">
               <TabsTrigger value="pending">
                 Pendentes
                 {stats.pendingUsers > 0 && (
@@ -131,7 +130,6 @@ export function AdminDashboard() {
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="credits">Créditos</TabsTrigger>
               <TabsTrigger value="invoices">Faturas</TabsTrigger>
-              <TabsTrigger value="settings">Configurações</TabsTrigger>
             </TabsList>
             <TabsContent value="pending">
               <PendingUsersList />
@@ -144,11 +142,6 @@ export function AdminDashboard() {
             </TabsContent>
             <TabsContent value="invoices">
               <InvoicesList />
-            </TabsContent>
-            <TabsContent value="settings">
-              <div className="space-y-6">
-                <AdminMercadoPago />
-              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
