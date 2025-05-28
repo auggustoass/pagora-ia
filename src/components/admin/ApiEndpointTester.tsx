@@ -1,346 +1,271 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { Loader2, Check, AlertCircle, Info } from 'lucide-react';
-import { PlanService } from '@/services/PlanService';
-import { CreditsService } from '@/services/CreditsService';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface EndpointTestResult {
-  success: boolean;
-  message: string;
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, CheckCircle, Copy, Send } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from '@/components/ui/use-toast';
+
+interface ApiResponse {
+  status: number;
   data?: any;
   error?: any;
+  timestamp: string;
 }
 
 export function ApiEndpointTester() {
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [results, setResults] = useState<Record<string, EndpointTestResult | null>>({});
+  const [endpoint, setEndpoint] = useState('');
+  const [method, setMethod] = useState('POST');
+  const [payload, setPayload] = useState('{}');
+  const [response, setResponse] = useState<ApiResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Test the plan listing endpoint
-  const testListPlans = async () => {
-    setLoading(prev => ({ ...prev, listPlans: true }));
-    setResults(prev => ({ ...prev, listPlans: null }));
+  const predefinedEndpoints = [
+    {
+      name: 'Generate Invoice Payment',
+      endpoint: 'generate-invoice-payment',
+      method: 'POST',
+      payload: '{"invoiceId": "uuid-here"}'
+    },
+    {
+      name: 'Process Payment Webhook',
+      endpoint: 'process-payment-webhook',
+      method: 'POST',
+      payload: '{"type": "payment", "data": {}}'
+    },
+    {
+      name: 'Generate Notification',
+      endpoint: 'generate-notification',
+      method: 'POST',
+      payload: '{"userId": "uuid-here", "type": "info", "title": "Test", "content": "Test notification"}'
+    },
+    {
+      name: 'Check Notification Triggers',
+      endpoint: 'check-notification-triggers',
+      method: 'POST',
+      payload: '{}'
+    },
+    {
+      name: 'Process Chat',
+      endpoint: 'process-chat',
+      method: 'POST',
+      payload: '{"message": "Hello", "conversationId": "test"}'
+    }
+  ];
+
+  const handleTestEndpoint = async () => {
+    if (!endpoint.trim()) {
+      toast.error('Digite o nome do endpoint');
+      return;
+    }
+
+    setIsLoading(true);
     
     try {
-      const plans = await PlanService.getPlans();
-      
-      if (Array.isArray(plans) && plans.length > 0) {
-        setResults(prev => ({
-          ...prev, 
-          listPlans: {
-            success: true,
-            message: `Sucesso! Recuperados ${plans.length} planos.`,
-            data: plans
-          }
-        }));
-        toast.success(`Endpoint de listagem de planos funcionando corretamente!`);
-      } else {
-        setResults(prev => ({
-          ...prev, 
-          listPlans: {
-            success: false,
-            message: 'O endpoint retornou uma resposta vazia ou inválida',
-            data: plans
-          }
-        }));
-        toast.error('Endpoint de listagem de planos retornou dados inválidos');
-      }
-    } catch (error: any) {
-      console.error('Error testing plans/list endpoint:', error);
-      setResults(prev => ({
-        ...prev, 
-        listPlans: {
-          success: false,
-          message: error.message || 'Erro ao testar o endpoint',
-          error
+      let parsedPayload = {};
+      if (payload.trim()) {
+        try {
+          parsedPayload = JSON.parse(payload);
+        } catch {
+          throw new Error('Payload JSON inválido');
         }
-      }));
-      toast.error(`Falha no endpoint de listagem de planos: ${error.message}`);
+      }
+
+      const startTime = Date.now();
+      
+      const { data, error } = await supabase.functions.invoke(endpoint, {
+        body: parsedPayload
+      });
+
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+
+      if (error) {
+        setResponse({
+          status: error.status || 400,
+          error: error,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        setResponse({
+          status: 200,
+          data: data,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      console.log(`API call completed in ${responseTime}ms`);
+    } catch (error) {
+      console.error('Error testing endpoint:', error);
+      setResponse({
+        status: 500,
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString()
+      });
     } finally {
-      setLoading(prev => ({ ...prev, listPlans: false }));
+      setIsLoading(false);
     }
   };
 
-  // Test credits fetch endpoint
-  const testGetCredits = async () => {
-    setLoading(prev => ({ ...prev, getCredits: true }));
-    setResults(prev => ({ ...prev, getCredits: null }));
-    
-    try {
-      const credits = await CreditsService.getCredits();
-      
-      if (credits && (typeof credits === 'object')) {
-        setResults(prev => ({
-          ...prev, 
-          getCredits: {
-            success: true,
-            message: 'Sucesso! Créditos recuperados.',
-            data: credits
-          }
-        }));
-        toast.success('Endpoint de consulta de créditos funcionando corretamente!');
-      } else {
-        setResults(prev => ({
-          ...prev, 
-          getCredits: {
-            success: false,
-            message: 'O endpoint retornou uma resposta inválida',
-            data: credits
-          }
-        }));
-        toast.error('Endpoint de consulta de créditos retornou dados inválidos');
-      }
-    } catch (error: any) {
-      console.error('Error testing credits/get endpoint:', error);
-      setResults(prev => ({
-        ...prev, 
-        getCredits: {
-          success: false,
-          message: error.message || 'Erro ao testar o endpoint',
-          error
-        }
-      }));
-      toast.error(`Falha no endpoint de consulta de créditos: ${error.message}`);
-    } finally {
-      setLoading(prev => ({ ...prev, getCredits: false }));
-    }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copiado para a área de transferência');
   };
 
-  // Test credit consumption endpoint with a minimal amount (just for testing)
-  const testConsumeCredits = async () => {
-    setLoading(prev => ({ ...prev, consumeCredits: true }));
-    setResults(prev => ({ ...prev, consumeCredits: null }));
-    
-    try {
-      // Use a very small amount just for testing
-      const testAmount = 1;
-      const result = await CreditsService.consumeCredits(testAmount);
-      
-      if (result) {
-        setResults(prev => ({
-          ...prev, 
-          consumeCredits: {
-            success: true,
-            message: `Sucesso! ${testAmount} crédito consumido para teste.`,
-            data: result
-          }
-        }));
-        toast.success('Endpoint de consumo de créditos funcionando corretamente!');
-      } else {
-        setResults(prev => ({
-          ...prev, 
-          consumeCredits: {
-            success: false,
-            message: 'O endpoint retornou uma resposta inválida',
-            data: result
-          }
-        }));
-        toast.error('Endpoint de consumo de créditos retornou dados inválidos');
-      }
-    } catch (error: any) {
-      console.error('Error testing credits/consume endpoint:', error);
-      setResults(prev => ({
-        ...prev, 
-        consumeCredits: {
-          success: false,
-          message: error.message || 'Erro ao testar o endpoint',
-          error
-        }
-      }));
-      toast.error(`Falha no endpoint de consumo de créditos: ${error.message}`);
-    } finally {
-      setLoading(prev => ({ ...prev, consumeCredits: false }));
-    }
-  };
-
-  // Test plan subscription endpoint (new function)
-  const testSubscribeToPlan = async () => {
-    setLoading(prev => ({ ...prev, subscribeToPlan: true }));
-    setResults(prev => ({ ...prev, subscribeToPlan: null }));
-    
-    try {
-      // For testing purposes, we'll use a test plan ID and user ID
-      // In a real scenario, these would come from the authenticated user and selected plan
-      const testPlanId = 'test-plan-id';
-      const testUserId = 'test-user-id'; 
-      
-      // Call the subscribe endpoint
-      const checkoutUrl = await PlanService.subscribeToPlan(testPlanId, testUserId);
-      
-      if (checkoutUrl) {
-        setResults(prev => ({
-          ...prev, 
-          subscribeToPlan: {
-            success: true,
-            message: 'Sucesso! URL de checkout do Mercado Pago gerada.',
-            data: { url: checkoutUrl }
-          }
-        }));
-        toast.success('Endpoint de assinatura de plano funcionando corretamente!');
-      } else {
-        setResults(prev => ({
-          ...prev, 
-          subscribeToPlan: {
-            success: false,
-            message: 'O endpoint retornou uma resposta inválida ou vazia',
-            data: { url: checkoutUrl }
-          }
-        }));
-        toast.error('Endpoint de assinatura de plano retornou dados inválidos');
-      }
-    } catch (error: any) {
-      console.error('Error testing plans/subscribe endpoint:', error);
-      setResults(prev => ({
-        ...prev, 
-        subscribeToPlan: {
-          success: false,
-          message: error.message || 'Erro ao testar o endpoint',
-          error
-        }
-      }));
-      toast.error(`Falha no endpoint de assinatura de plano: ${error.message}`);
-    } finally {
-      setLoading(prev => ({ ...prev, subscribeToPlan: false }));
-    }
-  };
-
-  // Render test result as an alert component
-  const renderTestResult = (endpointKey: string) => {
-    const result = results[endpointKey];
-    
-    if (!result) return null;
-    
-    return (
-      <Alert className={`mt-4 ${result.success ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
-        {result.success ? 
-          <Check className="h-4 w-4 text-green-500" /> : 
-          <AlertCircle className="h-4 w-4 text-red-500" />
-        }
-        <AlertDescription className={result.success ? 'text-green-500' : 'text-red-500'}>
-          {result.message}
-          {result.data && (
-            <details className="mt-2">
-              <summary className="cursor-pointer text-sm">Ver detalhes da resposta</summary>
-              <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-auto max-h-40">
-                {JSON.stringify(result.data, null, 2)}
-              </pre>
-            </details>
-          )}
-          {result.error && (
-            <details className="mt-2">
-              <summary className="cursor-pointer text-sm">Ver detalhes do erro</summary>
-              <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-auto max-h-40">
-                {JSON.stringify(result.error, null, 2)}
-              </pre>
-            </details>
-          )}
-        </AlertDescription>
-      </Alert>
-    );
+  const loadPredefinedEndpoint = (predefined: typeof predefinedEndpoints[0]) => {
+    setEndpoint(predefined.endpoint);
+    setMethod(predefined.method);
+    setPayload(predefined.payload);
   };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Tester de Endpoints n8n</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Testador de Endpoints
+          </CardTitle>
           <CardDescription>
-            Use esta ferramenta para verificar se os endpoints da API do n8n estão funcionando corretamente
+            Teste os endpoints da aplicação diretamente pelo painel admin
           </CardDescription>
         </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Esta ferramenta é apenas para teste e diagnóstico. Pequenas quantidades de recursos podem ser utilizadas durante os testes.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium">Endpoint de Listagem de Planos</h3>
-              <p className="text-sm text-muted-foreground mb-2">Testa o endpoint que recupera os planos disponíveis</p>
-              <Button 
-                onClick={testListPlans} 
-                disabled={loading.listPlans}
-                variant="outline"
-              >
-                {loading.listPlans ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Testando...
-                  </>
-                ) : "Testar Listagem de Planos"}
-              </Button>
-              {renderTestResult('listPlans')}
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="endpoint">Endpoint</Label>
+              <Input
+                id="endpoint"
+                value={endpoint}
+                onChange={(e) => setEndpoint(e.target.value)}
+                placeholder="nome-do-endpoint"
+                className="font-mono"
+              />
             </div>
-
-            <div>
-              <h3 className="text-lg font-medium">Endpoint de Consulta de Créditos</h3>
-              <p className="text-sm text-muted-foreground mb-2">Testa o endpoint que recupera os créditos do usuário</p>
-              <Button 
-                onClick={testGetCredits} 
-                disabled={loading.getCredits}
-                variant="outline"
-              >
-                {loading.getCredits ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Testando...
-                  </>
-                ) : "Testar Consulta de Créditos"}
-              </Button>
-              {renderTestResult('getCredits')}
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium">Endpoint de Consumo de Créditos</h3>
-              <p className="text-sm text-muted-foreground mb-2">Testa o endpoint que consome créditos (usa 1 crédito para teste)</p>
-              <Button 
-                onClick={testConsumeCredits} 
-                disabled={loading.consumeCredits}
-                variant="outline"
-              >
-                {loading.consumeCredits ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Testando...
-                  </>
-                ) : "Testar Consumo de Créditos"}
-              </Button>
-              {renderTestResult('consumeCredits')}
-            </div>
-
-            {/* New section for Subscribe to Plan endpoint */}
-            <div>
-              <h3 className="text-lg font-medium">Endpoint de Assinatura de Plano</h3>
-              <p className="text-sm text-muted-foreground mb-2">Testa o endpoint que processa a assinatura de um plano</p>
-              <Button 
-                onClick={testSubscribeToPlan} 
-                disabled={loading.subscribeToPlan}
-                variant="outline"
-              >
-                {loading.subscribeToPlan ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Testando...
-                  </>
-                ) : "Testar Assinatura de Plano"}
-              </Button>
-              {renderTestResult('subscribeToPlan')}
+            
+            <div className="space-y-2">
+              <Label htmlFor="method">Método</Label>
+              <Select value={method} onValueChange={setMethod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="POST">POST</SelectItem>
+                  <SelectItem value="GET">GET</SelectItem>
+                  <SelectItem value="PUT">PUT</SelectItem>
+                  <SelectItem value="DELETE">DELETE</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payload">Payload (JSON)</Label>
+            <Textarea
+              id="payload"
+              value={payload}
+              onChange={(e) => setPayload(e.target.value)}
+              placeholder='{"key": "value"}'
+              rows={4}
+              className="font-mono text-sm"
+            />
+          </div>
+
+          <Button 
+            onClick={handleTestEndpoint} 
+            disabled={isLoading}
+            className="w-full"
+          >
+            {isLoading ? 'Testando...' : 'Testar Endpoint'}
+          </Button>
         </CardContent>
-        
-        <CardFooter className="flex justify-between border-t pt-4">
-          <p className="text-xs text-muted-foreground">
-            Os testes enviaram requisições reais para a API n8n
-          </p>
-        </CardFooter>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Endpoints Predefinidos</CardTitle>
+          <CardDescription>
+            Clique em um endpoint para carregar automaticamente
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {predefinedEndpoints.map((predefined, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                size="sm"
+                onClick={() => loadPredefinedEndpoint(predefined)}
+                className="justify-start"
+              >
+                <Badge variant="secondary" className="mr-2">
+                  {predefined.method}
+                </Badge>
+                {predefined.name}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {response && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                {response.status >= 200 && response.status < 300 ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                )}
+                Resposta
+              </span>
+              <div className="flex items-center gap-2">
+                <Badge variant={response.status >= 200 && response.status < 300 ? "default" : "destructive"}>
+                  {response.status}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => copyToClipboard(JSON.stringify(response, null, 2))}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm text-muted-foreground">
+                  Timestamp: {new Date(response.timestamp).toLocaleString()}
+                </Label>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Dados de Resposta:</Label>
+                <pre className="bg-muted p-3 rounded-md text-sm overflow-auto max-h-96">
+                  {JSON.stringify(response.data || response.error, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Importante:</strong> Este testador utiliza as edge functions do Supabase. 
+          Certifique-se de que as funções estão deployadas e funcionando corretamente.
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }

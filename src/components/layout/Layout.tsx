@@ -7,7 +7,6 @@ import { Navigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { OnboardingTutorial } from '@/components/onboarding/OnboardingTutorial';
 import { supabase } from '@/integrations/supabase/client';
-import { useCredits } from '@/hooks/use-credits';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
@@ -25,9 +24,7 @@ export function Layout({
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
   const [showTutorial, setShowTutorial] = useState(false);
-  const { addFreeCredit } = useCredits();
   const [tutorialChecked, setTutorialChecked] = useState(false);
-  const [creditsAdded, setCreditsAdded] = useState(false);
   
   useEffect(() => {
     // Check if this is user's first login
@@ -55,12 +52,6 @@ export function Layout({
         
         if (data && data.first_login) {
           setShowTutorial(true);
-          
-          // Add free credit for new user
-          if (!creditsAdded) {
-            await addFreeCredit();
-            setCreditsAdded(true);
-          }
         }
         
         setTutorialChecked(true);
@@ -72,7 +63,7 @@ export function Layout({
     if (user && !isLoading) {
       checkFirstLogin();
     }
-  }, [user, isLoading, tutorialChecked, addFreeCredit, creditsAdded]);
+  }, [user, isLoading, tutorialChecked]);
   
   // Function to handle tutorial close that can be passed to the OnboardingTutorial
   const handleTutorialClose = () => {
