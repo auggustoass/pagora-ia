@@ -239,36 +239,6 @@ export type Database = {
         }
         Relationships: []
       }
-      plans: {
-        Row: {
-          created_at: string
-          description: string | null
-          features: Json | null
-          id: string
-          name: string
-          price: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          features?: Json | null
-          id?: string
-          name: string
-          price: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          features?: Json | null
-          id?: string
-          name?: string
-          price?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           approved: boolean
@@ -329,113 +299,11 @@ export type Database = {
         }
         Relationships: []
       }
-      subscription_payments: {
-        Row: {
-          amount: number
-          created_at: string | null
-          id: string
-          payment_date: string | null
-          payment_id: string | null
-          plan_id: string
-          status: string
-          subscription_id: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          id?: string
-          payment_date?: string | null
-          payment_id?: string | null
-          plan_id: string
-          status: string
-          subscription_id: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          id?: string
-          payment_date?: string | null
-          payment_id?: string | null
-          plan_id?: string
-          status?: string
-          subscription_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscription_payments_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscription_payments_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      subscriptions: {
-        Row: {
-          created_at: string
-          end_date: string | null
-          id: string
-          mercado_pago_subscription_id: string | null
-          payment_status: string | null
-          plan_id: string
-          start_date: string
-          status: string
-          trial_ends_at: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          end_date?: string | null
-          id?: string
-          mercado_pago_subscription_id?: string | null
-          payment_status?: string | null
-          plan_id: string
-          start_date?: string
-          status?: string
-          trial_ends_at?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          end_date?: string | null
-          id?: string
-          mercado_pago_subscription_id?: string | null
-          payment_status?: string | null
-          plan_id?: string
-          start_date?: string
-          status?: string
-          trial_ends_at?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscriptions_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_invoice_credits: {
         Row: {
           created_at: string
           credits_remaining: number
           id: string
-          plan_id: string | null
           updated_at: string
           user_id: string
         }
@@ -443,7 +311,6 @@ export type Database = {
           created_at?: string
           credits_remaining?: number
           id?: string
-          plan_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -451,19 +318,10 @@ export type Database = {
           created_at?: string
           credits_remaining?: number
           id?: string
-          plan_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_invoice_credits_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {

@@ -2,201 +2,53 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { toast } from '@/components/ui/use-toast';
 
 export interface UserCredits {
   id: string;
+  user_id: string;
   credits_remaining: number;
-  plan_id: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export function useCredits() {
+  const { user } = useAuth();
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
-  // Fetch user credits
-  const fetchCredits = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('user_invoice_credits')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-        
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching credits:', error);
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível carregar seus créditos.',
-          variant: 'destructive',
-        });
-      }
-      
-      setCredits(data || null);
-    } catch (error) {
-      console.error('Error in fetchCredits:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Create or update user credits
-  const updateCredits = async (creditsToAdd: number) => {
-    if (!user) return null;
-    
-    try {
-      // Check if user already has credits
-      if (credits) {
-        const newTotal = credits.credits_remaining + creditsToAdd;
-        
-        const { data, error } = await supabase
-          .from('user_invoice_credits')
-          .update({ 
-            credits_remaining: newTotal,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', credits.id)
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        setCredits(data);
-        return data;
-      } else {
-        // Create new credits entry for user
-        const { data, error } = await supabase
-          .from('user_invoice_credits')
-          .insert({ 
-            user_id: user.id,
-            credits_remaining: creditsToAdd
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        setCredits(data);
-        return data;
-      }
-    } catch (error) {
-      console.error('Error updating credits:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar seus créditos.',
-        variant: 'destructive',
-      });
-      return null;
-    }
-  };
-
-  // Consume credit (returns true if successful)
-  const consumeCredit = async (amount: number = 1) => {
-    if (!user || !credits) return false;
-    
-    if (credits.credits_remaining < amount) {
-      toast({
-        title: 'Sem créditos',
-        description: `Você não tem créditos suficientes. Necessário: ${amount} créditos.`,
-        variant: 'destructive',
-      });
-      return false;
-    }
-    
-    try {
-      const newTotal = credits.credits_remaining - amount;
-      
-      const { data, error } = await supabase
-        .from('user_invoice_credits')
-        .update({ 
-          credits_remaining: newTotal,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', credits.id)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      setCredits(data);
-      return true;
-    } catch (error) {
-      console.error('Error consuming credit:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível consumir os créditos.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  };
-
-  // Add free credit for new users - Updated to 10 credits
-  const addFreeCredit = async () => {
-    if (!user) return null;
-    
-    try {
-      // Check if user already has credits
-      const { data: existingCredits, error: checkError } = await supabase
-        .from('user_invoice_credits')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-        
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-      
-      // If user already has credits, don't add free ones
-      if (existingCredits) return existingCredits;
-      
-      // Add free credit for new user - now 10 credits instead of 9
-      const { data, error } = await supabase
-        .from('user_invoice_credits')
-        .insert({ 
-          user_id: user.id,
-          credits_remaining: 10 // Updated: 10 free credits for new users
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      // Show a toast notification about the free credits
-      toast({
-        title: 'Créditos gratuitos adicionados!',
-        description: 'Você recebeu 10 créditos gratuitos para começar.',
-      });
-      
-      setCredits(data);
-      return data;
-    } catch (error) {
-      console.error('Error adding free credit:', error);
-      return null;
-    }
-  };
-
-  // Load credits when user changes
   useEffect(() => {
     if (user) {
       fetchCredits();
-    } else {
-      setCredits(null);
     }
   }, [user]);
+
+  async function fetchCredits() {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_invoice_credits')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching credits:', error);
+        return;
+      }
+
+      setCredits(data);
+    } catch (error) {
+      console.error('Error fetching credits:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return {
     credits,
     loading,
-    fetchCredits,
-    updateCredits,
-    consumeCredit,
-    addFreeCredit,
+    refetch: fetchCredits
   };
 }

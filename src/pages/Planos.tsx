@@ -2,16 +2,22 @@
 import React from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Users, CreditCard, FileText } from 'lucide-react';
+import { CheckCircle, Users, CreditCard, FileText, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Planos = () => {
+  const handleWhatsAppContact = () => {
+    const message = encodeURIComponent('Olá! Gostaria de solicitar mais créditos para minha conta na plataforma.');
+    window.open(`https://wa.me/5511999999999?text=${message}`, '_blank');
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">Como Funciona</h1>
           <p className="text-muted-foreground">
-            Nosso sistema foi simplificado para oferecer maior flexibilidade. 
+            Nosso sistema foi simplificado para oferecer maior controle e flexibilidade. 
             Veja como começar a usar a plataforma.
           </p>
         </div>
@@ -50,11 +56,11 @@ const Planos = () => {
               <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <CreditCard className="w-6 h-6 text-green-600" />
               </div>
-              <CardTitle className="text-lg">3. Créditos</CardTitle>
+              <CardTitle className="text-lg">3. Solicitar Créditos</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription className="text-center">
-                Solicite créditos conforme sua necessidade. Nossa equipe adicionará manualmente.
+                Entre em contato conosco para solicitar créditos conforme sua necessidade.
               </CardDescription>
             </CardContent>
           </Card>
@@ -76,9 +82,9 @@ const Planos = () => {
 
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Modelo Flexível de Créditos</CardTitle>
+            <CardTitle>Sistema de Créditos Personalizado</CardTitle>
             <CardDescription>
-              Adaptamos nosso sistema para oferecer maior flexibilidade no uso da plataforma
+              Adaptamos nosso sistema para oferecer atendimento personalizado e flexibilidade total
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -86,21 +92,38 @@ const Planos = () => {
               <div>
                 <h3 className="font-semibold mb-2">Como Funciona:</h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>• Cada fatura criada consome 1 crédito do seu saldo</li>
                   <li>• Créditos são adicionados manualmente pela nossa equipe</li>
-                  <li>• Cada fatura criada consome créditos do seu saldo</li>
-                  <li>• Você pode solicitar mais créditos a qualquer momento</li>
-                  <li>• Modelo pay-as-you-use mais justo e flexível</li>
+                  <li>• Valores e quantidades são negociados individualmente</li>
+                  <li>• Atendimento personalizado para cada cliente</li>
                 </ul>
               </div>
               <div>
                 <h3 className="font-semibold mb-2">Vantagens:</h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• Pague apenas pelo que usar</li>
-                  <li>• Sem mensalidades fixas</li>
-                  <li>• Controle total sobre gastos</li>
-                  <li>• Suporte personalizado para cada cliente</li>
+                  <li>• Preços e pacotes personalizados</li>
+                  <li>• Sem mensalidades fixas obrigatórias</li>
+                  <li>• Flexibilidade total de uso</li>
+                  <li>• Suporte direto e personalizado</li>
                 </ul>
               </div>
+            </div>
+            
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <h3 className="font-semibold mb-2 text-blue-800 dark:text-blue-200">
+                Precisa de mais créditos?
+              </h3>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                Entre em contato conosco pelo WhatsApp para solicitar mais créditos. 
+                Nossa equipe está pronta para atender suas necessidades específicas.
+              </p>
+              <Button 
+                onClick={handleWhatsAppContact}
+                className="bg-green-500 hover:bg-green-600 text-white"
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Solicitar Créditos pelo WhatsApp
+              </Button>
             </div>
           </CardContent>
         </Card>
