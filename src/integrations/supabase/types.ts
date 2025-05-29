@@ -281,6 +281,54 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_attempts: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+        }
+        Relationships: []
+      }
+      security_audit_log: {
+        Row: {
+          created_at: string | null
+          event_details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           id: string
@@ -359,6 +407,14 @@ export type Database = {
         Args: { target_user_id: string; approver_user_id: string }
         Returns: undefined
       }
+      check_rate_limit: {
+        Args: {
+          identifier: string
+          max_attempts?: number
+          window_minutes?: number
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -369,6 +425,16 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      log_security_event: {
+        Args: {
+          p_user_id: string
+          p_event_type: string
+          p_event_details?: Json
+          p_ip_address?: string
+          p_user_agent?: string
+        }
+        Returns: undefined
       }
       reject_user: {
         Args: { target_user_id: string; rejector_user_id: string }

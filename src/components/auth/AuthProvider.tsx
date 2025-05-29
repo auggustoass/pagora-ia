@@ -4,7 +4,8 @@ import { Session } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { SecurityService } from '@/services/SecurityService';
+import { EnhancedSecurityService } from '@/services/EnhancedSecurityService';
+import { AuthSecurityService } from '@/services/AuthSecurityService';
 
 type AuthContextType = {
   supabaseClient: typeof supabase;
@@ -15,6 +16,8 @@ type AuthContextType = {
   isApproved: boolean;
   userStatus: 'pending' | 'approved' | 'rejected' | null;
   signOut: () => Promise<void>;
+  secureSignIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  secureSignUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<{ success: boolean; error?: string }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      
+      // Log auth state changes
+      EnhancedSecurityService.logSecurityEvent('AUTH_STATE_CHANGE', { 
+        event,
+        userId: newSession?.user?.id 
+      });
       
       // Check for admin role and approval status when session changes
       if (newSession?.user) {
@@ -83,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await checkUserStatus(initialSession.user.id);
         }
       } catch (error) {
-        console.error('Error fetching initial session:', SecurityService.cleanSensitiveData(error));
+        console.error('Error fetching initial session:', EnhancedSecurityService.cleanSensitiveData(error));
       } finally {
         setIsLoading(false);
       }
@@ -113,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (profileError) {
-        console.error('Error fetching profile:', SecurityService.cleanSensitiveData(profileError));
+        console.error('Error fetching profile:', EnhancedSecurityService.cleanSensitiveData(profileError));
         setIsApproved(false);
         setUserStatus(null);
         return;
@@ -129,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId);
 
       if (rolesError) {
-        console.error('Error fetching user roles:', SecurityService.cleanSensitiveData(rolesError));
+        console.error('Error fetching user roles:', EnhancedSecurityService.cleanSensitiveData(rolesError));
         setIsAdmin(false);
         return;
       }
@@ -138,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isAdminUser = roles?.some(role => role.role === 'admin');
       setIsAdmin(isAdminUser);
     } catch (error) {
-      console.error('Error checking user status:', SecurityService.cleanSensitiveData(error));
+      console.error('Error checking user status:', EnhancedSecurityService.cleanSensitiveData(error));
       setIsApproved(false);
       setUserStatus(null);
       setIsAdmin(false);
@@ -146,17 +155,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   const signOut = async () => {
-    try {
-      // Clear any sensitive data from localStorage
-      const keysToRemove = Object.keys(localStorage).filter(key => 
-        key.includes('token') || key.includes('auth') || key.includes('session')
-      );
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      await supabase.auth.signOut({ scope: 'global' });
-    } catch (error) {
-      console.error('Error signing out:', SecurityService.cleanSensitiveData(error));
-    }
+    await AuthSecurityService.secureSignOut();
+  };
+
+  const secureSignIn = async (email: string, password: string) => {
+    return await AuthSecurityService.secureSignIn(email, password);
+  };
+
+  const secureSignUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
+    return await AuthSecurityService.secureSignUp(email, password, firstName, lastName, phone);
   };
 
   const value: AuthContextType = {
@@ -168,6 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isApproved,
     userStatus,
     signOut,
+    secureSignIn,
+    secureSignUp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,19 +1,17 @@
 
+import { EnhancedSecurityService } from './EnhancedSecurityService';
+
 /**
  * Security utilities for input validation and sanitization
+ * @deprecated Use EnhancedSecurityService for new implementations
  */
 export class SecurityService {
   /**
    * Sanitize HTML content to prevent XSS attacks
+   * @deprecated Use EnhancedSecurityService.sanitizeHtmlAdvanced instead
    */
   static sanitizeHtml(input: string): string {
-    if (!input || typeof input !== 'string') return '';
-    
-    return input
-      .replace(/[<>]/g, '')
-      .replace(/javascript:/gi, '')
-      .replace(/on\w+=/gi, '')
-      .trim();
+    return EnhancedSecurityService.sanitizeHtmlAdvanced(input);
   }
 
   /**
@@ -42,10 +40,11 @@ export class SecurityService {
 
   /**
    * Sanitize input for database operations
+   * @deprecated Use EnhancedSecurityService.validateSecureInput instead
    */
   static sanitizeInput(input: any): any {
     if (typeof input === 'string') {
-      return this.sanitizeHtml(input);
+      return EnhancedSecurityService.sanitizeHtmlAdvanced(input);
     }
     if (typeof input === 'object' && input !== null) {
       const sanitized: any = {};
@@ -59,6 +58,7 @@ export class SecurityService {
 
   /**
    * Rate limiting check (simple implementation)
+   * @deprecated Use EnhancedSecurityService.checkServerRateLimit instead
    */
   static checkRateLimit(key: string, maxAttempts: number = 5, windowMs: number = 15 * 60 * 1000): boolean {
     const now = Date.now();
@@ -87,15 +87,11 @@ export class SecurityService {
 
   /**
    * Validate file upload
+   * @deprecated Use EnhancedSecurityService.validateSecureFileUpload instead
    */
   static validateFileUpload(file: File, allowedTypes: string[], maxSize: number = 5 * 1024 * 1024): boolean {
-    if (!allowedTypes.includes(file.type)) {
-      return false;
-    }
-    if (file.size > maxSize) {
-      return false;
-    }
-    return true;
+    const validation = EnhancedSecurityService.validateSecureFileUpload(file, allowedTypes, maxSize);
+    return validation.isValid;
   }
 
   /**
