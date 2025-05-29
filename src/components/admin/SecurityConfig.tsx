@@ -21,15 +21,17 @@ interface SecuritySettings {
   suspiciousActivityDetection: boolean;
 }
 
+const defaultSettings: SecuritySettings = {
+  rateLimitEnabled: true,
+  maxLoginAttempts: 3,
+  rateLimitWindow: 15,
+  sessionTimeout: 60,
+  auditLogging: true,
+  suspiciousActivityDetection: true
+};
+
 export function SecurityConfig() {
-  const [settings, setSettings] = useState<SecuritySettings>({
-    rateLimitEnabled: true,
-    maxLoginAttempts: 3,
-    rateLimitWindow: 15,
-    sessionTimeout: 60,
-    auditLogging: true,
-    suspiciousActivityDetection: true
-  });
+  const [settings, setSettings] = useState<SecuritySettings>(defaultSettings);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +49,7 @@ export function SecurityConfig() {
         .maybeSingle();
 
       if (data?.value) {
-        setSettings({ ...settings, ...data.value });
+        setSettings({ ...defaultSettings, ...(data.value as SecuritySettings) });
       }
     } catch (error) {
       console.error('Error loading security settings:', error);
@@ -76,7 +78,7 @@ export function SecurityConfig() {
         .from('settings')
         .upsert({
           id: 'security_config',
-          value: settings,
+          value: settings as any,
           updated_at: new Date().toISOString()
         });
 
