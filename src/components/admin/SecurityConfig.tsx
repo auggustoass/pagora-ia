@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,7 +48,9 @@ export function SecurityConfig() {
         .maybeSingle();
 
       if (data?.value) {
-        setSettings({ ...defaultSettings, ...(data.value as SecuritySettings) });
+        // Properly handle the Json type conversion through unknown
+        const settingsData = data.value as unknown as SecuritySettings;
+        setSettings({ ...defaultSettings, ...settingsData });
       }
     } catch (error) {
       console.error('Error loading security settings:', error);
