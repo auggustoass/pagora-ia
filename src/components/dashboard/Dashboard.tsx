@@ -225,7 +225,6 @@ export function Dashboard() {
           title="Créditos restantes" 
           value={creditsLoading ? "..." : String(credits?.credits_remaining || 0)} 
           icon={<Coins className="h-5 w-5 text-yellow-400" />} 
-          className="pulse-glow" 
           description="Para geração de faturas"
         />
         <StatusCard 

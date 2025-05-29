@@ -66,7 +66,7 @@ export const HeroSection = () => {
         </div>
         
         <div className="relative">
-          <div className="glass-card p-4 rounded-xl shadow-2xl relative z-10 hover-float pulse-glow">
+          <div className="glass-card p-4 rounded-xl shadow-2xl relative z-10 hover-float">
             <AspectRatio ratio={9/16} className="relative overflow-hidden rounded-lg">
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
                 <div className="w-[280px] h-[560px] rounded-[36px] border-8 border-gray-800 overflow-hidden shadow-2xl">

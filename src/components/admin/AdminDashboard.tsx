@@ -86,21 +86,18 @@ export function AdminDashboard() {
           title="Usuários" 
           value={loading ? "..." : String(stats.totalUsers)} 
           icon={<Users className="h-5 w-5" />} 
-          className="pulse-glow"
           variant="default"
         />
         <StatusCard
           title="Pendentes" 
           value={loading ? "..." : String(stats.pendingUsers)} 
           icon={<Clock className="h-5 w-5" />} 
-          className={stats.pendingUsers > 0 ? "pulse-glow" : ""}
           variant={stats.pendingUsers > 0 ? "pending" : "default"}
         />
         <StatusCard
           title="Créditos" 
           value={loading ? "..." : String(stats.totalCredits)} 
           icon={<Coins className="h-5 w-5" />} 
-          className="pulse-glow"
           variant="success"
         />
         <StatusCard 
