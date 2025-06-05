@@ -16,7 +16,7 @@ import {
   FormLabel, 
   FormMessage 
 } from "@/components/ui/form";
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2, Copy, MessageCircle } from 'lucide-react';
 import { InvoiceService } from '@/services/InvoiceService';
 import { useCredits } from '@/hooks/use-credits';
@@ -63,6 +63,7 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
     invoiceId: string;
   } | null>(null);
   const { credits, refetch } = useCredits();
+  const { toast } = useToast();
 
   const form = useForm<QuickInvoiceFormValues>({
     resolver: zodResolver(quickInvoiceSchema),
