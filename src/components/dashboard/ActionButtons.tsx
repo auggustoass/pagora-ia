@@ -33,7 +33,7 @@ export function ActionButtons({ onQuickInvoiceSuccess }: ActionButtonsProps) {
       
       <Dialog>
         <DialogTrigger asChild>
-          <Button className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-105 border-0">
+          <Button className="group relative overflow-hidden bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg shadow-green-500/25 hover:shadow-green-500/40 transition-all duration-300 transform hover:scale-105 border-0">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
             <UserPlus className="w-4 h-4 mr-2 relative z-10" />
             <span className="relative z-10 font-medium">Novo Cliente</span>
@@ -49,7 +49,7 @@ export function ActionButtons({ onQuickInvoiceSuccess }: ActionButtonsProps) {
       
       <Dialog>
         <DialogTrigger asChild>
-          <Button className="group relative overflow-hidden bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-500 hover:to-red-400 text-white shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 transform hover:scale-105 border-0">
+          <Button className="group relative overflow-hidden bg-gradient-to-r from-green-800 to-emerald-800 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/25 hover:shadow-green-500/40 transition-all duration-300 transform hover:scale-105 border-0">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
             <FileText className="w-4 h-4 mr-2 relative z-10" />
             <span className="relative z-10 font-medium">Gerar Fatura</span>

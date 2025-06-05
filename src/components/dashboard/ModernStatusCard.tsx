@@ -12,7 +12,7 @@ const statusCardVariants = cva(
         default: "bg-gradient-to-br from-gray-900/50 to-gray-800/30 border-white/10 hover:border-white/20",
         success: "bg-gradient-to-br from-green-900/30 to-emerald-800/20 border-green-500/20 hover:border-green-400/30",
         pending: "bg-gradient-to-br from-yellow-900/30 to-orange-800/20 border-yellow-500/20 hover:border-yellow-400/30",
-        info: "bg-gradient-to-br from-blue-900/30 to-cyan-800/20 border-blue-500/20 hover:border-blue-400/30",
+        info: "bg-gradient-to-br from-green-900/30 to-emerald-800/20 border-green-500/20 hover:border-green-400/30",
       }
     },
     defaultVariants: {
@@ -46,7 +46,7 @@ export function ModernStatusCard({
     switch (variant) {
       case "success": return "text-green-400";
       case "pending": return "text-yellow-400";
-      case "info": return "text-blue-400";
+      case "info": return "text-green-400";
       default: return "text-gray-300";
     }
   };

@@ -202,7 +202,7 @@ export function Dashboard() {
             <TabsTrigger value="faturas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
               Faturas
             </TabsTrigger>
-            <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
+            <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
               Clientes
             </TabsTrigger>
           </TabsList>
