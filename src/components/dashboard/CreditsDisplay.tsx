@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useCredits } from '@/hooks/use-credits';
-import { Coins, AlertCircle } from 'lucide-react';
+import { Coins, AlertCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -21,8 +21,12 @@ export function CreditsDisplay({
   if (loading) {
     return (
       <div className={`flex items-center ${className}`}>
-        <Coins className="w-5 h-5 mr-2 text-yellow-500 animate-pulse" />
-        <span>Carregando créditos...</span>
+        <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-500/30">
+          <div className="flex items-center">
+            <Coins className="w-5 h-5 mr-2 text-yellow-400 animate-pulse" />
+            <span className="text-white">Carregando créditos...</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -31,40 +35,47 @@ export function CreditsDisplay({
   const lowCredits = creditsRemaining <= 1;
   
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-3 ${className}`}>
       {showAlert && lowCredits && (
-        <Alert className="bg-red-500/10 border-red-500/20">
-          <AlertCircle className="h-4 w-4 text-red-500" />
-          <AlertDescription className="text-sm text-red-500">
-            Seus créditos estão acabando! 
-            <Button 
-              variant="link" 
-              size="sm" 
-              className="px-1 h-auto text-red-500 font-medium" 
-              onClick={() => navigate('/planos')}
-            >
-              Compre mais créditos
-            </Button>
+        <Alert className="bg-gradient-to-r from-red-900/30 to-rose-800/20 border border-red-500/30 rounded-xl backdrop-blur-sm">
+          <AlertCircle className="h-4 w-4 text-red-400" />
+          <AlertDescription className="text-sm text-red-300">
+            <div className="flex items-center justify-between">
+              <span>Seus créditos estão acabando!</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-3 border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-all duration-200" 
+                onClick={() => navigate('/planos')}
+              >
+                <Sparkles className="w-3 h-3 mr-1" />
+                Comprar créditos
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}
       
-      <div className="text-sm">
-        <span className="font-medium">Créditos disponíveis:</span> {creditsRemaining}
-        <br />
-        <span className="text-muted-foreground">
-          Faturas disponíveis: {creditsRemaining} (1 crédito por fatura)
-        </span>
-      </div>
-      
       {showAlert && creditsRemaining === 0 && (
-        <Button 
-          size="sm" 
-          className="w-full bg-yellow-500 hover:bg-yellow-600" 
-          onClick={() => navigate('/planos')}
-        >
-          Solicitar créditos agora
-        </Button>
+        <div className="bg-gradient-to-r from-yellow-900/30 to-orange-800/20 border border-yellow-500/30 rounded-xl p-4 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertCircle className="w-5 h-5 text-yellow-400 mr-3" />
+              <div>
+                <p className="text-yellow-300 font-medium">Créditos esgotados</p>
+                <p className="text-yellow-200/80 text-sm">Adquira mais créditos para continuar gerando faturas</p>
+              </div>
+            </div>
+            <Button 
+              size="sm" 
+              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white shadow-lg"
+              onClick={() => navigate('/planos')}
+            >
+              <Coins className="w-4 h-4 mr-1" />
+              Adquirir agora
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

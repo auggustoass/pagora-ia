@@ -1,23 +1,22 @@
+
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle, Coins, Zap } from 'lucide-react';
-import { StatusCard } from './StatusCard';
+import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle, Coins, Zap, TrendingUp } from 'lucide-react';
+import { ModernStatusCard } from './ModernStatusCard';
 import { InvoiceTable } from './InvoiceTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ClientForm } from '../forms/ClientForm';
-import { InvoiceForm } from '../forms/InvoiceForm';
-import { QuickInvoiceForm } from '../forms/QuickInvoiceForm';
 import { ClientEditForm } from '../forms/ClientEditForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Link } from 'react-router-dom';
 import { CreditsDisplay } from './CreditsDisplay';
 import { useCredits } from '@/hooks/use-credits';
 import { cn } from '@/lib/utils';
+import { RevenueChart } from './charts/RevenueChart';
+import { ActionButtons } from './ActionButtons';
+import { SearchBar } from './SearchBar';
 import {
   Pagination,
   PaginationContent,
@@ -48,13 +47,12 @@ export function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
-  const [quickInvoiceDialogOpen, setQuickInvoiceDialogOpen] = useState(false);
   const { user, isAdmin } = useAuth();
   const { credits, loading: creditsLoading } = useCredits();
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Show 10 clients per page
+  const itemsPerPage = 10;
   
   useEffect(() => {
     if (user) {
@@ -69,14 +67,12 @@ export function Dashboard() {
       setLoading(true);
       let query = supabase.from('faturas').select('*', { count: 'exact' });
       
-      // If not admin, only show user's own invoices
       if (!isAdmin) {
         query = query.eq('user_id', user.id);
       }
       
       const { data, count: total, error: errorTotal } = await query;
       
-      // Apply similar user filtering to other queries
       let pendingQuery = supabase.from('faturas').select('*', { count: 'exact' }).eq('status', 'pendente');
       let approvedQuery = supabase.from('faturas').select('*', { count: 'exact' }).eq('status', 'aprovado');
       let approvedValueQuery = supabase.from('faturas').select('valor').eq('status', 'aprovado');
@@ -102,7 +98,6 @@ export function Dashboard() {
         totalRecebido
       });
       
-      // Fetch clients for the clients tab
       await fetchClients();
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -117,7 +112,6 @@ export function Dashboard() {
     try {
       let query = supabase.from('clients').select('*');
       
-      // If not admin, only show user's own clients
       if (!isAdmin) {
         query = query.eq('user_id', user.id);
       }
@@ -151,11 +145,9 @@ export function Dashboard() {
   };
 
   const handleQuickInvoiceSuccess = () => {
-    setQuickInvoiceDialogOpen(false);
-    fetchStats(); // Refresh stats after creating invoice
+    fetchStats();
   };
 
-  // Filter clients based on search term
   const filteredClients = clients.filter(client => {
     if (!searchTerm) return true;
     
@@ -164,332 +156,307 @@ export function Dashboard() {
       client.cpf_cnpj.toLowerCase().includes(searchTerm.toLowerCase());
   });
   
-  // Calculate total pages
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
-  
-  // Get current page clients
   const currentClients = filteredClients.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
   
-  // Handle page changes
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
   
-  // Reset to first page when search term changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
   
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-glow">
-            <span className="text-gradient">Dashboard</span>
-          </h1>
-          <p className="text-muted-foreground mt-1">Gerencie suas cobranças e acompanhe pagamentos em tempo real.</p>
-        </div>
-        
-        <div className="flex flex-wrap gap-3">
-          <Dialog open={quickInvoiceDialogOpen} onOpenChange={setQuickInvoiceDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:bg-green-600 btn-hover-fx">
-                <Zap className="w-4 h-4 mr-2" />
-                Cobrança Rápida
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-pagora-dark border-white/10">
-              <DialogHeader>
-                <DialogTitle>Cobrança Rápida</DialogTitle>
-              </DialogHeader>
-              <QuickInvoiceForm onSuccess={handleQuickInvoiceSuccess} />
-            </DialogContent>
-          </Dialog>
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80 hover:bg-pagora-purple/90 btn-hover-fx">
-                Novo Cliente
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-pagora-dark border-white/10">
-              <DialogHeader>
-                <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
-              </DialogHeader>
-              <ClientForm />
-            </DialogContent>
-          </Dialog>
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-pagora-orange to-pagora-orange/80 hover:bg-pagora-orange/90 btn-hover-fx">
-                Gerar Fatura
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-pagora-dark border-white/10">
-              <DialogHeader>
-                <DialogTitle>Gerar Nova Fatura</DialogTitle>
-              </DialogHeader>
-              <InvoiceForm />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-      
-      {/* Credits Display */}
-      <CreditsDisplay />
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatusCard 
-          title="Créditos restantes" 
-          value={creditsLoading ? "..." : String(credits?.credits_remaining || 0)} 
-          icon={<Coins className="h-5 w-5 text-yellow-400" />} 
-          description="Para geração de faturas"
-        />
-        <StatusCard 
-          title="Total de Faturas" 
-          value={loading ? "..." : String(stats.total)} 
-          icon={<FileText className="h-5 w-5" />}  
-        />
-        <StatusCard 
-          title="Faturas Pendentes" 
-          value={loading ? "..." : String(stats.pendentes)} 
-          icon={<Clock className="h-5 w-5" />} 
-          variant="pending" 
-          description="Aguardando pagamento" 
-        />
-        <StatusCard 
-          title="Total Recebido" 
-          value={loading ? "..." : formatCurrency(stats.totalRecebido)} 
-          icon={<Wallet className="h-5 w-5" />} 
-          description="Valor total recebido" 
-        />
-      </div>
-      
-      <Tabs defaultValue="faturas" className="py-6">
-        <TabsList className="bg-black/20 border border-white/10">
-          <TabsTrigger value="faturas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pagora-purple/60 data-[state=active]:to-pagora-blue/60 data-[state=active]:text-white">Faturas</TabsTrigger>
-          <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pagora-purple/60 data-[state=active]:to-pagora-blue/60 data-[state=active]:text-white">Clientes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="faturas" className="pt-6 animate-fade-in">
-          <InvoiceTable />
-        </TabsContent>
-        <TabsContent value="clientes" className="pt-6 animate-fade-in">
-          <div className="glass-card bg-black/20">
-            <div className="p-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-1 text-gradient">Lista de Clientes</h3>
-                  <p className="text-sm text-muted-foreground">Gerencie todos os seus contatos cadastrados</p>
-                </div>
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Pesquisar clientes..."
-                    className="pl-9 bg-white/5 border-white/10 w-full"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      <div className="space-y-8 p-6 animate-fade-in">
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-white" />
               </div>
-              
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-white/10 bg-black/30">
-                    <TableHead className="text-muted-foreground">Nome</TableHead>
-                    <TableHead className="text-muted-foreground">E-mail</TableHead>
-                    <TableHead className="text-muted-foreground">WhatsApp</TableHead>
-                    <TableHead className="text-muted-foreground">CPF/CNPJ</TableHead>
-                    <TableHead className="text-muted-foreground text-right"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        Carregando...
-                      </TableCell>
-                    </TableRow>
-                  ) : currentClients.length > 0 ? (
-                    currentClients.map((client) => (
-                      <TableRow key={client.id} className="border-white/5 hover:bg-white/5">
-                        <TableCell className="font-medium">{client.nome}</TableCell>
-                        <TableCell>{client.email}</TableCell>
-                        <TableCell>{client.whatsapp}</TableCell>
-                        <TableCell>{client.cpf_cnpj}</TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-muted-foreground hover:text-white hover:bg-white/10"
-                            onClick={() => handleEditClient(client.id)}
-                          >
-                            <UserCog className="w-4 h-4 mr-1" />
-                            Gerenciar
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        {searchTerm ? "Nenhum cliente encontrado com este termo." : "Nenhum cliente cadastrado."}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              
-              {/* Pagination */}
-              {!loading && filteredClients.length > 0 && (
-                <div className="py-4 border-t border-white/10">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                          className={cn(
-                            "border-white/10 bg-white/5 hover:bg-white/10", 
-                            currentPage === 1 && "pointer-events-none opacity-50"
-                          )}
-                          aria-disabled={currentPage === 1}
-                        />
-                      </PaginationItem>
-                      
-                      {totalPages <= 5 ? (
-                        // Show all pages if 5 or fewer
-                        [...Array(totalPages)].map((_, i) => (
-                          <PaginationItem key={i + 1}>
-                            <PaginationLink
-                              onClick={() => handlePageChange(i + 1)}
-                              isActive={currentPage === i + 1}
-                              className={cn(
-                                "border-white/10",
-                                currentPage === i + 1 
-                                  ? "bg-white/20" 
-                                  : "bg-white/5 hover:bg-white/10"
-                              )}
-                            >
-                              {i + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))
-                      ) : (
-                        // Show first, last, and pages around current
-                        <>
-                          {/* First page */}
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() => handlePageChange(1)}
-                              isActive={currentPage === 1}
-                              className={cn(
-                                "border-white/10",
-                                currentPage === 1 
-                                  ? "bg-white/20" 
-                                  : "bg-white/5 hover:bg-white/10"
-                              )}
-                            >
-                              1
-                            </PaginationLink>
-                          </PaginationItem>
-                          
-                          {/* Ellipsis if needed */}
-                          {currentPage > 3 && (
-                            <PaginationItem>
-                              <PaginationEllipsis className="text-white/50" />
-                            </PaginationItem>
-                          )}
-                          
-                          {/* Pages around current */}
-                          {[...Array(totalPages)].map((_, i) => {
-                            const pageNum = i + 1;
-                            if (
-                              pageNum !== 1 && 
-                              pageNum !== totalPages && 
-                              pageNum >= currentPage - 1 && 
-                              pageNum <= currentPage + 1
-                            ) {
-                              return (
-                                <PaginationItem key={pageNum}>
-                                  <PaginationLink
-                                    onClick={() => handlePageChange(pageNum)}
-                                    isActive={currentPage === pageNum}
-                                    className={cn(
-                                      "border-white/10",
-                                      currentPage === pageNum 
-                                        ? "bg-white/20" 
-                                        : "bg-white/5 hover:bg-white/10"
-                                    )}
-                                  >
-                                    {pageNum}
-                                  </PaginationLink>
-                                </PaginationItem>
-                              );
-                            }
-                            return null;
-                          })}
-                          
-                          {/* Ellipsis if needed */}
-                          {currentPage < totalPages - 2 && (
-                            <PaginationItem>
-                              <PaginationEllipsis className="text-white/50" />
-                            </PaginationItem>
-                          )}
-                          
-                          {/* Last page */}
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() => handlePageChange(totalPages)}
-                              isActive={currentPage === totalPages}
-                              className={cn(
-                                "border-white/10",
-                                currentPage === totalPages 
-                                  ? "bg-white/20" 
-                                  : "bg-white/5 hover:bg-white/10"
-                              )}
-                            >
-                              {totalPages}
-                            </PaginationLink>
-                          </PaginationItem>
-                        </>
-                      )}
-                      
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                          className={cn(
-                            "border-white/10 bg-white/5 hover:bg-white/10",
-                            currentPage === totalPages && "pointer-events-none opacity-50"
-                          )}
-                          aria-disabled={currentPage === totalPages}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
+                Dashboard Financeiro
+              </h1>
             </div>
+            <p className="text-gray-400">Acompanhe suas cobranças e recebimentos em tempo real</p>
           </div>
           
-          {/* Client Edit Dialog */}
-          <Dialog open={editClientDialogOpen} onOpenChange={setEditClientDialogOpen}>
-            <DialogContent className="sm:max-w-[425px] bg-pagora-dark border-white/10">
-              <DialogHeader>
-                <DialogTitle>Editar Cliente</DialogTitle>
-              </DialogHeader>
-              {selectedClientId && (
-                <ClientEditForm 
-                  clientId={selectedClientId} 
-                  onSuccess={handleEditClientSuccess} 
-                />
-              )}
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-      </Tabs>
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <SearchBar 
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Pesquisar faturas e clientes..."
+            />
+            <ActionButtons onQuickInvoiceSuccess={handleQuickInvoiceSuccess} />
+          </div>
+        </div>
+        
+        {/* Credits Display */}
+        <CreditsDisplay />
+        
+        {/* Stats Cards */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <ModernStatusCard 
+            title="Créditos Disponíveis" 
+            value={creditsLoading ? "..." : String(credits?.credits_remaining || 0)} 
+            icon={Coins} 
+            description="Para geração de faturas"
+            variant="info"
+            trend={{ value: 12, isPositive: true }}
+          />
+          <ModernStatusCard 
+            title="Total de Faturas" 
+            value={loading ? "..." : String(stats.total)} 
+            icon={FileText}
+            variant="default"
+          />
+          <ModernStatusCard 
+            title="Faturas Pendentes" 
+            value={loading ? "..." : String(stats.pendentes)} 
+            icon={Clock} 
+            variant="pending" 
+            description="Aguardando pagamento"
+          />
+          <ModernStatusCard 
+            title="Total Recebido" 
+            value={loading ? "..." : formatCurrency(stats.totalRecebido)} 
+            icon={Wallet} 
+            description="Valor total recebido"
+            variant="success"
+            trend={{ value: 8.2, isPositive: true }}
+          />
+        </div>
+        
+        {/* Charts Section */}
+        <div className="grid gap-6 lg:grid-cols-1">
+          <RevenueChart />
+        </div>
+        
+        {/* Tabs Section */}
+        <Tabs defaultValue="faturas" className="space-y-6">
+          <TabsList className="bg-gray-900/50 border border-white/10 rounded-xl p-1">
+            <TabsTrigger 
+              value="faturas" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+            >
+              Faturas
+            </TabsTrigger>
+            <TabsTrigger 
+              value="clientes" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+            >
+              Clientes
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="faturas" className="animate-fade-in">
+            <InvoiceTable />
+          </TabsContent>
+          
+          <TabsContent value="clientes" className="animate-fade-in">
+            <div className="glass-card bg-gradient-to-br from-gray-900/50 to-gray-800/30 border border-white/10 rounded-2xl">
+              <div className="p-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-1">Lista de Clientes</h3>
+                    <p className="text-sm text-gray-400">Gerencie todos os seus contatos cadastrados</p>
+                  </div>
+                </div>
+                
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/10 bg-black/30">
+                      <TableHead className="text-gray-400">Nome</TableHead>
+                      <TableHead className="text-gray-400">E-mail</TableHead>
+                      <TableHead className="text-gray-400">WhatsApp</TableHead>
+                      <TableHead className="text-gray-400">CPF/CNPJ</TableHead>
+                      <TableHead className="text-gray-400 text-right"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-400">
+                          Carregando...
+                        </TableCell>
+                      </TableRow>
+                    ) : currentClients.length > 0 ? (
+                      currentClients.map((client) => (
+                        <TableRow key={client.id} className="border-white/5 hover:bg-white/5">
+                          <TableCell className="font-medium text-white">{client.nome}</TableCell>
+                          <TableCell className="text-gray-300">{client.email}</TableCell>
+                          <TableCell className="text-gray-300">{client.whatsapp}</TableCell>
+                          <TableCell className="text-gray-300">{client.cpf_cnpj}</TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-gray-400 hover:text-white hover:bg-white/10"
+                              onClick={() => handleEditClient(client.id)}
+                            >
+                              <UserCog className="w-4 h-4 mr-1" />
+                              Gerenciar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-400">
+                          {searchTerm ? "Nenhum cliente encontrado com este termo." : "Nenhum cliente cadastrado."}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+                
+                {/* Pagination for clients table same as original */}
+                {!loading && filteredClients.length > 0 && (
+                  <div className="py-4 border-t border-white/10">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                            className={cn(
+                              "border-white/10 bg-white/5 hover:bg-white/10", 
+                              currentPage === 1 && "pointer-events-none opacity-50"
+                            )}
+                            aria-disabled={currentPage === 1}
+                          />
+                        </PaginationItem>
+                        
+                        {totalPages <= 5 ? (
+                          [...Array(totalPages)].map((_, i) => (
+                            <PaginationItem key={i + 1}>
+                              <PaginationLink
+                                onClick={() => handlePageChange(i + 1)}
+                                isActive={currentPage === i + 1}
+                                className={cn(
+                                  "border-white/10",
+                                  currentPage === i + 1 
+                                    ? "bg-white/20" 
+                                    : "bg-white/5 hover:bg-white/10"
+                                )}
+                              >
+                                {i + 1}
+                              </PaginationLink>
+                            </PaginationItem>
+                          ))
+                        ) : (
+                          <>
+                            <PaginationItem>
+                              <PaginationLink
+                                onClick={() => handlePageChange(1)}
+                                isActive={currentPage === 1}
+                                className={cn(
+                                  "border-white/10",
+                                  currentPage === 1 
+                                    ? "bg-white/20" 
+                                    : "bg-white/5 hover:bg-white/10"
+                                )}
+                              >
+                                1
+                              </PaginationLink>
+                            </PaginationItem>
+                            
+                            {currentPage > 3 && (
+                              <PaginationItem>
+                                <PaginationEllipsis className="text-white/50" />
+                              </PaginationItem>
+                            )}
+                            
+                            {[...Array(totalPages)].map((_, i) => {
+                              const pageNum = i + 1;
+                              if (
+                                pageNum !== 1 && 
+                                pageNum !== totalPages && 
+                                pageNum >= currentPage - 1 && 
+                                pageNum <= currentPage + 1
+                              ) {
+                                return (
+                                  <PaginationItem key={pageNum}>
+                                    <PaginationLink
+                                      onClick={() => handlePageChange(pageNum)}
+                                      isActive={currentPage === pageNum}
+                                      className={cn(
+                                        "border-white/10",
+                                        currentPage === pageNum 
+                                          ? "bg-white/20" 
+                                          : "bg-white/5 hover:bg-white/10"
+                                      )}
+                                    >
+                                      {pageNum}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                );
+                              }
+                              return null;
+                            })}
+                            
+                            {currentPage < totalPages - 2 && (
+                              <PaginationItem>
+                                <PaginationEllipsis className="text-white/50" />
+                              </PaginationItem>
+                            )}
+                            
+                            <PaginationItem>
+                              <PaginationLink
+                                onClick={() => handlePageChange(totalPages)}
+                                isActive={currentPage === totalPages}
+                                className={cn(
+                                  "border-white/10",
+                                  currentPage === totalPages 
+                                    ? "bg-white/20" 
+                                    : "bg-white/5 hover:bg-white/10"
+                                )}
+                              >
+                                {totalPages}
+                              </PaginationLink>
+                            </PaginationItem>
+                          </>
+                        )}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                            className={cn(
+                              "border-white/10 bg-white/5 hover:bg-white/10",
+                              currentPage === totalPages && "pointer-events-none opacity-50"
+                            )}
+                            aria-disabled={currentPage === totalPages}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Client Edit Dialog */}
+            <Dialog open={editClientDialogOpen} onOpenChange={setEditClientDialogOpen}>
+              <DialogContent className="sm:max-w-[425px] bg-gray-900/95 border border-white/20 backdrop-blur-xl">
+                <DialogHeader>
+                  <DialogTitle className="text-white">Editar Cliente</DialogTitle>
+                </DialogHeader>
+                {selectedClientId && (
+                  <ClientEditForm 
+                    clientId={selectedClientId} 
+                    onSuccess={handleEditClientSuccess} 
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
