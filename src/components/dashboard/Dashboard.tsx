@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle, Coins } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Wallet, Search, UserCog, AlertCircle, Coins, Zap } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { InvoiceTable } from './InvoiceTable';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientForm } from '../forms/ClientForm';
 import { InvoiceForm } from '../forms/InvoiceForm';
+import { QuickInvoiceForm } from '../forms/QuickInvoiceForm';
 import { ClientEditForm } from '../forms/ClientEditForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -47,6 +48,7 @@ export function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
+  const [quickInvoiceDialogOpen, setQuickInvoiceDialogOpen] = useState(false);
   const { user, isAdmin } = useAuth();
   const { credits, loading: creditsLoading } = useCredits();
   
@@ -148,6 +150,11 @@ export function Dashboard() {
     fetchClients();
   };
 
+  const handleQuickInvoiceSuccess = () => {
+    setQuickInvoiceDialogOpen(false);
+    fetchStats(); // Refresh stats after creating invoice
+  };
+
   // Filter clients based on search term
   const filteredClients = clients.filter(client => {
     if (!searchTerm) return true;
@@ -187,6 +194,21 @@ export function Dashboard() {
         </div>
         
         <div className="flex flex-wrap gap-3">
+          <Dialog open={quickInvoiceDialogOpen} onOpenChange={setQuickInvoiceDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:bg-green-600 btn-hover-fx">
+                <Zap className="w-4 h-4 mr-2" />
+                Cobrança Rápida
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] bg-pagora-dark border-white/10">
+              <DialogHeader>
+                <DialogTitle>Cobrança Rápida</DialogTitle>
+              </DialogHeader>
+              <QuickInvoiceForm onSuccess={handleQuickInvoiceSuccess} />
+            </DialogContent>
+          </Dialog>
+          
           <Dialog>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-pagora-purple to-pagora-purple/80 hover:bg-pagora-purple/90 btn-hover-fx">
