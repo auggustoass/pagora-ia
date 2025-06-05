@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Home, Users, FileText, PieChart, Settings, HelpCircle, MessageSquare, CreditCard, LogOut, Shield, ChevronRight } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -8,7 +7,6 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-
 interface SidebarProps {
   className?: string;
 }
@@ -85,7 +83,7 @@ export function Sidebar({
               <img alt="HBLACKPIX" className="h-8 mr-2" src="/lovable-uploads/55eb28cc-ed54-4fb2-adeb-e214cf7f1972.png" />
               
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Assistente de Cobrança</p>
+            
           </div>}
       </div>
       
