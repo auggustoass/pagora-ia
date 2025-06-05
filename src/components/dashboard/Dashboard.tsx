@@ -155,7 +155,7 @@ export function Dashboard() {
     setCurrentPage(1);
   }, [searchTerm]);
   return <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      <div className="space-y-8 p-6 animate-fade-in">
+      <div className="space-y-8 p-6 animate-fade-in bg-zinc-950">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="space-y-2">
@@ -202,7 +202,7 @@ export function Dashboard() {
             <TabsTrigger value="faturas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
               Faturas
             </TabsTrigger>
-            <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
+            <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
               Clientes
             </TabsTrigger>
           </TabsList>
