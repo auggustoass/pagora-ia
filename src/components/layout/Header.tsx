@@ -41,7 +41,7 @@ export function Header() {
               size="sm"
               className="flex items-center gap-2 border-border h-auto py-1.5"
             >
-              <Coins size={16} className="text-yellow-400" />
+              <Coins size={16} className="text-green-400" />
               <Badge variant="outline" className="text-xs">
                 {credits?.credits_remaining || 0} crédito{credits?.credits_remaining !== 1 ? 's' : ''}
               </Badge>

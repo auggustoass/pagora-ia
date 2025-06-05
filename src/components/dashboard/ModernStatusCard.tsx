@@ -11,7 +11,7 @@ const statusCardVariants = cva(
       variant: {
         default: "bg-gradient-to-br from-gray-900/50 to-gray-800/30 border-white/10 hover:border-white/20",
         success: "bg-gradient-to-br from-green-900/30 to-emerald-800/20 border-green-500/20 hover:border-green-400/30",
-        pending: "bg-gradient-to-br from-yellow-900/30 to-orange-800/20 border-yellow-500/20 hover:border-yellow-400/30",
+        pending: "bg-gradient-to-br from-gray-800/30 to-gray-700/20 border-gray-500/20 hover:border-gray-400/30",
         info: "bg-gradient-to-br from-green-900/30 to-emerald-800/20 border-green-500/20 hover:border-green-400/30",
       }
     },
@@ -45,7 +45,7 @@ export function ModernStatusCard({
   const getIconColor = () => {
     switch (variant) {
       case "success": return "text-green-400";
-      case "pending": return "text-yellow-400";
+      case "pending": return "text-gray-400";
       case "info": return "text-green-400";
       default: return "text-gray-300";
     }
@@ -53,7 +53,7 @@ export function ModernStatusCard({
 
   const getTrendColor = () => {
     if (!trend) return "";
-    return trend.isPositive ? "text-green-400" : "text-red-400";
+    return trend.isPositive ? "text-green-400" : "text-gray-400";
   };
 
   return (

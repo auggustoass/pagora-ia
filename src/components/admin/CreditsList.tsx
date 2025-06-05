@@ -38,8 +38,8 @@ export function CreditsList() {
   };
 
   const getCreditStatusColor = (credits: number) => {
-    if (credits === 0) return 'bg-red-500';
-    if (credits < 10) return 'bg-yellow-500';
+    if (credits === 0) return 'bg-gray-600';
+    if (credits < 10) return 'bg-gray-500';
     return 'bg-green-500';
   };
 
@@ -74,7 +74,7 @@ export function CreditsList() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Usuários sem Créditos</CardTitle>
-            <Badge variant="destructive">{creditStats.usersWithZeroCredits}</Badge>
+            <Badge variant="secondary">{creditStats.usersWithZeroCredits}</Badge>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{creditStats.usersWithZeroCredits}</div>

@@ -21,9 +21,9 @@ export function CreditsDisplay({
   if (loading) {
     return (
       <div className={`flex items-center ${className}`}>
-        <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-500/30">
+        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl p-4 border border-green-500/30">
           <div className="flex items-center">
-            <Coins className="w-5 h-5 mr-2 text-yellow-400 animate-pulse" />
+            <Coins className="w-5 h-5 mr-2 text-green-400 animate-pulse" />
             <span className="text-white">Carregando créditos...</span>
           </div>
         </div>
@@ -37,15 +37,15 @@ export function CreditsDisplay({
   return (
     <div className={`space-y-3 ${className}`}>
       {showAlert && lowCredits && (
-        <Alert className="bg-gradient-to-r from-red-900/30 to-rose-800/20 border border-red-500/30 rounded-xl backdrop-blur-sm">
-          <AlertCircle className="h-4 w-4 text-red-400" />
-          <AlertDescription className="text-sm text-red-300">
+        <Alert className="bg-gradient-to-r from-gray-800/50 to-gray-700/30 border border-gray-500/30 rounded-xl backdrop-blur-sm">
+          <AlertCircle className="h-4 w-4 text-gray-400" />
+          <AlertDescription className="text-sm text-gray-300">
             <div className="flex items-center justify-between">
               <span>Seus créditos estão acabando!</span>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="ml-3 border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-all duration-200" 
+                className="ml-3 border-green-500/30 bg-green-500/10 text-green-300 hover:bg-green-500/20 hover:text-green-200 transition-all duration-200" 
                 onClick={() => navigate('/planos')}
               >
                 <Sparkles className="w-3 h-3 mr-1" />
@@ -57,18 +57,18 @@ export function CreditsDisplay({
       )}
       
       {showAlert && creditsRemaining === 0 && (
-        <div className="bg-gradient-to-r from-yellow-900/30 to-orange-800/20 border border-yellow-500/30 rounded-xl p-4 backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-gray-800/50 to-gray-700/30 border border-gray-500/30 rounded-xl p-4 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-yellow-400 mr-3" />
+              <AlertCircle className="w-5 h-5 text-gray-400 mr-3" />
               <div>
-                <p className="text-yellow-300 font-medium">Créditos esgotados</p>
-                <p className="text-yellow-200/80 text-sm">Adquira mais créditos para continuar gerando faturas</p>
+                <p className="text-gray-300 font-medium">Créditos esgotados</p>
+                <p className="text-gray-400 text-sm">Adquira mais créditos para continuar gerando faturas</p>
               </div>
             </div>
             <Button 
               size="sm" 
-              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white shadow-lg"
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white shadow-lg"
               onClick={() => navigate('/planos')}
             >
               <Coins className="w-4 h-4 mr-1" />

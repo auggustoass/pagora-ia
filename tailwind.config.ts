@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -70,9 +71,9 @@ export default {
 					light: '#f8f9fa',
 					lightGray: '#F1F1F1',
 					success: '#10b981',
-					pending: '#f59e0b',
-					error: '#ef4444',
-					purple: '#9b87f5' // Added purple color that was defined as pagora-purple
+					warning: '#047857',
+					error: '#374151',
+					info: '#34d399'
 				}
 			},
 			borderRadius: {

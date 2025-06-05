@@ -84,8 +84,8 @@ export function CreditManagementDialog({
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
       case 'add': return 'bg-green-500';
-      case 'remove': return 'bg-red-500';
-      case 'set': return 'bg-blue-500';
+      case 'remove': return 'bg-gray-500';
+      case 'set': return 'bg-gray-600';
       default: return 'bg-gray-500';
     }
   };
