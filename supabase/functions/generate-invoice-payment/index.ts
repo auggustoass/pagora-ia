@@ -27,61 +27,6 @@ function validateTokenFormat(token: string): { isValid: boolean; message?: strin
   return { isValid: true };
 }
 
-async function generatePixPayment(invoice: any, accessToken: string, credentialsSource: string) {
-  console.log(`💳 Creating PIX payment for invoice ${invoice.id}`);
-  
-  const pixPayment = {
-    transaction_amount: Number(invoice.valor),
-    payment_method_id: "pix",
-    description: `Fatura - ${invoice.descricao}`,
-    payer: {
-      email: invoice.email,
-      first_name: invoice.nome.split(' ')[0] || invoice.nome,
-      last_name: invoice.nome.split(' ').slice(1).join(' ') || '',
-      identification: {
-        type: invoice.cpf_cnpj.length === 11 ? "CPF" : "CNPJ",
-        number: invoice.cpf_cnpj.replace(/\D/g, '')
-      }
-    }
-  };
-
-  console.log("🔗 PIX payment data:", JSON.stringify(pixPayment, null, 2));
-  
-  const response = await fetch("https://api.mercadopago.com/v1/payments", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      "X-Idempotency-Key": `pix-${invoice.id}-${Date.now()}`
-    },
-    body: JSON.stringify(pixPayment)
-  });
-
-  const responseText = await response.text();
-  console.log(`📊 Mercado Pago PIX API response status: ${response.status}`);
-  console.log(`📄 Mercado Pago PIX API response: ${responseText}`);
-
-  if (!response.ok) {
-    console.error("❌ Mercado Pago PIX API error:", responseText);
-    throw new Error(`Erro ao criar pagamento PIX: ${responseText}`);
-  }
-
-  const paymentData = JSON.parse(responseText);
-  console.log(`✅ PIX payment created successfully, ID: ${paymentData.id}`);
-
-  // Extract PIX data
-  const pixQrCode = paymentData.point_of_interaction?.transaction_data?.qr_code;
-  const pixQrCodeBase64 = paymentData.point_of_interaction?.transaction_data?.qr_code_base64;
-  
-  return {
-    payment_id: paymentData.id,
-    qr_code: pixQrCode,
-    qr_code_base64: pixQrCodeBase64,
-    payment_url: `https://www.mercadopago.com.br/payments/${paymentData.id}/ticket?caller_id=${paymentData.id}&hash=${paymentData.id}`,
-    credentialsSource
-  };
-}
-
 async function generatePaymentLink(invoice: any, accessToken: string, credentialsSource: string, req: Request) {
   console.log(`💳 Creating payment preference for invoice ${invoice.id}`);
   
@@ -256,68 +201,29 @@ serve(async (req) => {
       );
     }
 
-    let result;
+    // Generate payment link
+    const result = await generatePaymentLink(invoice, accessToken, credentialsSource, req);
+    
+    // Update invoice with preference data
+    const updateData: any = {
+      mercado_pago_preference_id: result.preference_id,
+      payment_url: result.payment_url,
+      payment_status: "pending"
+    };
 
-    if (paymentType === "pix") {
-      // Validate required fields for PIX
-      if (!invoice.cpf_cnpj || !invoice.nome || !invoice.email) {
-        console.error("❌ Missing required fields for PIX payment");
-        return new Response(
-          JSON.stringify({ 
-            error: "Missing required fields for PIX payment", 
-            details: "CPF/CNPJ, nome e email são obrigatórios para pagamento PIX" 
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-        );
-      }
-
-      result = await generatePixPayment(invoice, accessToken, credentialsSource);
+    const { error: updateError } = await supabase
+      .from("faturas")
+      .update(updateData)
+      .eq("id", invoice.id);
       
-      // Update invoice with PIX data
-      const updateData: any = {
-        payment_status: "pending",
-        qrcode: result.qr_code_base64 || result.qr_code,
-        payment_url: result.payment_url
-      };
-
-      const { error: updateError } = await supabase
-        .from("faturas")
-        .update(updateData)
-        .eq("id", invoice.id);
-        
-      if (updateError) {
-        console.error("⚠️ Error updating invoice with PIX data:", updateError);
-      } else {
-        console.log("✅ Invoice updated with PIX data");
-      }
-
-      result.success = true;
-      result.message = `PIX gerado com sucesso usando credenciais ${credentialsSource}`;
-      
+    if (updateError) {
+      console.error("⚠️ Error updating invoice with preference data:", updateError);
     } else {
-      result = await generatePaymentLink(invoice, accessToken, credentialsSource, req);
-      
-      // Update invoice with preference data
-      const updateData: any = {
-        mercado_pago_preference_id: result.preference_id,
-        payment_url: result.payment_url,
-        payment_status: "pending"
-      };
-
-      const { error: updateError } = await supabase
-        .from("faturas")
-        .update(updateData)
-        .eq("id", invoice.id);
-        
-      if (updateError) {
-        console.error("⚠️ Error updating invoice with preference data:", updateError);
-      } else {
-        console.log("✅ Invoice updated with payment data");
-      }
-
-      result.success = true;
-      result.message = `Link de pagamento gerado com sucesso usando credenciais ${credentialsSource}`;
+      console.log("✅ Invoice updated with payment data");
     }
+
+    result.success = true;
+    result.message = `Link de pagamento gerado com sucesso usando credenciais ${credentialsSource}`;
 
     console.log("🎉 Function completed successfully:", result);
 

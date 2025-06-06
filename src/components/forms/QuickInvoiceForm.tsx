@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -5,7 +6,6 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { 
   Form, 
@@ -16,11 +16,10 @@ import {
   FormMessage 
 } from "@/components/ui/form";
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, MessageCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Copy, MessageCircle } from 'lucide-react';
 import { InvoiceService } from '@/services/InvoiceService';
 import { useCredits } from '@/hooks/use-credits';
 import { SecurityService } from '@/services/SecurityService';
-import { PixQRCodeModal } from './PixQRCodeModal';
 
 const quickInvoiceSchema = z.object({
   whatsapp: z.string()
@@ -43,10 +42,7 @@ const quickInvoiceSchema = z.object({
     .max(1000000, { message: "Valor muito alto" }),
   descricao: z.string()
     .min(3, { message: "Descrição é obrigatória" })
-    .max(500, { message: "Descrição muito longa" }),
-  paymentType: z.enum(["pix", "link"], {
-    required_error: "Selecione o tipo de pagamento"
-  })
+    .max(500, { message: "Descrição muito longa" })
 });
 
 type QuickInvoiceFormValues = z.infer<typeof quickInvoiceSchema>;
@@ -58,15 +54,8 @@ interface QuickInvoiceFormProps {
 export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<{
-    type: 'pix' | 'link';
     value: string;
     invoiceId: string;
-    pixError?: string;
-  } | null>(null);
-  const [showPixModal, setShowPixModal] = useState(false);
-  const [pixData, setPixData] = useState<{
-    code: string;
-    whatsapp: string;
   } | null>(null);
   const { credits, refetch } = useCredits();
   const { toast } = useToast();
@@ -79,7 +68,6 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
       email: "",
       valor: 0,
       descricao: "",
-      paymentType: "pix",
     },
   });
 
@@ -125,44 +113,21 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
       const invoice = await InvoiceService.createInvoice(invoiceData);
       console.log("✅ Invoice created:", invoice);
       
-      // Generate payment based on type
-      console.log(`🔥 Generating ${values.paymentType} payment for invoice ${invoice.id}`);
-      const paymentResult = await InvoiceService.generatePaymentLink(invoice.id, values.paymentType);
+      // Generate payment link
+      console.log(`🔥 Generating payment link for invoice ${invoice.id}`);
+      const paymentResult = await InvoiceService.generatePaymentLink(invoice.id, "link");
       console.log("✅ Payment result:", paymentResult);
       
-      if (values.paymentType === "pix") {
-        // For PIX, check if real PIX data is available
-        if (paymentResult.qr_code_base64 || paymentResult.qr_code) {
-          const pixCode = paymentResult.qr_code_base64 || paymentResult.qr_code;
-          
-          setPixData({
-            code: pixCode,
-            whatsapp: sanitizedValues.whatsapp
-          });
-          setShowPixModal(true);
-        } else {
-          // PIX generation failed, show error
-          setGeneratedResult({
-            type: 'pix',
-            value: paymentResult.payment_url || '',
-            invoiceId: invoice.id,
-            pixError: "Erro ao gerar PIX. Tente novamente ou use o link de pagamento."
-          });
-        }
-      } else {
-        // For link payment
-        setGeneratedResult({
-          type: 'link',
-          value: paymentResult.payment_url || paymentResult.init_point,
-          invoiceId: invoice.id
-        });
-      }
+      setGeneratedResult({
+        value: paymentResult.payment_url || paymentResult.init_point,
+        invoiceId: invoice.id
+      });
       
       await refetch();
       
       toast({
         title: "Cobrança criada com sucesso!",
-        description: `${values.paymentType === 'pix' ? 'Código PIX' : 'Link de pagamento'} gerado.`
+        description: "Link de pagamento gerado."
       });
       
     } catch (error: any) {
@@ -182,12 +147,12 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
       await navigator.clipboard.writeText(text);
       toast({
         title: "Copiado!",
-        description: "Conteúdo copiado para a área de transferência."
+        description: "Link copiado para a área de transferência."
       });
     } catch (error) {
       toast({
         title: "Erro ao copiar",
-        description: "Não foi possível copiar o conteúdo.",
+        description: "Não foi possível copiar o link.",
         variant: "destructive"
       });
     }
@@ -197,7 +162,7 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
     if (generatedResult && form.getValues('whatsapp')) {
       const whatsapp = form.getValues('whatsapp').replace(/\D/g, '');
       const message = encodeURIComponent(
-        `Olá! Sua cobrança está pronta. ${generatedResult.type === 'pix' ? 'Link de pagamento' : 'Link de pagamento'}: ${generatedResult.value}`
+        `Olá! Sua cobrança está pronta. Link de pagamento: ${generatedResult.value}`
       );
       window.open(`https://wa.me/55${whatsapp}?text=${message}`, '_blank');
     }
@@ -205,50 +170,20 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
 
   const handleNewInvoice = () => {
     setGeneratedResult(null);
-    setShowPixModal(false);
-    setPixData(null);
     form.reset();
   };
-
-  const handlePixModalClose = () => {
-    setShowPixModal(false);
-    setPixData(null);
-  };
-
-  if (showPixModal && pixData) {
-    return (
-      <PixQRCodeModal
-        isOpen={showPixModal}
-        onClose={handlePixModalClose}
-        pixCode={pixData.code}
-        whatsappNumber={pixData.whatsapp}
-        onNewInvoice={handleNewInvoice}
-      />
-    );
-  }
 
   if (generatedResult) {
     return (
       <div className="space-y-4">
         <div className="text-center">
           <h3 className="text-lg font-medium text-green-400 mb-2">
-            {generatedResult.type === 'pix' && generatedResult.pixError ? (
-              <>
-                <AlertCircle className="w-5 h-5 inline mr-2 text-yellow-500" />
-                Erro ao Gerar PIX
-              </>
-            ) : generatedResult.type === 'pix' ? 'Código PIX Gerado!' : 'Link de Pagamento Gerado!'}
+            Link de Pagamento Gerado!
           </h3>
-          
-          {generatedResult.pixError && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
-              <p className="text-sm text-red-400">{generatedResult.pixError}</p>
-            </div>
-          )}
           
           <div className="bg-black/20 p-4 rounded-lg border border-white/10">
             <p className="text-sm text-muted-foreground mb-2">
-              {generatedResult.type === 'pix' && !generatedResult.pixError ? 'Código PIX:' : 'Link de Pagamento:'}
+              Link de Pagamento:
             </p>
             <div className="flex items-center gap-2">
               <Input 
@@ -389,33 +324,6 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
                   {...field} 
                   maxLength={500}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="paymentType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tipo de Pagamento</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="pix" id="pix" />
-                    <Label htmlFor="pix">PIX</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="link" id="link" />
-                    <Label htmlFor="link">Link de Pagamento</Label>
-                  </div>
-                </RadioGroup>
               </FormControl>
               <FormMessage />
             </FormItem>
