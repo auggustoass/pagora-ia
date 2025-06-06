@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -74,7 +73,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const { user, isAdmin } = useAuth();
   const { credits, loading: creditsLoading } = useCredits();
-  const { hasMpCredentials, isLoading: mpLoading } = useMercadoPago();
+  const { canGeneratePayments, credentialsSource, isLoading: mpLoading } = useMercadoPago();
   const navigate = useNavigate();
   
   // Sistema simplificado: 1 crédito = 1 fatura
@@ -153,9 +152,9 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       return;
     }
 
-    // Check if the user has Mercado Pago credentials if they want to generate a payment link
-    if (values.generatePaymentLink && !hasMpCredentials) {
-      toast.error('É necessário configurar suas credenciais do Mercado Pago para gerar links de pagamento.');
+    // Check if the user can generate payment links
+    if (values.generatePaymentLink && !canGeneratePayments) {
+      toast.error('É necessário configurar credenciais do Mercado Pago para gerar links de pagamento.');
       return;
     }
 
@@ -197,7 +196,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       if (error) throw error;
       
       // If the user wants to generate a payment link
-      if (values.generatePaymentLink && invoice && hasMpCredentials) {
+      if (values.generatePaymentLink && invoice && canGeneratePayments) {
         setIsGeneratingPaymentLink(true);
         
         try {
@@ -209,11 +208,12 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
             console.error('Error generating payment link:', paymentError);
             toast.warning('Fatura criada, mas não foi possível gerar o link de pagamento.');
           } else if (paymentData && paymentData.payment_url) {
-            toast.success('O link de pagamento foi gerado com sucesso.');
+            const sourceText = credentialsSource === 'user' ? 'suas credenciais pessoais' : 'credenciais globais';
+            toast.success(`Link de pagamento gerado com sucesso usando ${sourceText}.`);
           }
         } catch (paymentGenError) {
           console.error('Error calling payment generation:', paymentGenError);
-          toast.error('Ocorreu um erro ao gerar o link de pagamento. Verifique se suas credenciais do Mercado Pago estão corretas.');
+          toast.error('Ocorreu um erro ao gerar o link de pagamento. Verifique as credenciais do Mercado Pago.');
         } finally {
           setIsGeneratingPaymentLink(false);
         }
@@ -264,21 +264,47 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       </div>
     );
   }
+
+  const getPaymentLinkStatus = () => {
+    if (!canGeneratePayments) {
+      return {
+        canGenerate: false,
+        message: "Configure suas credenciais do Mercado Pago em Configurações para gerar links de pagamento.",
+        buttonText: "Configurar Mercado Pago"
+      };
+    }
+    
+    if (credentialsSource === 'user') {
+      return {
+        canGenerate: true,
+        message: "Links de pagamento serão gerados usando suas credenciais pessoais.",
+        buttonText: null
+      };
+    }
+    
+    return {
+      canGenerate: true,
+      message: "Links de pagamento serão gerados usando credenciais globais do sistema.",
+      buttonText: null
+    };
+  };
+
+  const paymentStatus = getPaymentLinkStatus();
   
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          {!hasMpCredentials && (
+          {!canGeneratePayments && (
             <Alert className="bg-amber-500/10 border-amber-500/20">
               <AlertCircle className="h-4 w-4 text-amber-500" />
               <AlertDescription className="text-sm">
                 <span className="font-medium text-amber-500">
-                  Você ainda não configurou suas credenciais do Mercado Pago.
+                  Nenhuma credencial do Mercado Pago configurada.
                 </span>
                 <br />
                 <span className="text-muted-foreground">
-                  A opção de gerar link de pagamento não estará disponível até que você configure suas credenciais.
+                  Configure suas credenciais pessoais ou solicite ao administrador para configurar credenciais globais.
                 </span>
                 <Button 
                   variant="outline"
@@ -421,17 +447,27 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                   <Checkbox
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    disabled={!hasMpCredentials}
+                    disabled={!canGeneratePayments}
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel className={!hasMpCredentials ? 'text-muted-foreground' : ''}>
+                  <FormLabel className={!canGeneratePayments ? 'text-muted-foreground' : ''}>
                     Gerar link de pagamento
                   </FormLabel>
                   <p className="text-sm text-muted-foreground">
-                    Cria automaticamente um link de pagamento via Mercado Pago para esta fatura
-                    {!hasMpCredentials && " (requer configuração de credenciais)"}
+                    {paymentStatus.message}
                   </p>
+                  {paymentStatus.buttonText && (
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-1"
+                      onClick={() => navigate('/configuracoes')}
+                    >
+                      {paymentStatus.buttonText}
+                    </Button>
+                  )}
                 </div>
               </FormItem>
             )}

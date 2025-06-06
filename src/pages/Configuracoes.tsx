@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
-import { CreditCard, Shield, Check, X, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
+import { CreditCard, Shield, Check, X, ExternalLink, AlertCircle, Loader2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
@@ -61,7 +62,7 @@ const Configuracoes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const { user } = useAuth();
-  const { hasMpCredentials, checkMercadoPagoCredentials } = useMercadoPago();
+  const { hasUserCredentials, hasGlobalCredentials, credentialsSource, checkMercadoPagoCredentials } = useMercadoPago();
   
   const form = useForm<MercadoPagoFormValues>({
     resolver: zodResolver(mercadoPagoSchema),
@@ -133,7 +134,7 @@ const Configuracoes = () => {
       
       toast.success('Suas credenciais do Mercado Pago foram salvas com sucesso.');
       
-      // Update the hasMpCredentials status
+      // Update the credentials status
       checkMercadoPagoCredentials();
     } catch (error) {
       console.error('Error saving Mercado Pago config:', error);
@@ -182,6 +183,35 @@ const Configuracoes = () => {
     }
   };
 
+  const getCredentialsStatusInfo = () => {
+    if (hasUserCredentials) {
+      return {
+        icon: <Check className="w-4 h-4 text-green-500" />,
+        title: "Credenciais pessoais configuradas",
+        description: "Suas credenciais pessoais estão ativas. Elas têm prioridade sobre credenciais globais.",
+        variant: "success" as const
+      };
+    }
+    
+    if (hasGlobalCredentials) {
+      return {
+        icon: <Info className="w-4 h-4 text-blue-500" />,
+        title: "Usando credenciais globais",
+        description: "Não há credenciais pessoais configuradas. O sistema está usando credenciais globais do administrador.",
+        variant: "info" as const
+      };
+    }
+    
+    return {
+      icon: <X className="w-4 h-4 text-red-500" />,
+      title: "Nenhuma credencial configurada",
+      description: "Configure suas credenciais pessoais ou solicite ao administrador para configurar credenciais globais.",
+      variant: "error" as const
+    };
+  };
+
+  const statusInfo = getCredentialsStatusInfo();
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -217,31 +247,35 @@ const Configuracoes = () => {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmitMercadoPago)}>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center gap-2 mb-6 p-3 rounded-md bg-white/5 border border-white/10">
-                      {hasMpCredentials ? (
-                        <>
-                          <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-green-500" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Mercado Pago configurado</p>
-                            <p className="text-xs text-muted-foreground">Sua conta está conectada e pronta para receber pagamentos diretamente.</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                            <X className="w-4 h-4 text-red-500" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-red-500">Mercado Pago não configurado</p>
-                            <p className="text-xs text-muted-foreground">
-                              Você não poderá gerar links de pagamento até configurar suas credenciais.
-                            </p>
-                          </div>
-                        </>
-                      )}
+                    {/* Status das credenciais */}
+                    <div className={`flex items-center gap-2 mb-6 p-3 rounded-md border ${
+                      statusInfo.variant === 'success' ? 'bg-green-500/10 border-green-500/20' :
+                      statusInfo.variant === 'info' ? 'bg-blue-500/10 border-blue-500/20' :
+                      'bg-red-500/10 border-red-500/20'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        statusInfo.variant === 'success' ? 'bg-green-500/20' :
+                        statusInfo.variant === 'info' ? 'bg-blue-500/20' :
+                        'bg-red-500/20'
+                      }`}>
+                        {statusInfo.icon}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{statusInfo.title}</p>
+                        <p className="text-xs text-muted-foreground">{statusInfo.description}</p>
+                      </div>
                     </div>
+
+                    <Alert className="bg-blue-500/10 border-blue-500/20 mb-4">
+                      <AlertDescription className="flex flex-col gap-2">
+                        <p className="text-blue-500 font-medium">Sistema de Credenciais Hierárquico</p>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p>• <strong>Credenciais Pessoais:</strong> Têm prioridade máxima quando configuradas</p>
+                          <p>• <strong>Credenciais Globais:</strong> Usadas automaticamente se você não tiver credenciais pessoais</p>
+                          <p>• Configure suas credenciais pessoais para maior controle e recebimento direto</p>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
 
                     <Alert className="bg-blue-500/10 border-blue-500/20 mb-4">
                       <AlertDescription className="flex flex-col gap-2">
