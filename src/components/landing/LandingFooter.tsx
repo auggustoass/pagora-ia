@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, MessageSquare } from 'lucide-react';
@@ -33,7 +32,6 @@ export const LandingFooter = () => {
             <h3 className="text-lg font-bold mb-4">Links Rápidos</h3>
             <ul className="space-y-2">
               <li><Link to="/" className="text-muted-foreground hover:text-primary transition-colors">Home</Link></li>
-              <li><Link to="/planos" className="text-muted-foreground hover:text-primary transition-colors">Planos</Link></li>
               <li><a href="#faq" className="text-muted-foreground hover:text-primary transition-colors">FAQ</a></li>
               <li><Link to="/auth" className="text-muted-foreground hover:text-primary transition-colors">Login</Link></li>
             </ul>
