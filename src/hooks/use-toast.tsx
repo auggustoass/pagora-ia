@@ -1,4 +1,6 @@
+
 import * as React from "react"
+import { toast as sonnerToast } from "sonner"
 
 import type {
   ToastActionElement,
@@ -90,8 +92,6 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
@@ -137,29 +137,41 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
+type ToastInput = {
+  title?: React.ReactNode
+  description?: React.ReactNode
+  variant?: "default" | "destructive"
+  action?: ToastActionElement
+}
 
-function toast({ ...props }: Toast) {
+function toast(input: ToastInput | string) {
   const id = genId()
 
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+  // Handle string input
+  if (typeof input === 'string') {
+    sonnerToast(input)
+    return { id, dismiss: () => {}, update: () => {} }
+  }
 
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
-    },
-  })
+  // Handle object input - use sonner for better compatibility
+  const { title, description, variant, action } = input
+  
+  if (variant === 'destructive') {
+    sonnerToast.error(title as string, { description: description as string })
+  } else {
+    sonnerToast(title as string, { description: description as string })
+  }
+
+  const update = (props: ToasterToast) => {
+    // Use sonner for updates too
+    if (props.variant === 'destructive') {
+      sonnerToast.error(props.title as string, { description: props.description as string })
+    } else {
+      sonnerToast(props.title as string, { description: props.description as string })
+    }
+  }
+  
+  const dismiss = () => sonnerToast.dismiss(id)
 
   return {
     id: id,
