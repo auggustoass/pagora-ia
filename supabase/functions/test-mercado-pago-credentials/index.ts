@@ -10,6 +10,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Validate token format
+function validateTokenFormat(token: string, type: 'access' | 'public'): { isValid: boolean; message?: string } {
+  if (!token || typeof token !== 'string') {
+    return { isValid: false, message: `${type} token é obrigatório` };
+  }
+
+  if (!token.startsWith('APP_USR-')) {
+    return { isValid: false, message: `${type} token deve começar com APP_USR-` };
+  }
+
+  // Access tokens are longer than public keys
+  const minLength = type === 'access' ? 120 : 40;
+  if (token.length < minLength) {
+    return { isValid: false, message: `${type} token parece estar incompleto (muito curto)` };
+  }
+
+  return { isValid: true };
+}
+
+// Determine environment based on token
+function getEnvironment(token: string): 'production' | 'sandbox' {
+  // Production tokens typically have different patterns
+  // This is a simple heuristic - you might need to adjust based on actual token patterns
+  return token.includes('PROD') || !token.includes('TEST') ? 'production' : 'sandbox';
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -24,7 +50,11 @@ serve(async (req) => {
     if (!authHeader) {
       console.error("Missing authorization header");
       return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
+        JSON.stringify({ 
+          success: false,
+          error: "Usuário não autenticado",
+          details: "Missing authorization header" 
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       );
     }
@@ -39,7 +69,11 @@ serve(async (req) => {
     if (authError || !user) {
       console.error("Authentication failed", authError);
       return new Response(
-        JSON.stringify({ error: "Authentication failed", details: authError }),
+        JSON.stringify({ 
+          success: false,
+          error: "Falha na autenticação",
+          details: "Token de usuário inválido" 
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       );
     }
@@ -48,32 +82,74 @@ serve(async (req) => {
 
     // Get the access token from the request body
     const requestData = await req.json();
-    const { access_token } = requestData;
+    const { access_token, environment = 'auto' } = requestData;
 
     if (!access_token) {
       console.error("Missing access_token in request");
       return new Response(
-        JSON.stringify({ error: "Missing access_token" }),
+        JSON.stringify({ 
+          success: false,
+          error: "Access Token obrigatório",
+          details: "Forneça o Access Token para testar a conexão" 
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+
+    // Validate token format
+    const validation = validateTokenFormat(access_token, 'access');
+    if (!validation.isValid) {
+      console.error("Invalid token format:", validation.message);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Formato de token inválido",
+          details: validation.message 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Determine environment
+    const detectedEnv = environment === 'auto' ? getEnvironment(access_token) : environment;
+    console.log(`Testing ${detectedEnv} credentials`);
 
     // Test the access token by calling Mercado Pago API
     console.log("Testing access token with Mercado Pago API");
     const response = await fetch("https://api.mercadopago.com/users/me", {
       headers: {
-        "Authorization": `Bearer ${access_token}`
+        "Authorization": `Bearer ${access_token}`,
+        "Content-Type": "application/json"
       }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Invalid credentials:", errorText);
+      console.error(`API Error (${response.status}):`, errorText);
+      
+      let errorMessage = "Credenciais inválidas";
+      let details = "";
+      
+      if (response.status === 401) {
+        errorMessage = "Access Token inválido ou expirado";
+        details = "Verifique se o token foi copiado corretamente e se sua conta Mercado Pago está ativa";
+      } else if (response.status === 403) {
+        errorMessage = "Acesso negado";
+        details = "Sua conta pode não ter as permissões necessárias ou não estar aprovada";
+      } else if (response.status === 429) {
+        errorMessage = "Muitas tentativas";
+        details = "Aguarde alguns minutos antes de tentar novamente";
+      } else {
+        details = `Erro HTTP ${response.status}`;
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Invalid credentials", 
-          details: errorText 
+          error: errorMessage,
+          details: details,
+          environment: detectedEnv,
+          statusCode: response.status
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
@@ -89,8 +165,12 @@ serve(async (req) => {
           id: userData.id,
           first_name: userData.first_name,
           last_name: userData.last_name,
-          email: userData.email
-        }
+          email: userData.email,
+          country_id: userData.country_id,
+          site_id: userData.site_id
+        },
+        environment: detectedEnv,
+        message: `Conectado com sucesso ao ambiente de ${detectedEnv === 'production' ? 'produção' : 'teste'}`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
@@ -100,8 +180,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: "Failed to test credentials", 
-        details: error.message 
+        error: "Erro interno do servidor", 
+        details: "Ocorreu um erro inesperado ao testar as credenciais. Tente novamente."
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
