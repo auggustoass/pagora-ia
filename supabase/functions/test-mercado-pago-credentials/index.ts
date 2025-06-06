@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Validate token format
+// Updated validation with more flexible token requirements
 function validateTokenFormat(token: string, type: 'access' | 'public'): { isValid: boolean; message?: string } {
   if (!token || typeof token !== 'string') {
     return { isValid: false, message: `${type} token é obrigatório` };
@@ -20,10 +20,10 @@ function validateTokenFormat(token: string, type: 'access' | 'public'): { isVali
     return { isValid: false, message: `${type} token deve começar com APP_USR-` };
   }
 
-  // Access tokens are longer than public keys
-  const minLength = type === 'access' ? 120 : 40;
+  // Updated minimum length requirements to be more realistic
+  const minLength = type === 'access' ? 60 : 30;
   if (token.length < minLength) {
-    return { isValid: false, message: `${type} token parece estar incompleto (muito curto)` };
+    return { isValid: false, message: `${type} token parece estar incompleto (deve ter pelo menos ${minLength} caracteres)` };
   }
 
   return { isValid: true };
@@ -96,7 +96,9 @@ serve(async (req) => {
       );
     }
 
-    // Validate token format
+    console.log(`Received token with length: ${access_token.length}`);
+
+    // Validate token format with updated validation
     const validation = validateTokenFormat(access_token, 'access');
     if (!validation.isValid) {
       console.error("Invalid token format:", validation.message);

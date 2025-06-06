@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -10,6 +9,24 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Updated token validation with more flexible requirements
+function validateTokenFormat(token: string): { isValid: boolean; message?: string } {
+  if (!token || typeof token !== 'string') {
+    return { isValid: false, message: 'Access token é obrigatório' };
+  }
+
+  if (!token.startsWith('APP_USR-')) {
+    return { isValid: false, message: 'Access token deve começar com APP_USR-' };
+  }
+
+  // Updated minimum length to be more realistic
+  if (token.length < 60) {
+    return { isValid: false, message: 'Access token parece estar incompleto (deve ter pelo menos 60 caracteres)' };
+  }
+
+  return { isValid: true };
+}
 
 serve(async (req) => {
   console.log("🚀 Function generate-invoice-payment called");
@@ -102,6 +119,22 @@ serve(async (req) => {
       console.log("👤 Using user's personal credentials");
     }
     
+    console.log(`🔍 Validating access token (length: ${accessToken.length})`);
+    
+    // Validate the access token format with updated validation
+    const tokenValidation = validateTokenFormat(accessToken);
+    if (!tokenValidation.isValid) {
+      console.error("❌ Invalid token format:", tokenValidation.message);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid Mercado Pago credentials format", 
+          details: tokenValidation.message,
+          credentialsSource 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
     // Create a Mercado Pago preference
     const backUrl = `${req.headers.get("origin") || "https://app.lovable.dev"}/faturas`;
     const webhookUrl = `${supabaseUrl}/functions/v1/process-payment-webhook`;
@@ -148,10 +181,25 @@ serve(async (req) => {
 
     if (!mpResponse.ok) {
       console.error("❌ Mercado Pago API error:", responseText);
+      
+      let errorDetails = responseText;
+      
+      // Try to parse error response for better error messages
+      try {
+        const errorData = JSON.parse(responseText);
+        if (errorData.message) {
+          errorDetails = errorData.message;
+        } else if (errorData.error) {
+          errorDetails = errorData.error;
+        }
+      } catch (e) {
+        // Keep original response text if parsing fails
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: "Failed to create payment preference", 
-          details: responseText,
+          details: errorDetails,
           status: mpResponse.status,
           credentialsSource 
         }),

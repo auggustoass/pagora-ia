@@ -37,14 +37,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Form validation schema
+// Form validation schema with more flexible token validation
 const mercadoPagoSchema = z.object({
   access_token: z.string().min(10, {
     message: 'O Access Token é obrigatório e deve ter pelo menos 10 caracteres',
   }).refine(val => val.startsWith('APP_USR-'), {
     message: 'O Access Token deve começar com APP_USR-',
-  }).refine(val => val.length >= 120, {
-    message: 'O Access Token parece estar incompleto (muito curto)',
+  }).refine(val => val.length >= 60, {
+    message: 'O Access Token parece estar incompleto (deve ter pelo menos 60 caracteres)',
   }),
   public_key: z.string().min(10, {
     message: 'A Public Key é obrigatória e deve ter pelo menos 10 caracteres',
@@ -185,14 +185,16 @@ export function MercadoPagoForm({
       }
 
       console.log('Testing Mercado Pago connection with token:', values.access_token.substring(0, 20) + '...');
+      console.log('Token length:', values.access_token.length);
 
-      // Validate token format before sending
+      // Validate token format before sending with updated validation
       const tokenValidation = mercadoPagoSchema.pick({ access_token: true }).safeParse({
         access_token: values.access_token
       });
 
       if (!tokenValidation.success) {
         const error = tokenValidation.error.errors[0];
+        console.error('Token validation failed:', error.message);
         throw new Error(error.message);
       }
       
@@ -398,6 +400,10 @@ export function MercadoPagoForm({
                   </FormControl>
                   <FormDescription className="text-xs">
                     O token de acesso é necessário para criar preferências de pagamento. Certifique-se de copiar o token completo.
+                    <br />
+                    <span className="text-muted-foreground">
+                      Tokens válidos têm entre 60-150 caracteres e começam com APP_USR-
+                    </span>
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
