@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { CreditCard, Shield, Check, X, ExternalLink, AlertCircle, Loader2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import {
@@ -63,6 +63,7 @@ const Configuracoes = () => {
   const [isTesting, setIsTesting] = useState(false);
   const { user } = useAuth();
   const { hasUserCredentials, hasGlobalCredentials, credentialsSource, checkMercadoPagoCredentials } = useMercadoPago();
+  const { toast } = useToast();
   
   const form = useForm<MercadoPagoFormValues>({
     resolver: zodResolver(mercadoPagoSchema),
