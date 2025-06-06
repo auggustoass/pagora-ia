@@ -121,22 +121,19 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
         vencimento: new Date().toISOString().split("T")[0],
       };
       
+      console.log("🔥 Creating invoice with data:", invoiceData);
       const invoice = await InvoiceService.createInvoice(invoiceData);
+      console.log("✅ Invoice created:", invoice);
       
-      // Generate payment link for both PIX and regular link
-      const paymentResult = await InvoiceService.generatePaymentLink(invoice.id);
+      // Generate payment based on type
+      console.log(`🔥 Generating ${values.paymentType} payment for invoice ${invoice.id}`);
+      const paymentResult = await InvoiceService.generatePaymentLink(invoice.id, values.paymentType);
+      console.log("✅ Payment result:", paymentResult);
       
-      if (values.paymentType === "link") {
-        setGeneratedResult({
-          type: 'link',
-          value: paymentResult.payment_url || paymentResult.init_point,
-          invoiceId: invoice.id
-        });
-      } else {
-        // For PIX, check if real PIX data is available from Mercado Pago
-        if (paymentResult.qr_code_base64 || paymentResult.qr_code || paymentResult.pix_code) {
-          // Use real PIX code from Mercado Pago
-          const pixCode = paymentResult.qr_code_base64 || paymentResult.qr_code || paymentResult.pix_code;
+      if (values.paymentType === "pix") {
+        // For PIX, check if real PIX data is available
+        if (paymentResult.qr_code_base64 || paymentResult.qr_code) {
+          const pixCode = paymentResult.qr_code_base64 || paymentResult.qr_code;
           
           setPixData({
             code: pixCode,
@@ -144,14 +141,21 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
           });
           setShowPixModal(true);
         } else {
-          // PIX not available, offer link as fallback
+          // PIX generation failed, show error
           setGeneratedResult({
             type: 'pix',
-            value: paymentResult.payment_url || paymentResult.init_point,
+            value: paymentResult.payment_url || '',
             invoiceId: invoice.id,
-            pixError: "PIX não disponível. Use o link de pagamento abaixo."
+            pixError: "Erro ao gerar PIX. Tente novamente ou use o link de pagamento."
           });
         }
+      } else {
+        // For link payment
+        setGeneratedResult({
+          type: 'link',
+          value: paymentResult.payment_url || paymentResult.init_point,
+          invoiceId: invoice.id
+        });
       }
       
       await refetch();
@@ -231,14 +235,14 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
             {generatedResult.type === 'pix' && generatedResult.pixError ? (
               <>
                 <AlertCircle className="w-5 h-5 inline mr-2 text-yellow-500" />
-                Link de Pagamento Gerado
+                Erro ao Gerar PIX
               </>
             ) : generatedResult.type === 'pix' ? 'Código PIX Gerado!' : 'Link de Pagamento Gerado!'}
           </h3>
           
           {generatedResult.pixError && (
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
-              <p className="text-sm text-yellow-400">{generatedResult.pixError}</p>
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+              <p className="text-sm text-red-400">{generatedResult.pixError}</p>
             </div>
           )}
           
