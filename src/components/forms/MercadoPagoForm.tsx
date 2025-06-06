@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -185,6 +184,8 @@ export function MercadoPagoForm({
         throw new Error('Access Token não informado');
       }
 
+      console.log('Testing Mercado Pago connection with token:', values.access_token.substring(0, 20) + '...');
+
       // Validate token format before sending
       const tokenValidation = mercadoPagoSchema.pick({ access_token: true }).safeParse({
         access_token: values.access_token
@@ -201,6 +202,8 @@ export function MercadoPagoForm({
           environment: values.environment 
         }
       });
+      
+      console.log('Test function response:', { data, error });
       
       if (error) {
         console.error('Error calling test function:', error);

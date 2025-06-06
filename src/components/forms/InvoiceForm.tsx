@@ -174,6 +174,8 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
         throw new Error('Cliente não encontrado');
       }
       
+      console.log('Creating invoice for user:', user.id);
+      
       // Inserir fatura no Supabase
       const { data: invoice, error } = await supabase
         .from('faturas')
@@ -193,27 +195,41 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating invoice:', error);
+        throw error;
+      }
+      
+      console.log('Invoice created successfully:', invoice);
       
       // If the user wants to generate a payment link
       if (values.generatePaymentLink && invoice && canGeneratePayments) {
         setIsGeneratingPaymentLink(true);
         
         try {
+          console.log('Attempting to generate payment link for invoice:', invoice.id);
+          console.log('Using credentials source:', credentialsSource);
+          
           const { data: paymentData, error: paymentError } = await supabase.functions.invoke('generate-invoice-payment', {
             body: { invoiceId: invoice.id }
           });
           
+          console.log('Payment generation response:', { paymentData, paymentError });
+          
           if (paymentError) {
             console.error('Error generating payment link:', paymentError);
-            toast.warning('Fatura criada, mas não foi possível gerar o link de pagamento.');
-          } else if (paymentData && paymentData.payment_url) {
+            toast.error(`Fatura criada, mas erro ao gerar link de pagamento: ${paymentError.message || 'Erro desconhecido'}`);
+          } else if (paymentData?.success && paymentData.payment_url) {
             const sourceText = credentialsSource === 'user' ? 'suas credenciais pessoais' : 'credenciais globais';
             toast.success(`Link de pagamento gerado com sucesso usando ${sourceText}.`);
+            console.log('Payment link generated successfully:', paymentData.payment_url);
+          } else {
+            console.error('Payment generation failed:', paymentData);
+            toast.error(`Fatura criada, mas falha na geração do link: ${paymentData?.error || 'Resposta inválida'}`);
           }
         } catch (paymentGenError) {
-          console.error('Error calling payment generation:', paymentGenError);
-          toast.error('Ocorreu um erro ao gerar o link de pagamento. Verifique as credenciais do Mercado Pago.');
+          console.error('Error calling payment generation function:', paymentGenError);
+          toast.error(`Erro ao chamar função de pagamento: ${paymentGenError instanceof Error ? paymentGenError.message : 'Erro desconhecido'}`);
         } finally {
           setIsGeneratingPaymentLink(false);
         }
@@ -229,7 +245,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       }
     } catch (error) {
       console.error('Error creating invoice:', error);
-      toast.error('Ocorreu um erro ao tentar gerar a fatura. Tente novamente.');
+      toast.error(`Erro ao criar fatura: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
     }

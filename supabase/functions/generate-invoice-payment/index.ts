@@ -12,22 +12,28 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("🚀 Function generate-invoice-payment called");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("📋 Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   try {
+    console.log("📥 Parsing request body");
     const { invoiceId } = await req.json();
     
     if (!invoiceId) {
-      console.error("Missing invoice ID");
+      console.error("❌ Missing invoice ID");
       return new Response(
         JSON.stringify({ error: "Missing invoice ID" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
+    console.log(`🔍 Fetching invoice ${invoiceId}`);
+    
     // Get the invoice details with user_id
     const { data: invoice, error: invoiceError } = await supabase
       .from("faturas")
@@ -36,22 +42,26 @@ serve(async (req) => {
       .single();
 
     if (invoiceError || !invoice) {
-      console.error("Invoice not found:", invoiceError);
+      console.error("❌ Invoice not found:", invoiceError);
       return new Response(
         JSON.stringify({ error: "Invoice not found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
       );
     }
 
+    console.log(`✅ Invoice found for user ${invoice.user_id}`);
+
     // Check if the invoice has a user_id
     if (!invoice.user_id) {
-      console.error("Invoice has no associated user_id");
+      console.error("❌ Invoice has no associated user_id");
       return new Response(
         JSON.stringify({ error: "Invoice has no associated user" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
+    console.log(`🔑 Checking Mercado Pago credentials for user ${invoice.user_id}`);
+    
     // Check if the user has their own Mercado Pago credentials
     const { data: userCredentials, error: userCredentialsError } = await supabase
       .from("mercado_pago_credentials")
@@ -59,16 +69,37 @@ serve(async (req) => {
       .eq("user_id", invoice.user_id)
       .single();
 
-    // If the user doesn't have credentials, return an error (no admin fallback)
+    let accessToken: string;
+    let credentialsSource: string;
+
     if (userCredentialsError || !userCredentials) {
-      console.error(`User ${invoice.user_id} has no Mercado Pago credentials`);
-      return new Response(
-        JSON.stringify({ 
-          error: "Mercado Pago credentials not found", 
-          details: "You must configure your Mercado Pago credentials before generating payment links" 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
+      console.log("👤 No user credentials found, checking for global credentials");
+      
+      // Check for global admin credentials
+      const { data: globalCredentials, error: globalCredentialsError } = await supabase
+        .from("admin_mercado_pago_credentials")
+        .select("*")
+        .limit(1)
+        .single();
+
+      if (globalCredentialsError || !globalCredentials) {
+        console.error("❌ No Mercado Pago credentials found (user or global)");
+        return new Response(
+          JSON.stringify({ 
+            error: "Mercado Pago credentials not found", 
+            details: "Neither user nor global Mercado Pago credentials are configured" 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+      
+      accessToken = globalCredentials.access_token;
+      credentialsSource = "global";
+      console.log("🌐 Using global admin credentials");
+    } else {
+      accessToken = userCredentials.access_token;
+      credentialsSource = "user";
+      console.log("👤 Using user's personal credentials");
     }
     
     // Create a Mercado Pago preference
@@ -99,27 +130,37 @@ serve(async (req) => {
       auto_return: "approved",
     };
 
-    console.log(`Creating payment preference for invoice ${invoice.id} using user's credentials`);
+    console.log(`💳 Creating payment preference for invoice ${invoice.id} using ${credentialsSource} credentials`);
+    console.log("🔗 Preference data:", JSON.stringify(preference, null, 2));
+    
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${userCredentials.access_token}`,
+        "Authorization": `Bearer ${accessToken}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify(preference)
     });
 
+    const responseText = await mpResponse.text();
+    console.log(`📊 Mercado Pago API response status: ${mpResponse.status}`);
+    console.log(`📄 Mercado Pago API response: ${responseText}`);
+
     if (!mpResponse.ok) {
-      const errorText = await mpResponse.text();
-      console.error("Mercado Pago API error:", errorText);
+      console.error("❌ Mercado Pago API error:", responseText);
       return new Response(
-        JSON.stringify({ error: "Failed to create payment preference", details: errorText }),
+        JSON.stringify({ 
+          error: "Failed to create payment preference", 
+          details: responseText,
+          status: mpResponse.status,
+          credentialsSource 
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
-    const preferenceData = await mpResponse.json();
-    console.log(`Payment preference created successfully, ID: ${preferenceData.id}`);
+    const preferenceData = JSON.parse(responseText);
+    console.log(`✅ Payment preference created successfully, ID: ${preferenceData.id}`);
 
     // Update the invoice with the preference ID and payment URL
     const { error: updateError } = await supabase
@@ -132,25 +173,39 @@ serve(async (req) => {
       .eq("id", invoice.id);
       
     if (updateError) {
-      console.error("Error updating invoice with preference data:", updateError);
+      console.error("⚠️ Error updating invoice with preference data:", updateError);
       // Continue anyway since we already created the preference
+    } else {
+      console.log("✅ Invoice updated with payment data");
     }
 
+    const result = {
+      success: true,
+      preference_id: preferenceData.id,
+      payment_url: preferenceData.init_point,
+      init_point: preferenceData.init_point,
+      sandbox_init_point: preferenceData.sandbox_init_point,
+      credentialsSource,
+      message: `Payment link generated successfully using ${credentialsSource} credentials`
+    };
+
+    console.log("🎉 Function completed successfully:", result);
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        preference_id: preferenceData.id,
-        payment_url: preferenceData.init_point,
-        init_point: preferenceData.init_point,
-        sandbox_init_point: preferenceData.sandbox_init_point
-      }),
+      JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
     
   } catch (error) {
-    console.error("Error generating payment:", error);
+    console.error("💥 Unexpected error in generate-invoice-payment:", error);
+    console.error("Stack trace:", error.stack);
+    
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error occurred" }),
+      JSON.stringify({ 
+        error: error.message || "Unknown error occurred",
+        details: error.stack,
+        timestamp: new Date().toISOString()
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
