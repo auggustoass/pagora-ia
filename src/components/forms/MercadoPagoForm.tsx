@@ -113,7 +113,8 @@ export function MercadoPagoForm({
           form.setValue('access_token', data.access_token || '');
           form.setValue('public_key', data.public_key || '');
           form.setValue('user_mercado_pago_id', data.user_mercado_pago_id || '');
-          form.setValue('environment', data.environment || 'auto');
+          // Use 'auto' as default since environment column doesn't exist yet
+          form.setValue('environment', 'auto');
         }
       } catch (error) {
         console.error('Error fetching Mercado Pago config:', error);
@@ -138,6 +139,7 @@ export function MercadoPagoForm({
     setIsLoading(true);
     
     try {
+      // For now, we'll save without the environment field since it doesn't exist in the table
       const { error } = await supabase
         .from('mercado_pago_credentials')
         .upsert(
@@ -146,7 +148,6 @@ export function MercadoPagoForm({
             access_token: values.access_token,
             public_key: values.public_key,
             user_mercado_pago_id: values.user_mercado_pago_id,
-            environment: values.environment,
             updated_at: new Date().toISOString()
           },
           { onConflict: 'user_id' }
