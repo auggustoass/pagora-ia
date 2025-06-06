@@ -10,7 +10,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Updated token validation with more flexible requirements
 function validateTokenFormat(token: string): { isValid: boolean; message?: string } {
   if (!token || typeof token !== 'string') {
     return { isValid: false, message: 'Access token é obrigatório' };
@@ -20,7 +19,6 @@ function validateTokenFormat(token: string): { isValid: boolean; message?: strin
     return { isValid: false, message: 'Access token deve começar com APP_USR-' };
   }
 
-  // Updated minimum length to be more realistic
   if (token.length < 60) {
     return { isValid: false, message: 'Access token parece estar incompleto (deve ter pelo menos 60 caracteres)' };
   }
@@ -31,7 +29,6 @@ function validateTokenFormat(token: string): { isValid: boolean; message?: strin
 serve(async (req) => {
   console.log("🚀 Function generate-invoice-payment called");
   
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     console.log("📋 Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders, status: 204 });
@@ -135,7 +132,7 @@ serve(async (req) => {
       );
     }
     
-    // Create a Mercado Pago preference
+    // Create a Mercado Pago preference with PIX support
     const backUrl = `${req.headers.get("origin") || "https://app.lovable.dev"}/faturas`;
     const webhookUrl = `${supabaseUrl}/functions/v1/process-payment-webhook`;
     
@@ -152,6 +149,12 @@ serve(async (req) => {
       payer: {
         name: invoice.nome,
         email: invoice.email,
+      },
+      payment_methods: {
+        excluded_payment_types: [],
+        excluded_payment_methods: [],
+        installments: 1,
+        default_installments: 1
       },
       back_urls: {
         success: backUrl,
@@ -210,19 +213,61 @@ serve(async (req) => {
     const preferenceData = JSON.parse(responseText);
     console.log(`✅ Payment preference created successfully, ID: ${preferenceData.id}`);
 
+    // Try to get PIX QR code if available
+    let pixQrCode = null;
+    try {
+      console.log("🔍 Attempting to get PIX QR code...");
+      const pixResponse = await fetch(`https://api.mercadopago.com/checkout/preferences/${preferenceData.id}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (pixResponse.ok) {
+        const pixData = await pixResponse.json();
+        console.log("📱 PIX data received:", JSON.stringify(pixData, null, 2));
+        
+        // Check for PIX QR code in various possible fields
+        if (pixData.qr_code_base64) {
+          pixQrCode = pixData.qr_code_base64;
+          console.log("✅ PIX QR code found in qr_code_base64");
+        } else if (pixData.qr_code) {
+          pixQrCode = pixData.qr_code;
+          console.log("✅ PIX QR code found in qr_code");
+        } else if (pixData.pix_code) {
+          pixQrCode = pixData.pix_code;
+          console.log("✅ PIX code found in pix_code");
+        } else {
+          console.log("ℹ️ No PIX QR code found in response");
+        }
+      } else {
+        console.log("⚠️ Could not retrieve PIX data:", await pixResponse.text());
+      }
+    } catch (pixError) {
+      console.log("⚠️ Error getting PIX data:", pixError);
+    }
+
     // Update the invoice with the preference ID and payment URL
+    const updateData: any = {
+      mercado_pago_preference_id: preferenceData.id,
+      payment_url: preferenceData.init_point,
+      payment_status: "pending"
+    };
+
+    if (pixQrCode) {
+      updateData.qrcode = pixQrCode;
+      console.log("💾 Saving PIX QR code to invoice");
+    }
+
     const { error: updateError } = await supabase
       .from("faturas")
-      .update({
-        mercado_pago_preference_id: preferenceData.id,
-        payment_url: preferenceData.init_point,
-        payment_status: "pending"
-      })
+      .update(updateData)
       .eq("id", invoice.id);
       
     if (updateError) {
       console.error("⚠️ Error updating invoice with preference data:", updateError);
-      // Continue anyway since we already created the preference
     } else {
       console.log("✅ Invoice updated with payment data");
     }
@@ -233,6 +278,9 @@ serve(async (req) => {
       payment_url: preferenceData.init_point,
       init_point: preferenceData.init_point,
       sandbox_init_point: preferenceData.sandbox_init_point,
+      qr_code_base64: pixQrCode,
+      qr_code: pixQrCode,
+      pix_code: pixQrCode,
       credentialsSource,
       message: `Payment link generated successfully using ${credentialsSource} credentials`
     };

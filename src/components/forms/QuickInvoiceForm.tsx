@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,7 +16,7 @@ import {
   FormMessage 
 } from "@/components/ui/form";
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, MessageCircle } from 'lucide-react';
+import { Loader2, Copy, MessageCircle, AlertCircle } from 'lucide-react';
 import { InvoiceService } from '@/services/InvoiceService';
 import { useCredits } from '@/hooks/use-credits';
 import { SecurityService } from '@/services/SecurityService';
@@ -62,6 +61,7 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
     type: 'pix' | 'link';
     value: string;
     invoiceId: string;
+    pixError?: string;
   } | null>(null);
   const [showPixModal, setShowPixModal] = useState(false);
   const [pixData, setPixData] = useState<{
@@ -123,27 +123,35 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
       
       const invoice = await InvoiceService.createInvoice(invoiceData);
       
+      // Generate payment link for both PIX and regular link
+      const paymentResult = await InvoiceService.generatePaymentLink(invoice.id);
+      
       if (values.paymentType === "link") {
-        // Gerar link de pagamento
-        const paymentResult = await InvoiceService.generatePaymentLink(invoice.id);
-        
         setGeneratedResult({
           type: 'link',
           value: paymentResult.payment_url || paymentResult.init_point,
           invoiceId: invoice.id
         });
       } else {
-        // Para PIX, gerar código PIX e mostrar modal
-        const pixResult = await InvoiceService.generatePaymentLink(invoice.id);
-        
-        // Simular geração de código PIX (em produção, viria da API do Mercado Pago)
-        const pixCode = pixResult.qr_code_base64 || generatePixCode(invoiceData);
-        
-        setPixData({
-          code: pixCode,
-          whatsapp: sanitizedValues.whatsapp
-        });
-        setShowPixModal(true);
+        // For PIX, check if real PIX data is available from Mercado Pago
+        if (paymentResult.qr_code_base64 || paymentResult.qr_code || paymentResult.pix_code) {
+          // Use real PIX code from Mercado Pago
+          const pixCode = paymentResult.qr_code_base64 || paymentResult.qr_code || paymentResult.pix_code;
+          
+          setPixData({
+            code: pixCode,
+            whatsapp: sanitizedValues.whatsapp
+          });
+          setShowPixModal(true);
+        } else {
+          // PIX not available, offer link as fallback
+          setGeneratedResult({
+            type: 'pix',
+            value: paymentResult.payment_url || paymentResult.init_point,
+            invoiceId: invoice.id,
+            pixError: "PIX não disponível. Use o link de pagamento abaixo."
+          });
+        }
       }
       
       await refetch();
@@ -165,13 +173,6 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
     }
   }
 
-  // Função temporária para gerar código PIX (substituir pela integração real)
-  const generatePixCode = (invoiceData: any) => {
-    // Código PIX simplificado para demonstração
-    // Em produção, isso viria da API do Mercado Pago ou gerador de PIX real
-    return `00020126580014br.gov.bcb.pix013614d94ff8-a4b3-4e4e-b14a-2b5a8e7f8c2952040000530398654${invoiceData.valor.toFixed(2).replace('.', '')}5802BR5925${invoiceData.nome.substring(0, 25)}6009SAO PAULO62070503***6304`;
-  };
-
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -192,7 +193,7 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
     if (generatedResult && form.getValues('whatsapp')) {
       const whatsapp = form.getValues('whatsapp').replace(/\D/g, '');
       const message = encodeURIComponent(
-        `Olá! Sua cobrança está pronta. ${generatedResult.type === 'pix' ? 'Código PIX' : 'Link de pagamento'}: ${generatedResult.value}`
+        `Olá! Sua cobrança está pronta. ${generatedResult.type === 'pix' ? 'Link de pagamento' : 'Link de pagamento'}: ${generatedResult.value}`
       );
       window.open(`https://wa.me/55${whatsapp}?text=${message}`, '_blank');
     }
@@ -210,7 +211,6 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
     setPixData(null);
   };
 
-  // Se o modal PIX estiver aberto, não mostrar outros conteúdos
   if (showPixModal && pixData) {
     return (
       <PixQRCodeModal
@@ -228,11 +228,23 @@ export function QuickInvoiceForm({ onSuccess }: QuickInvoiceFormProps) {
       <div className="space-y-4">
         <div className="text-center">
           <h3 className="text-lg font-medium text-green-400 mb-2">
-            {generatedResult.type === 'pix' ? 'Código PIX Gerado!' : 'Link de Pagamento Gerado!'}
+            {generatedResult.type === 'pix' && generatedResult.pixError ? (
+              <>
+                <AlertCircle className="w-5 h-5 inline mr-2 text-yellow-500" />
+                Link de Pagamento Gerado
+              </>
+            ) : generatedResult.type === 'pix' ? 'Código PIX Gerado!' : 'Link de Pagamento Gerado!'}
           </h3>
+          
+          {generatedResult.pixError && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
+              <p className="text-sm text-yellow-400">{generatedResult.pixError}</p>
+            </div>
+          )}
+          
           <div className="bg-black/20 p-4 rounded-lg border border-white/10">
             <p className="text-sm text-muted-foreground mb-2">
-              {generatedResult.type === 'pix' ? 'Código PIX:' : 'Link de Pagamento:'}
+              {generatedResult.type === 'pix' && !generatedResult.pixError ? 'Código PIX:' : 'Link de Pagamento:'}
             </p>
             <div className="flex items-center gap-2">
               <Input 
