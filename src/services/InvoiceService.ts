@@ -43,8 +43,6 @@ export class InvoiceService {
    */
   static async generatePaymentLink(invoiceId: string, paymentType: string = "link") {
     try {
-      console.log(`🔥 Calling edge function for payment link, invoice: ${invoiceId}`);
-      
       // Check user session
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !sessionData.session) {
@@ -57,14 +55,11 @@ export class InvoiceService {
       });
       
       if (error) {
-        console.error("Edge function error:", error);
         throw new Error(error.message || "Erro ao gerar link de pagamento");
       }
       
-      console.log("✅ Edge function response:", data);
       return data;
     } catch (error: any) {
-      console.error("Error generating payment:", error);
       toast({
         title: "Erro ao gerar link de pagamento",
         description: error.message || "Não foi possível gerar o link de pagamento. Verifique suas credenciais do Mercado Pago em Configurações.",

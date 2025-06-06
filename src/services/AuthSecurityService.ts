@@ -55,7 +55,6 @@ export class AuthSecurityService {
 
       return { success: false, error: 'Falha na autenticação' };
     } catch (error) {
-      console.error('Sign in error:', error);
       return { success: false, error: 'Erro interno do servidor' };
     }
   }
@@ -127,7 +126,6 @@ export class AuthSecurityService {
 
       return { success: false, error: 'Falha no cadastro' };
     } catch (error) {
-      console.error('Sign up error:', error);
       return { success: false, error: 'Erro interno do servidor' };
     }
   }
@@ -152,35 +150,58 @@ export class AuthSecurityService {
       // Force page reload for clean state
       window.location.href = '/auth';
     } catch (error) {
-      console.error('Sign out error:', error);
       // Force reload even if there's an error
       window.location.href = '/auth';
     }
   }
 
   /**
-   * Clean up authentication state
+   * Enhanced authentication state cleanup
    */
   private static async cleanupAuthState(): Promise<void> {
-    // Remove all auth-related keys from localStorage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-
-    // Remove from sessionStorage
-    Object.keys(sessionStorage || {}).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        sessionStorage.removeItem(key);
-      }
-    });
-
-    // Attempt global sign out (ignore errors)
     try {
-      await supabase.auth.signOut({ scope: 'global' });
+      // Clear all auth-related localStorage keys
+      const authKeys = Object.keys(localStorage).filter(key => 
+        key.startsWith('supabase.auth.') || 
+        key.includes('sb-') ||
+        key.includes('session') ||
+        key.includes('token') ||
+        key.includes('auth')
+      );
+      
+      authKeys.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      });
+
+      // Clear sessionStorage
+      const sessionKeys = Object.keys(sessionStorage || {}).filter(key => 
+        key.startsWith('supabase.auth.') || 
+        key.includes('sb-') ||
+        key.includes('session') ||
+        key.includes('token') ||
+        key.includes('auth')
+      );
+      
+      sessionKeys.forEach(key => {
+        try {
+          sessionStorage.removeItem(key);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      });
+
+      // Attempt global sign out (ignore errors)
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (error) {
+        // Continue cleanup even if signout fails
+      }
     } catch (error) {
-      // Ignore cleanup errors
+      // Continue execution even if cleanup fails
     }
   }
 
