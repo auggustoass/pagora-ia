@@ -41,3 +41,4 @@ enabled = true
 [edge_functions.verify-subscriptions]
 [edge_functions.generate-notification]
 [edge_functions.check-notification-triggers]
+[edge_functions.test-mercado-pago-credentials]

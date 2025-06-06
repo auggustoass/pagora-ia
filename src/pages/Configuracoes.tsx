@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -110,7 +109,11 @@ const Configuracoes = () => {
 
   const onSubmitMercadoPago = async (values: MercadoPagoFormValues) => {
     if (!user) {
-      toast.error('Você precisa estar logado para salvar configurações.');
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para salvar configurações.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -132,13 +135,20 @@ const Configuracoes = () => {
         
       if (error) throw error;
       
-      toast.success('Suas credenciais do Mercado Pago foram salvas com sucesso.');
+      toast({
+        title: "Sucesso",
+        description: "Suas credenciais do Mercado Pago foram salvas com sucesso.",
+      });
       
       // Update the credentials status
       checkMercadoPagoCredentials();
     } catch (error) {
       console.error('Error saving Mercado Pago config:', error);
-      toast.error('Ocorreu um erro ao tentar salvar as configurações. Tente novamente.');
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao tentar salvar as configurações. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -150,34 +160,45 @@ const Configuracoes = () => {
     try {
       const values = form.getValues();
       
-      // Test the Mercado Pago connection
+      // Test the Mercado Pago connection using the edge function
       if (!values.access_token) {
         throw new Error('Access Token não informado');
       }
       
-      const response = await fetch('https://api.mercadopago.com/users/me', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${values.access_token}`,
-          'Content-Type': 'application/json',
-        },
+      const { data, error } = await supabase.functions.invoke('test-mercado-pago-credentials', {
+        body: { access_token: values.access_token }
       });
       
-      if (!response.ok) {
-        throw new Error(`Erro ao conectar com Mercado Pago: ${response.status} ${response.statusText}`);
+      if (error) {
+        console.error('Error calling test function:', error);
+        throw new Error(`Erro ao testar credenciais: ${error.message}`);
       }
       
-      const data = await response.json();
-      
-      if (data.id && values.user_mercado_pago_id !== data.id.toString()) {
-        form.setValue('user_mercado_pago_id', data.id.toString());
-        toast.info(`O ID do usuário foi atualizado para ${data.id} conforme informações da API.`);
+      if (!data.success) {
+        throw new Error(data.details || 'Credenciais inválidas');
       }
       
-      toast.success(`Conectado como ${data.first_name} ${data.last_name} (${data.email})`);
+      const userData = data.user;
+      
+      if (userData.id && values.user_mercado_pago_id !== userData.id.toString()) {
+        form.setValue('user_mercado_pago_id', userData.id.toString());
+        toast({
+          title: "ID atualizado",
+          description: `O ID do usuário foi atualizado para ${userData.id} conforme informações da API.`,
+        });
+      }
+      
+      toast({
+        title: "Conexão bem-sucedida",
+        description: `Conectado como ${userData.first_name} ${userData.last_name} (${userData.email})`,
+      });
     } catch (error) {
       console.error('Error testing connection:', error);
-      toast.error(error instanceof Error ? error.message : 'Não foi possível conectar ao Mercado Pago. Verifique suas credenciais.');
+      toast({
+        title: "Erro na conexão",
+        description: error instanceof Error ? error.message : 'Não foi possível conectar ao Mercado Pago. Verifique suas credenciais.',
+        variant: "destructive",
+      });
     } finally {
       setIsTesting(false);
     }
