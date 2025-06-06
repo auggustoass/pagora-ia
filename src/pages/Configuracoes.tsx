@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -204,35 +205,6 @@ const Configuracoes = () => {
     }
   };
 
-  const getCredentialsStatusInfo = () => {
-    if (hasUserCredentials) {
-      return {
-        icon: <Check className="w-4 h-4 text-green-500" />,
-        title: "Credenciais pessoais configuradas",
-        description: "Suas credenciais pessoais estão ativas. Elas têm prioridade sobre credenciais globais.",
-        variant: "success" as const
-      };
-    }
-    
-    if (hasGlobalCredentials) {
-      return {
-        icon: <Info className="w-4 h-4 text-blue-500" />,
-        title: "Usando credenciais globais",
-        description: "Não há credenciais pessoais configuradas. O sistema está usando credenciais globais do administrador.",
-        variant: "info" as const
-      };
-    }
-    
-    return {
-      icon: <X className="w-4 h-4 text-red-500" />,
-      title: "Nenhuma credencial configurada",
-      description: "Configure suas credenciais pessoais ou solicite ao administrador para configurar credenciais globais.",
-      variant: "error" as const
-    };
-  };
-
-  const statusInfo = getCredentialsStatusInfo();
-
   return (
     <Layout>
       <div className="space-y-6">
@@ -270,20 +242,44 @@ const Configuracoes = () => {
                   <CardContent className="space-y-4">
                     {/* Status das credenciais */}
                     <div className={`flex items-center gap-2 mb-6 p-3 rounded-md border ${
-                      statusInfo.variant === 'success' ? 'bg-green-500/10 border-green-500/20' :
-                      statusInfo.variant === 'info' ? 'bg-blue-500/10 border-blue-500/20' :
-                      'bg-red-500/10 border-red-500/20'
+                      hasUserCredentials 
+                        ? 'bg-green-500/10 border-green-500/20' 
+                        : hasGlobalCredentials 
+                          ? 'bg-blue-500/10 border-blue-500/20'
+                          : 'bg-red-500/10 border-red-500/20'
                     }`}>
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        statusInfo.variant === 'success' ? 'bg-green-500/20' :
-                        statusInfo.variant === 'info' ? 'bg-blue-500/20' :
-                        'bg-red-500/20'
+                        hasUserCredentials 
+                          ? 'bg-green-500/20' 
+                          : hasGlobalCredentials 
+                            ? 'bg-blue-500/20'
+                            : 'bg-red-500/20'
                       }`}>
-                        {statusInfo.icon}
+                        {hasUserCredentials ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : hasGlobalCredentials ? (
+                          <Info className="w-4 h-4 text-blue-500" />
+                        ) : (
+                          <X className="w-4 h-4 text-red-500" />
+                        )}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{statusInfo.title}</p>
-                        <p className="text-xs text-muted-foreground">{statusInfo.description}</p>
+                        <p className="text-sm font-medium">
+                          {hasUserCredentials 
+                            ? "Credenciais pessoais configuradas"
+                            : hasGlobalCredentials 
+                              ? "Usando credenciais globais"
+                              : "Nenhuma credencial configurada"
+                          }
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {hasUserCredentials 
+                            ? "Suas credenciais pessoais estão ativas. Elas têm prioridade sobre credenciais globais."
+                            : hasGlobalCredentials 
+                              ? "Não há credenciais pessoais configuradas. O sistema está usando credenciais globais do administrador."
+                              : "Configure suas credenciais pessoais ou solicite ao administrador para configurar credenciais globais."
+                          }
+                        </p>
                       </div>
                     </div>
 
