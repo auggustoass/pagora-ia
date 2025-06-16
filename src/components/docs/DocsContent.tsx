@@ -28,7 +28,8 @@ import {
   DollarSign,
   TrendingUp,
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  type LucideIcon
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
@@ -44,7 +45,7 @@ const DocumentationSection = ({
 }: { 
   title: string; 
   children: React.ReactNode; 
-  icon?: React.ComponentType<{ size?: number; className?: string }>;
+  icon?: LucideIcon;
 }) => (
   <Card className="mb-6">
     <CardHeader>
@@ -65,7 +66,7 @@ const FeatureCard = ({
   description, 
   actions 
 }: { 
-  icon: React.ComponentType<{ size?: number; className?: string }>; 
+  icon: LucideIcon; 
   title: string; 
   description: string; 
   actions?: string[];
