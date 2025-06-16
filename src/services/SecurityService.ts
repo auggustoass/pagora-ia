@@ -47,9 +47,57 @@ export class SecurityService {
   }
 
   /**
+   * @deprecated Use EnhancedSecurityService.validateSecureEmail instead
+   */
+  static isValidEmail(email: string): boolean {
+    const result = EnhancedSecurityService.validateSecureEmail(email);
+    return result.isValid;
+  }
+
+  /**
    * @deprecated Use EnhancedSecurityService.sanitizeHtmlAdvanced instead
    */
   static sanitizeHtml(input: string): string {
     return EnhancedSecurityService.sanitizeHtmlAdvanced(input);
+  }
+
+  /**
+   * Client-side rate limiting check
+   * @deprecated Use EnhancedSecurityService.checkServerRateLimit for server-side rate limiting
+   */
+  static checkRateLimit(key: string, maxAttempts: number, windowMs: number): boolean {
+    const now = Date.now();
+    const attempts = JSON.parse(localStorage.getItem(`rate_limit_${key}`) || '[]');
+    
+    // Filter attempts within the time window
+    const recentAttempts = attempts.filter((timestamp: number) => now - timestamp < windowMs);
+    
+    // Add current attempt
+    recentAttempts.push(now);
+    
+    // Update storage
+    localStorage.setItem(`rate_limit_${key}`, JSON.stringify(recentAttempts));
+    
+    // Check if limit exceeded
+    return recentAttempts.length <= maxAttempts;
+  }
+
+  /**
+   * Basic phone validation
+   * @deprecated Use EnhancedSecurityService.validateSecureInput with type 'phone' instead
+   */
+  static isValidPhone(phone: string): boolean {
+    if (!phone || typeof phone !== 'string') return false;
+    const cleanPhone = phone.replace(/\D/g, '');
+    return cleanPhone.length >= 10 && cleanPhone.length <= 15;
+  }
+
+  /**
+   * Basic CPF/CNPJ validation
+   */
+  static isValidCpfCnpj(value: string): boolean {
+    if (!value || typeof value !== 'string') return false;
+    const clean = value.replace(/\D/g, '');
+    return clean.length === 11 || clean.length === 14;
   }
 }

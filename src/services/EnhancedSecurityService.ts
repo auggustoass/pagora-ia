@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -101,19 +102,19 @@ export class EnhancedSecurityService {
   }
 
   /**
-   * Enhanced password validation
+   * Enhanced password validation with strength assessment
    */
-  static validateSecurePassword(password: string): { isValid: boolean; error?: string } {
+  static validateSecurePassword(password: string): { isValid: boolean; error?: string; strength: 'weak' | 'medium' | 'strong' } {
     if (!password || typeof password !== 'string') {
-      return { isValid: false, error: 'Senha é obrigatória' };
+      return { isValid: false, error: 'Senha é obrigatória', strength: 'weak' };
     }
 
     if (password.length < 8) {
-      return { isValid: false, error: 'Senha deve ter pelo menos 8 caracteres' };
+      return { isValid: false, error: 'Senha deve ter pelo menos 8 caracteres', strength: 'weak' };
     }
 
     if (password.length > 128) {
-      return { isValid: false, error: 'Senha muito longa' };
+      return { isValid: false, error: 'Senha muito longa', strength: 'weak' };
     }
 
     // Check for complexity
@@ -122,10 +123,20 @@ export class EnhancedSecurityService {
     const hasNumber = /\d/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
+    let strength: 'weak' | 'medium' | 'strong' = 'weak';
+    const complexityCount = [hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+
+    if (complexityCount >= 4 && password.length >= 12) {
+      strength = 'strong';
+    } else if (complexityCount >= 3 && password.length >= 8) {
+      strength = 'medium';
+    }
+
     if (!(hasUpper && hasLower && hasNumber && hasSpecial)) {
       return { 
         isValid: false, 
-        error: 'Senha deve conter pelo menos uma letra maiúscula, minúscula, número e caractere especial' 
+        error: 'Senha deve conter pelo menos uma letra maiúscula, minúscula, número e caractere especial',
+        strength
       };
     }
 
@@ -139,11 +150,11 @@ export class EnhancedSecurityService {
 
     for (const pattern of commonPatterns) {
       if (pattern.test(password)) {
-        return { isValid: false, error: 'Senha contém padrões comuns inseguros' };
+        return { isValid: false, error: 'Senha contém padrões comuns inseguros', strength: 'weak' };
       }
     }
 
-    return { isValid: true };
+    return { isValid: true, strength };
   }
 
   /**
