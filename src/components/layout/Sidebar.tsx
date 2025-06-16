@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, FileText, PieChart, Settings, HelpCircle, MessageSquare, LogOut, Shield, ChevronRight, BookOpen } from 'lucide-react';
+import { Home, Users, FileText, PieChart, Settings, HelpCircle, MessageSquare, LogOut, Shield, ChevronRight } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -99,8 +99,6 @@ export function Sidebar({
           <NavItem icon={<PieChart size={18} />} label="Relatórios" to="/relatorios" isActive={location.pathname === '/relatorios'} collapsed={collapsed} />
           
           {isAdmin && <NavItem icon={<Shield size={18} />} label="Admin" to="/admin" isActive={location.pathname === '/admin'} collapsed={collapsed} />}
-          
-          <NavItem icon={<BookOpen size={18} />} label="Documentação" to="/docs" isActive={location.pathname === '/docs'} collapsed={collapsed} />
           
           <NavItem icon={<Settings size={18} />} label="Configurações" to="/configuracoes" isActive={location.pathname === '/configuracoes'} collapsed={collapsed} />
           
