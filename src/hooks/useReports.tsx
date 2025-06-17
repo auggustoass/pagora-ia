@@ -34,12 +34,17 @@ export const useReports = ({ dateRange, userFilter }: UseReportsProps = {}) => {
 
       console.log('Reports data received:', { statusData, clientData, invoiceData });
 
-      setStatusCounts(statusData || []);
-      setClientStats(clientData);
-      setInvoiceStats(invoiceData);
+      // Validar e sanitizar dados
+      setStatusCounts(Array.isArray(statusData) ? statusData : []);
+      setClientStats(clientData || null);
+      setInvoiceStats(invoiceData || null);
     } catch (error) {
       console.error('Error fetching reports:', error);
       setError(error instanceof Error ? error.message : 'Erro ao carregar relatórios');
+      // Definir valores padrão em caso de erro
+      setStatusCounts([]);
+      setClientStats(null);
+      setInvoiceStats(null);
     } finally {
       setLoading(false);
     }

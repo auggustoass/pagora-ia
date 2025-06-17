@@ -27,17 +27,24 @@ export function ThemeProvider({
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => {
-      // Only access localStorage on client side
-      if (typeof window !== "undefined") {
-        return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
-      }
+  // Inicializar com tema padrão para evitar problemas de hidratação
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Verificar se estamos no browser antes de acessar localStorage
+    if (typeof window === "undefined") {
       return defaultTheme;
     }
-  );
+    
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return (stored as Theme) || defaultTheme;
+    } catch {
+      return defaultTheme;
+    }
+  });
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
 
@@ -54,14 +61,20 @@ export function ThemeProvider({
     root.classList.add("dark");
   }, [theme]);
 
+  const handleSetTheme = (newTheme: Theme) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(storageKey, newTheme);
+      } catch (error) {
+        console.warn('Failed to save theme to localStorage:', error);
+      }
+    }
+    setTheme(newTheme);
+  };
+
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(storageKey, theme);
-      }
-      setTheme(theme);
-    },
+    setTheme: handleSetTheme,
   };
 
   return (
@@ -74,8 +87,9 @@ export function ThemeProvider({
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext);
 
-  if (context === undefined)
+  if (context === undefined) {
     throw new Error("useTheme must be used within a ThemeProvider");
+  }
 
   return context;
 };
