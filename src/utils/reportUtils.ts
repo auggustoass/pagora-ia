@@ -1,12 +1,6 @@
-
 import { toast } from 'sonner';
 
-export const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(value);
-};
+export { formatCurrency } from './currency';
 
 export const exportData = (data: any[], filename: string) => {
   if (!data || data.length === 0) {
