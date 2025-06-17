@@ -1,14 +1,11 @@
-
 import React from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { SupabaseTaskProvider } from '@/components/kanban/SupabaseTaskProvider';
-
 const Tarefas = () => {
-  return (
-    <SupabaseTaskProvider>
+  return <SupabaseTaskProvider>
       <Layout>
-        <div className="min-h-screen bg-kanban-bg">
+        <div className="min-h-screen bg-transparent">
           <div className="p-6">
             <div className="mb-6">
               {/* Header content can be added here */}
@@ -17,8 +14,6 @@ const Tarefas = () => {
           </div>
         </div>
       </Layout>
-    </SupabaseTaskProvider>
-  );
+    </SupabaseTaskProvider>;
 };
-
 export default Tarefas;
