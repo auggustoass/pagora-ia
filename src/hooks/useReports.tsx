@@ -24,27 +24,18 @@ export const useReports = ({ dateRange, userFilter }: UseReportsProps = {}) => {
       const startDate = dateRange?.from?.toISOString().split('T')[0];
       const endDate = dateRange?.to?.toISOString().split('T')[0];
 
-      console.log('Fetching reports with params:', { startDate, endDate, userFilter });
-
       const [statusData, clientData, invoiceData] = await Promise.all([
         ReportsService.getInvoiceStatusCounts(startDate, endDate, userFilter),
         ReportsService.getClientStatistics(startDate, endDate, userFilter),
         ReportsService.getInvoiceStatistics(startDate, endDate, userFilter)
       ]);
 
-      console.log('Reports data received:', { statusData, clientData, invoiceData });
-
-      // Validar e sanitizar dados
-      setStatusCounts(Array.isArray(statusData) ? statusData : []);
-      setClientStats(clientData || null);
-      setInvoiceStats(invoiceData || null);
+      setStatusCounts(statusData);
+      setClientStats(clientData);
+      setInvoiceStats(invoiceData);
     } catch (error) {
       console.error('Error fetching reports:', error);
       setError(error instanceof Error ? error.message : 'Erro ao carregar relatórios');
-      // Definir valores padrão em caso de erro
-      setStatusCounts([]);
-      setClientStats(null);
-      setInvoiceStats(null);
     } finally {
       setLoading(false);
     }
@@ -52,7 +43,7 @@ export const useReports = ({ dateRange, userFilter }: UseReportsProps = {}) => {
 
   useEffect(() => {
     fetchReports();
-  }, [dateRange?.from, dateRange?.to, userFilter]);
+  }, [dateRange, userFilter]);
 
   return {
     statusCounts,

@@ -13,8 +13,6 @@ export interface ClientStatistics {
 export interface InvoiceStatistics {
   totalInvoices: number;
   totalValue: number;
-  averageValue?: number;
-  statusCounts?: Record<string, number>;
   avgPaymentDays: number;
   monthlyValues: Array<{ month: string; value: number }>;
   valueRanges: Array<{ range: string; count: number }>;

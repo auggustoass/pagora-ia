@@ -18,33 +18,20 @@ export function useOptimizedClients(searchTerm: string = '') {
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const fetchClients = async (): Promise<Client[]> => {
-    if (!user) {
-      console.log('No user found, returning empty clients array');
-      return [];
+    if (!user) return [];
+
+    let query = supabase
+      .from('clients')
+      .select('id, nome, email, whatsapp, cpf_cnpj')
+      .order('nome');
+    
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id);
     }
 
-    try {
-      let query = supabase
-        .from('clients')
-        .select('id, nome, email, whatsapp, cpf_cnpj')
-        .order('nome');
-      
-      if (!isAdmin) {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching clients:', error);
-        throw error;
-      }
-      
-      return data || [];
-    } catch (error) {
-      console.error('Failed to fetch clients:', error);
-      return [];
-    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   };
 
   const {
@@ -55,30 +42,21 @@ export function useOptimizedClients(searchTerm: string = '') {
     queryKey: ['clients', user?.id, isAdmin],
     queryFn: fetchClients,
     enabled: !!user,
-    staleTime: 3 * 60 * 1000, // Cache por 3 minutos
-    retry: 1, // Tentar apenas uma vez em caso de erro
+    // Cache clients for 3 minutes
+    staleTime: 3 * 60 * 1000,
   });
 
-  // Filtrar clientes com base no termo de busca
+  // Memoized filtered clients for search
   const filteredClients = useMemo(() => {
-    if (!debouncedSearchTerm || !Array.isArray(clients)) {
-      return clients;
-    }
+    if (!debouncedSearchTerm) return clients;
     
     const term = debouncedSearchTerm.toLowerCase();
-    return clients.filter(client => {
-      try {
-        return (
-          client.nome?.toLowerCase().includes(term) ||
-          client.email?.toLowerCase().includes(term) ||
-          client.cpf_cnpj?.includes(term) ||
-          client.whatsapp?.includes(term)
-        );
-      } catch (error) {
-        console.warn('Error filtering client:', client, error);
-        return false;
-      }
-    });
+    return clients.filter(client =>
+      client.nome.toLowerCase().includes(term) ||
+      client.email.toLowerCase().includes(term) ||
+      client.cpf_cnpj.includes(term) ||
+      client.whatsapp.includes(term)
+    );
   }, [clients, debouncedSearchTerm]);
 
   return {

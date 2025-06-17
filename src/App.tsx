@@ -1,13 +1,12 @@
 
-import React from 'react';
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { SecurityProvider } from "@/components/security/SecurityProvider";
-import { ErrorBoundaryWithRecovery } from "@/components/ui/ErrorBoundaryWithRecovery";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Faturas from "./pages/Faturas";
@@ -24,13 +23,13 @@ import NotFound from "./pages/NotFound";
 
 function App() {
   return (
-    <ErrorBoundaryWithRecovery>
-      <QueryProvider>
-        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <QueryProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <TooltipProvider>
+          <Toaster />
           <BrowserRouter>
             <AuthProvider>
               <SecurityProvider>
-                <Toaster />
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
@@ -106,9 +105,9 @@ function App() {
               </SecurityProvider>
             </AuthProvider>
           </BrowserRouter>
-        </ThemeProvider>
-      </QueryProvider>
-    </ErrorBoundaryWithRecovery>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryProvider>
   );
 }
 

@@ -1,9 +1,6 @@
 
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useReports } from '@/hooks/useReports';
-import { Skeleton } from '@/components/ui/skeleton';
-import { subDays, format, eachDayOfInterval } from 'date-fns';
 
 interface RevenueData {
   date: string;
@@ -11,130 +8,17 @@ interface RevenueData {
   pending: number;
 }
 
+const mockData: RevenueData[] = [
+  { date: '1', received: 2400, pending: 800 },
+  { date: '5', received: 1398, pending: 900 },
+  { date: '10', received: 9800, pending: 1200 },
+  { date: '15', received: 3908, pending: 600 },
+  { date: '20', received: 4800, pending: 1100 },
+  { date: '25', received: 3800, pending: 700 },
+  { date: '30', received: 4300, pending: 950 },
+];
+
 export function RevenueChart() {
-  // Get data for the last 30 days
-  const dateRange = {
-    from: subDays(new Date(), 30),
-    to: new Date()
-  };
-
-  const { invoiceStats, loading, error } = useReports({ dateRange });
-
-  // Process the data to create daily revenue chart
-  const processRevenueData = (): RevenueData[] => {
-    // Add safety checks for the data structure
-    if (!invoiceStats?.monthlyValues || !Array.isArray(invoiceStats.monthlyValues)) {
-      console.log('No monthlyValues data available:', invoiceStats);
-      return [];
-    }
-
-    try {
-      // Create array of last 30 days
-      const days = eachDayOfInterval({
-        start: dateRange.from,
-        end: dateRange.to
-      });
-
-      // Map each day to revenue data
-      return days.map(day => {
-        const dayKey = format(day, 'yyyy-MM-dd');
-        
-        // For simplicity, we'll distribute monthly values across days
-        const monthKey = format(day, 'yyyy-MM');
-        const monthData = invoiceStats.monthlyValues.find(m => m.month === monthKey);
-        
-        if (monthData && monthData.value > 0) {
-          const daysInMonth = new Date(day.getFullYear(), day.getMonth() + 1, 0).getDate();
-          const dailyAverage = monthData.value / daysInMonth;
-          
-          // Simulate some variation - 70% received, 30% pending
-          return {
-            date: format(day, 'dd'),
-            received: Math.round(dailyAverage * 0.7),
-            pending: Math.round(dailyAverage * 0.3)
-          };
-        }
-        
-        return {
-          date: format(day, 'dd'),
-          received: 0,
-          pending: 0
-        };
-      });
-    } catch (err) {
-      console.error('Error processing revenue data:', err);
-      return [];
-    }
-  };
-
-  const chartData = processRevenueData();
-
-  if (loading) {
-    return (
-      <div className="relative bg-black border border-green-500/20 rounded-2xl overflow-hidden">
-        <div className="relative p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-1 h-8 bg-gradient-to-b from-green-400 to-transparent animate-pulse"></div>
-              <div>
-                <h3 className="text-xl font-mono font-bold text-white tracking-wider">FINANCIAL_ANALYTICS</h3>
-                <p className="text-green-400/70 text-sm font-mono tracking-widest">// LOADING_DATA_PROTOCOL</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-              <span className="text-xs font-mono text-yellow-400 tracking-wider">LOADING</span>
-            </div>
-          </div>
-          <Skeleton className="h-64 bg-green-400/10" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    console.error('Revenue chart error:', error);
-    return (
-      <div className="relative bg-black border border-red-500/20 rounded-2xl overflow-hidden">
-        <div className="relative p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-1 h-8 bg-gradient-to-b from-red-400 to-transparent"></div>
-              <div>
-                <h3 className="text-xl font-mono font-bold text-white tracking-wider">FINANCIAL_ANALYTICS</h3>
-                <p className="text-red-400/70 text-sm font-mono tracking-widest">// ERROR_LOADING_DATA</p>
-              </div>
-            </div>
-          </div>
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-red-400 font-mono">Erro ao carregar dados financeiros</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!chartData || chartData.length === 0) {
-    return (
-      <div className="relative bg-black border border-gray-500/20 rounded-2xl overflow-hidden">
-        <div className="relative p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-1 h-8 bg-gradient-to-b from-gray-400 to-transparent"></div>
-              <div>
-                <h3 className="text-xl font-mono font-bold text-white tracking-wider">FINANCIAL_ANALYTICS</h3>
-                <p className="text-gray-400/70 text-sm font-mono tracking-widest">// NO_DATA_AVAILABLE</p>
-              </div>
-            </div>
-          </div>
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-gray-400 font-mono">Nenhum dado financeiro encontrado para o período</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative bg-black border border-green-500/20 rounded-2xl overflow-hidden group hover:border-green-400/30 transition-all duration-500">
       {/* Cyber grid background */}
@@ -149,14 +33,14 @@ export function RevenueChart() {
             <div className="w-1 h-8 bg-gradient-to-b from-green-400 to-transparent animate-pulse"></div>
             <div>
               <h3 className="text-xl font-mono font-bold text-white tracking-wider">FINANCIAL_ANALYTICS</h3>
-              <p className="text-green-400/70 text-sm font-mono tracking-widest">// LAST_30_DAYS_REAL_DATA</p>
+              <p className="text-green-400/70 text-sm font-mono tracking-widest">// LAST_30_DAYS_PROTOCOL</p>
             </div>
           </div>
           
           {/* Status indicator */}
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-xs font-mono text-green-400 tracking-wider">LIVE_DATA</span>
+            <span className="text-xs font-mono text-green-400 tracking-wider">ONLINE</span>
           </div>
         </div>
         
@@ -165,7 +49,7 @@ export function RevenueChart() {
           <div className="absolute inset-0 bg-gradient-to-t from-green-400/5 to-transparent rounded-lg"></div>
           
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <AreaChart data={mockData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="receivedGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#00ff41" stopOpacity={0.4}/>
@@ -221,9 +105,9 @@ export function RevenueChart() {
                 }}
                 formatter={(value: number, name: string) => [
                   `R$ ${value.toLocaleString('pt-BR')}`,
-                  name === 'received' ? '>> RECEBIDO' : '>> PENDENTE'
+                  name === 'received' ? '>> RECEIVED' : '>> PENDING'
                 ]}
-                labelFormatter={(label) => `// DIA_${label}`}
+                labelFormatter={(label) => `// DAY_${label}`}
               />
               
               <Area 
@@ -252,11 +136,11 @@ export function RevenueChart() {
         <div className="flex items-center justify-center gap-8 mt-6 pt-4 border-t border-green-500/20">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-sm font-mono text-green-400 tracking-wider">RECEBIDO</span>
+            <span className="text-sm font-mono text-green-400 tracking-wider">RECEIVED</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-gray-500 rounded-full opacity-70"></div>
-            <span className="text-sm font-mono text-gray-400 tracking-wider">PENDENTE</span>
+            <span className="text-sm font-mono text-gray-400 tracking-wider">PENDING</span>
           </div>
         </div>
       </div>
