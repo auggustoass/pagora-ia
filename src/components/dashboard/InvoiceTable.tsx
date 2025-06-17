@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Check, Clock, Ban, Search, Filter, Edit, CreditCard, ExternalLink, TrendingUp, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -50,7 +49,7 @@ interface InvoiceTableProps {
 const StatusBadge = ({ status }: StatusBadgeProps) => {
   const statusConfig = {
     pendente: {
-      color: 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 border border-yellow-500/30',
+      color: 'bg-gradient-to-r from-gray-500/20 to-gray-400/20 text-gray-300 border border-gray-500/30',
       icon: <Clock className="w-3 h-3" />,
       label: 'Pendente'
     },

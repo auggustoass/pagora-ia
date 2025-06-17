@@ -8,7 +8,7 @@ const statusCardVariants = cva("glass-card p-5 flex transition-all duration-300 
   variants: {
     variant: {
       default: "border-border bg-card/80",
-      pending: "border-l-4 border-l-warning border-border",
+      pending: "border-l-4 border-l-gray-500 border-border",
       success: "border-l-4 border-l-success border-border",
       error: "border-l-4 border-l-error border-border"
     }
@@ -47,7 +47,7 @@ export function StatusCard({
     if (progressColor) return progressColor;
     
     switch (variant) {
-      case "pending": return "stroke-warning";
+      case "pending": return "stroke-gray-500";
       case "success": return "stroke-success";
       case "error": return "stroke-error";
       default: return "stroke-primary";
@@ -71,7 +71,7 @@ export function StatusCard({
             >
               <div className={cn(
                 "flex flex-col items-center justify-center",
-                variant === "pending" && "text-warning",
+                variant === "pending" && "text-gray-500",
                 variant === "success" && "text-success", 
                 variant === "error" && "text-error",
                 (!variant || variant === "default") && "text-primary"
@@ -83,7 +83,7 @@ export function StatusCard({
         ) : (
           <div className={cn(
             "icon-circle w-10 h-10 bg-secondary/50 mr-4", 
-            variant === "pending" && "bg-warning/10 text-warning", 
+            variant === "pending" && "bg-gray-500/10 text-gray-500", 
             variant === "success" && "bg-success/10 text-success", 
             variant === "error" && "bg-error/10 text-error",
             (!variant || variant === "default") && "text-primary"

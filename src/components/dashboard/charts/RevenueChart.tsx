@@ -35,8 +35,8 @@ export function RevenueChart() {
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="pendingGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#6b7280" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#6b7280" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
@@ -76,7 +76,7 @@ export function RevenueChart() {
             <Area 
               type="monotone" 
               dataKey="pending" 
-              stroke="#f59e0b" 
+              stroke="#6b7280" 
               strokeWidth={2}
               fillOpacity={1} 
               fill="url(#pendingGradient)" 
@@ -91,7 +91,7 @@ export function RevenueChart() {
           <span className="text-sm text-gray-300">Recebido</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+          <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
           <span className="text-sm text-gray-300">Pendente</span>
         </div>
       </div>
