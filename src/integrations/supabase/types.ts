@@ -9,69 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_mercado_pago_credentials: {
-        Row: {
-          access_token: string
-          created_at: string
-          id: string
-          public_key: string
-          updated_at: string
-          user_mercado_pago_id: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string
-          id?: string
-          public_key: string
-          updated_at?: string
-          user_mercado_pago_id: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string
-          id?: string
-          public_key?: string
-          updated_at?: string
-          user_mercado_pago_id?: string
-        }
-        Relationships: []
-      }
-      advanced_rate_limits: {
-        Row: {
-          action_type: string
-          attempts_count: number
-          blocked_until: string | null
-          created_at: string
-          id: string
-          identifier: string
-          ip_address: unknown | null
-          user_id: string | null
-          window_start: string
-        }
-        Insert: {
-          action_type: string
-          attempts_count?: number
-          blocked_until?: string | null
-          created_at?: string
-          id?: string
-          identifier: string
-          ip_address?: unknown | null
-          user_id?: string | null
-          window_start?: string
-        }
-        Update: {
-          action_type?: string
-          attempts_count?: number
-          blocked_until?: string | null
-          created_at?: string
-          id?: string
-          identifier?: string
-          ip_address?: unknown | null
-          user_id?: string | null
-          window_start?: string
-        }
-        Relationships: []
-      }
       clients: {
         Row: {
           cpf_cnpj: string
@@ -314,24 +251,6 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
-        }
-        Relationships: []
-      }
-      rate_limit_attempts: {
-        Row: {
-          created_at: string | null
-          id: string
-          key: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          key: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          key?: string
         }
         Relationships: []
       }
@@ -687,6 +606,10 @@ export type Database = {
           window_minutes?: number
         }
         Returns: boolean
+      }
+      cleanup_old_security_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       decrypt_credential: {
         Args: { encrypted_text: string; encryption_key: string }
