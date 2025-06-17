@@ -24,6 +24,8 @@ export function CoverImageUpload({ currentImage, onImageSelect, onImageRemove }:
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('File selected:', { name: file.name, size: file.size, type: file.type });
+
     setError(null);
     setUploading(true);
 
@@ -44,16 +46,20 @@ export function CoverImageUpload({ currentImage, onImageSelect, onImageRemove }:
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
+        console.log('File converted to base64:', result.substring(0, 50) + '...');
+        console.log('Calling onImageSelect with:', result.substring(0, 50) + '...');
         onImageSelect(result);
         setUploading(false);
       };
       reader.onerror = () => {
+        console.error('FileReader error');
         setError('Erro ao processar o arquivo.');
         setUploading(false);
       };
       reader.readAsDataURL(file);
 
     } catch (err) {
+      console.error('Upload error:', err);
       setError(err instanceof Error ? err.message : 'Erro ao fazer upload da imagem.');
       setUploading(false);
     }
@@ -63,9 +69,12 @@ export function CoverImageUpload({ currentImage, onImageSelect, onImageRemove }:
   };
 
   const handleRemoveImage = () => {
+    console.log('Remove image called');
     onImageRemove();
     setError(null);
   };
+
+  console.log('CoverImageUpload render:', { currentImage: currentImage ? currentImage.substring(0, 50) + '...' : 'none' });
 
   return (
     <div className="space-y-4">

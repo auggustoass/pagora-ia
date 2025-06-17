@@ -170,13 +170,19 @@ const sampleTasks: Record<string, Task> = {
   }
 };
 
-// Helper function to validate image URLs
+// Helper function to validate image URLs - Updated to accept base64
 const isValidImageUrl = (url: string): boolean => {
+  // Accept base64 image URLs
+  if (url.startsWith('data:image/')) {
+    console.log('Base64 image URL detected:', url.substring(0, 50) + '...');
+    return true;
+  }
+
+  // Accept regular image URLs
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
   const lowerUrl = url.toLowerCase();
   
-  // Check if it's a valid URL and has image extension or is from known image hosting services
-  return (
+  const isValid = (
     url.startsWith('http') && 
     (
       imageExtensions.some(ext => lowerUrl.includes(ext)) ||
@@ -187,6 +193,9 @@ const isValidImageUrl = (url: string): boolean => {
       lowerUrl.includes('amazonaws.com')
     )
   );
+
+  console.log('Image URL validation:', { url: url.substring(0, 50) + '...', isValid });
+  return isValid;
 };
 
 // Initialize columns with sample tasks
@@ -234,10 +243,15 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
+    console.log('updateTask called:', { taskId, updates });
+    
     // Validate cover image URL if being updated
-    if (updates.coverImage && !isValidImageUrl(updates.coverImage)) {
-      console.warn('Invalid image URL provided:', updates.coverImage);
-      return;
+    if (updates.coverImage !== undefined) {
+      if (updates.coverImage && !isValidImageUrl(updates.coverImage)) {
+        console.warn('Invalid image URL provided:', updates.coverImage);
+        return;
+      }
+      console.log('Cover image update accepted:', updates.coverImage ? updates.coverImage.substring(0, 50) + '...' : 'removed');
     }
 
     setTasks(prev => ({
