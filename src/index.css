@@ -5,108 +5,108 @@
 
 @layer base {
   :root {
-    /* Light mode - Base colors */
-    --background: 0 0% 98%;
-    --foreground: 220 20% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 220 15% 95%;
-    --secondary-foreground: 220 20% 10%;
-    --muted: 220 15% 95%;
-    --muted-foreground: 220 10% 40%;
-    --accent: 160 84% 39%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 15% 90%;
-    --input: 220 15% 90%;
-    --ring: 160 84% 39%;
-    --radius: 0.5rem;
-    
-    /* Status colors - Light mode */
-    --success: 160 84% 39%;
-    --success-foreground: 0 0% 98%;
-    --warning: 45 93% 47%;
-    --warning-foreground: 0 0% 98%;
-    --error: 0 84% 60%;
-    --error-foreground: 0 0% 98%;
-    --info: 200 94% 86%;
-    --info-foreground: 220 20% 10%;
-    
-    /* Kanban specific colors - Light mode */
-    --kanban-bg: 220 20% 98%;
-    --kanban-card: 0 0% 100%;
-    --kanban-column: 220 15% 95%;
-    --kanban-todo: 220 10% 40%;
-    --kanban-progress: 200 100% 50%;
-    --kanban-review: 45 93% 47%;
-    --kanban-done: 160 84% 39%;
-    
-    /* Sidebar specific colors */
-    --sidebar-background: 220 20% 96%;
-    --sidebar-foreground: 220 20% 10%;
-    --sidebar-primary: 160 84% 39%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 220 15% 90%;
-    --sidebar-accent-foreground: 220 20% 10%;
-    --sidebar-border: 220 15% 85%;
-    --sidebar-ring: 160 84% 39%;
-  }
-
-  .dark {
-    /* Dark mode - Base colors */
-    --background: 220 20% 4%;
+    /* Base black, gray, and green theme */
+    --background: 220 20% 2%;
     --foreground: 0 0% 98%;
-    --card: 220 20% 6%;
+    --card: 220 20% 4%;
     --card-foreground: 0 0% 98%;
-    --popover: 220 20% 6%;
+    --popover: 220 20% 4%;
     --popover-foreground: 0 0% 98%;
-    --primary: 160 84% 39%;
+    --primary: 142 76% 36%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 220 20% 10%;
+    --secondary: 220 20% 8%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 220 20% 10%;
-    --muted-foreground: 220 10% 70%;
-    --accent: 160 84% 39%;
+    --muted: 220 20% 12%;
+    --muted-foreground: 220 10% 65%;
+    --accent: 142 76% 36%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 20% 15%;
     --input: 220 20% 15%;
-    --ring: 160 84% 39%;
+    --ring: 142 76% 36%;
+    --radius: 0.5rem;
     
-    /* Status colors - Dark mode */
-    --success: 160 84% 39%;
+    /* Status colors - Black/Gray/Green scheme */
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
     --warning: 45 93% 47%;
     --warning-foreground: 0 0% 98%;
     --error: 0 84% 60%;
     --error-foreground: 0 0% 98%;
-    --info: 200 50% 50%;
+    --info: 142 76% 36%;
     --info-foreground: 0 0% 98%;
     
-    /* Kanban specific colors - Dark mode */
-    --kanban-bg: 220 20% 3%;
-    --kanban-card: 220 20% 8%;
-    --kanban-column: 220 20% 6%;
+    /* Kanban specific colors - Black/Gray/Green scheme */
+    --kanban-bg: 220 20% 1%;
+    --kanban-card: 220 20% 6%;
+    --kanban-column: 220 20% 4%;
     --kanban-todo: 220 10% 50%;
-    --kanban-progress: 200 100% 50%;
+    --kanban-progress: 220 10% 40%;
     --kanban-review: 45 93% 47%;
-    --kanban-done: 160 84% 39%;
+    --kanban-done: 142 76% 36%;
     
     /* Sidebar specific colors */
-    --sidebar-background: 220 20% 3%;
+    --sidebar-background: 220 20% 1%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary: 142 76% 36%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 220 20% 13%;
+    --sidebar-accent: 220 20% 8%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 220 20% 10%;
-    --sidebar-ring: 160 84% 39%;
+    --sidebar-border: 220 20% 12%;
+    --sidebar-ring: 142 76% 36%;
+  }
+
+  .dark {
+    /* Same values for dark mode - ensuring consistency */
+    --background: 220 20% 2%;
+    --foreground: 0 0% 98%;
+    --card: 220 20% 4%;
+    --card-foreground: 0 0% 98%;
+    --popover: 220 20% 4%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 20% 8%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 20% 12%;
+    --muted-foreground: 220 10% 65%;
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 20% 15%;
+    --input: 220 20% 15%;
+    --ring: 142 76% 36%;
+    
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 98%;
+    --error: 0 84% 60%;
+    --error-foreground: 0 0% 98%;
+    --info: 142 76% 36%;
+    --info-foreground: 0 0% 98%;
+    
+    /* Kanban specific colors */
+    --kanban-bg: 220 20% 1%;
+    --kanban-card: 220 20% 6%;
+    --kanban-column: 220 20% 4%;
+    --kanban-todo: 220 10% 50%;
+    --kanban-progress: 220 10% 40%;
+    --kanban-review: 45 93% 47%;
+    --kanban-done: 142 76% 36%;
+    
+    /* Sidebar specific colors */
+    --sidebar-background: 220 20% 1%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 142 76% 36%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 220 20% 8%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 220 20% 12%;
+    --sidebar-ring: 142 76% 36%;
   }
 
   * {
@@ -117,8 +117,8 @@
     @apply bg-background text-foreground antialiased overflow-x-hidden min-h-screen;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     background-image: 
-      radial-gradient(circle at 15% 50%, hsl(var(--primary) / 0.025) 0%, transparent 25%),
-      radial-gradient(circle at 85% 30%, hsl(var(--primary) / 0.025) 0%, transparent 25%);
+      radial-gradient(circle at 15% 50%, hsl(var(--primary) / 0.05) 0%, transparent 25%),
+      radial-gradient(circle at 85% 30%, hsl(var(--primary) / 0.05) 0%, transparent 25%);
     background-attachment: fixed;
   }
 
@@ -126,6 +126,9 @@
     @apply backdrop-blur-sm border rounded-xl shadow-lg transition-all duration-300;
     position: relative;
     overflow: hidden;
+    background: hsl(var(--card) / 0.8);
+    border-color: hsl(var(--border));
+    box-shadow: 0 8px 32px hsl(var(--background) / 0.3);
   }
   
   .glass-card::before {
@@ -135,19 +138,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent);
-  }
-
-  .light .glass-card {
-    background: hsl(var(--card) / 0.8);
-    border-color: hsl(var(--border));
-    box-shadow: 0 8px 32px hsl(var(--foreground) / 0.05);
-  }
-
-  .dark .glass-card {
-    background: hsl(var(--card) / 0.15);
-    border-color: hsl(var(--border));
-    box-shadow: 0 8px 32px hsl(var(--background) / 0.1);
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.2), transparent);
   }
 
   .hblackpix-gradient {
@@ -227,7 +218,7 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.1);
+    background: hsl(var(--primary) / 0.2);
     border-radius: 9999px;
   }
   
@@ -259,7 +250,7 @@
   }
   
   .text-glow {
-    text-shadow: 0 0 10px hsl(var(--primary) / 0.3);
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
   }
   
   .text-gradient {
@@ -274,8 +265,8 @@
   }
   
   .bg-grid {
-    background-image: linear-gradient(hsl(var(--border) / 0.02) 1px, transparent 1px),
-                      linear-gradient(to right, hsl(var(--border) / 0.02) 1px, transparent 1px);
+    background-image: linear-gradient(hsl(var(--border) / 0.05) 1px, transparent 1px),
+                      linear-gradient(to right, hsl(var(--border) / 0.05) 1px, transparent 1px);
     background-size: 20px 20px;
   }
 
