@@ -1,0 +1,374 @@
+
+import React, { useState } from 'react';
+import { Task, useTask } from './TaskContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  X,
+  Calendar,
+  User,
+  Tag,
+  Paperclip,
+  MessageSquare,
+  CheckSquare,
+  Plus,
+  Send,
+  Download,
+  Trash2
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+interface TaskModalProps {
+  task: Task;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
+  const { updateTask, addComment, addChecklistItem, toggleChecklistItem } = useTask();
+  const [newComment, setNewComment] = useState('');
+  const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [description, setDescription] = useState(task.description);
+
+  const handleSaveDescription = () => {
+    updateTask(task.id, { description });
+    setEditingDescription(false);
+  };
+
+  const handleAddComment = () => {
+    if (newComment.trim()) {
+      addComment(task.id, newComment);
+      setNewComment('');
+    }
+  };
+
+  const handleAddChecklistItem = () => {
+    if (newChecklistItem.trim()) {
+      addChecklistItem(task.id, newChecklistItem);
+      setNewChecklistItem('');
+    }
+  };
+
+  const completedChecklist = task.checklist.filter(item => item.completed).length;
+  const totalChecklist = task.checklist.length;
+  const progressPercentage = totalChecklist > 0 ? (completedChecklist / totalChecklist) * 100 : 0;
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#1a1a1a] border-gray-800">
+        <DialogHeader className="pb-0">
+          <div className="flex items-start gap-4">
+            {task.coverImage && (
+              <div className="w-full h-48 rounded-lg overflow-hidden mb-4">
+                <img
+                  src={task.coverImage}
+                  alt="Task cover"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+          </div>
+          
+          <DialogTitle className="text-xl font-bold text-white text-left">
+            {task.title}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Labels */}
+            {task.labels.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+                  <Tag size={16} />
+                  Etiquetas
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {task.labels.map((label) => (
+                    <Badge
+                      key={label.id}
+                      className="text-xs"
+                      style={{ backgroundColor: label.color }}
+                    >
+                      {label.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-300 mb-2">Descrição</h3>
+              {editingDescription ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="bg-[#2a2a2a] border-gray-700 text-white"
+                    rows={4}
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSaveDescription}>
+                      Salvar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingDescription(false);
+                        setDescription(task.description);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="bg-[#2a2a2a] p-3 rounded-lg border border-gray-700 cursor-pointer hover:border-gray-600 transition-colors"
+                  onClick={() => setEditingDescription(true)}
+                >
+                  <p className="text-gray-300 text-sm">
+                    {task.description || 'Clique para adicionar uma descrição...'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Checklist */}
+            {(task.checklist.length > 0 || newChecklistItem) && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <CheckSquare size={16} className="text-gray-300" />
+                  <h3 className="text-sm font-semibold text-gray-300">
+                    Checklist {totalChecklist > 0 && `(${completedChecklist}/${totalChecklist})`}
+                  </h3>
+                </div>
+                
+                {totalChecklist > 0 && (
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-green-500 h-2 rounded-full transition-all"
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-400">{Math.round(progressPercentage)}%</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2 mb-3">
+                  {task.checklist.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 p-2 bg-[#2a2a2a] rounded border border-gray-700">
+                      <Checkbox
+                        checked={item.completed}
+                        onCheckedChange={() => toggleChecklistItem(task.id, item.id)}
+                      />
+                      <span className={`text-sm ${item.completed ? 'line-through text-gray-500' : 'text-gray-300'}`}>
+                        {item.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Adicionar item à checklist..."
+                    value={newChecklistItem}
+                    onChange={(e) => setNewChecklistItem(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddChecklistItem()}
+                    className="bg-[#2a2a2a] border-gray-700 text-white"
+                  />
+                  <Button size="sm" onClick={handleAddChecklistItem}>
+                    <Plus size={16} />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Attachments */}
+            {task.attachments.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                  <Paperclip size={16} />
+                  Anexos
+                </h3>
+                <div className="space-y-2">
+                  {task.attachments.map((attachment) => (
+                    <div key={attachment.id} className="flex items-center gap-3 p-3 bg-[#2a2a2a] rounded border border-gray-700">
+                      <div className="w-10 h-10 bg-gray-700 rounded flex items-center justify-center">
+                        <Paperclip size={16} className="text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-white font-medium">{attachment.name}</p>
+                        <p className="text-xs text-gray-400">
+                          {attachment.size && formatFileSize(attachment.size)} • 
+                          {format(new Date(attachment.uploadedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost">
+                          <Download size={14} />
+                        </Button>
+                        <Button size="sm" variant="ghost">
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Activities */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                <MessageSquare size={16} />
+                Atividades
+              </h3>
+              
+              <div className="space-y-3 mb-4">
+                {task.activities.map((activity) => (
+                  <div key={activity.id} className="flex gap-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={activity.user.avatar} />
+                      <AvatarFallback className="text-xs bg-gray-700 text-gray-300">
+                        {activity.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="bg-[#2a2a2a] p-3 rounded border border-gray-700">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-white">{activity.user.name}</span>
+                          <span className="text-xs text-gray-400">
+                            {format(new Date(activity.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-300">{activity.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="text-xs bg-gray-700 text-gray-300">
+                    U
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    placeholder="Escrever um comentário..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
+                    className="bg-[#2a2a2a] border-gray-700 text-white"
+                  />
+                  <Button size="sm" onClick={handleAddComment}>
+                    <Send size={16} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Due Date */}
+            {task.dueDate && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+                  <Calendar size={16} />
+                  Data de Vencimento
+                </h3>
+                <div className="bg-[#2a2a2a] p-3 rounded border border-gray-700">
+                  <p className="text-sm text-white">
+                    {format(new Date(task.dueDate), 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Members */}
+            {task.members.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+                  <User size={16} />
+                  Membros
+                </h3>
+                <div className="space-y-2">
+                  {task.members.map((member) => (
+                    <div key={member.id} className="flex items-center gap-2 p-2 bg-[#2a2a2a] rounded border border-gray-700">
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage src={member.avatar} />
+                        <AvatarFallback className="text-xs bg-gray-700 text-gray-300">
+                          {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm text-white font-medium">{member.name}</p>
+                        <p className="text-xs text-gray-400">{member.email}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-300 mb-2">Ações</h3>
+              <div className="space-y-2">
+                <Button variant="outline" size="sm" className="w-full justify-start bg-[#2a2a2a] border-gray-700">
+                  <User size={14} className="mr-2" />
+                  Adicionar Membros
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start bg-[#2a2a2a] border-gray-700">
+                  <Tag size={14} className="mr-2" />
+                  Adicionar Etiquetas
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start bg-[#2a2a2a] border-gray-700">
+                  <Paperclip size={14} className="mr-2" />
+                  Adicionar Anexo
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start bg-[#2a2a2a] border-gray-700">
+                  <Calendar size={14} className="mr-2" />
+                  Definir Data
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start bg-[#2a2a2a] border-gray-700">
+                  <CheckSquare size={14} className="mr-2" />
+                  Adicionar Checklist
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

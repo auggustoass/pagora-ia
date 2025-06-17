@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ import Admin from "./pages/Admin";
 import ApiTester from "./pages/ApiTester";
 import PendingApproval from "./pages/PendingApproval";
 import Docs from "./pages/Docs";
+import Tarefas from "./pages/Tarefas";
 
 // Configuração otimizada do QueryClient
 const queryClient = new QueryClient({
@@ -89,6 +91,11 @@ const App = () => (
                 <Route path="/docs" element={
                   <RequireAuth>
                     <Docs />
+                  </RequireAuth>
+                } />
+                <Route path="/tarefas" element={
+                  <RequireAuth>
+                    <Tarefas />
                   </RequireAuth>
                 } />
                 <Route path="/admin" element={<Admin />} />

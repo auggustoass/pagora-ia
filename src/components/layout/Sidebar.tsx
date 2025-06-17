@@ -95,6 +95,8 @@ export function Sidebar({
           <NavItem icon={<Users size={18} />} label="Clientes" to="/clientes" isActive={location.pathname === '/clientes'} collapsed={collapsed} />
           
           <NavItem icon={<FileText size={18} />} label="Faturas" to="/faturas" isActive={location.pathname === '/faturas'} collapsed={collapsed} />
+
+          <NavItem icon={<PieChart size={18} />} label="Tarefas" to="/tarefas" isActive={location.pathname === '/tarefas'} collapsed={collapsed} />
           
           <NavItem icon={<PieChart size={18} />} label="Relatórios" to="/relatorios" isActive={location.pathname === '/relatorios'} collapsed={collapsed} />
           
