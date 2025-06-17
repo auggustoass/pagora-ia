@@ -4,7 +4,7 @@ import { useOptimizedStats } from '@/hooks/use-optimized-stats';
 import { useOptimizedClients } from '@/hooks/use-optimized-clients';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { CreditsDisplay } from './CreditsDisplay';
-import { RevenueChart } from './charts/RevenueChart';
+import { UpcomingEvents } from './UpcomingEvents';
 import { CyberHeaderSection } from './CyberHeaderSection';
 import { MemoizedCyberStatsSection } from './MemoizedCyberStatsSection';
 import { LazyTabsSection } from './LazyTabsSection';
@@ -92,11 +92,11 @@ export function OptimizedDashboard() {
             formatCurrency={formatCurrency}
           />
           
-          {/* Charts Section */}
+          {/* Upcoming Events Section */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-green-400/5 to-transparent rounded-2xl blur-3xl"></div>
             <div className="relative">
-              <RevenueChart />
+              <UpcomingEvents />
             </div>
           </div>
           
