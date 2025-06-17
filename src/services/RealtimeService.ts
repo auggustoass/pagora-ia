@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -37,13 +36,13 @@ class RealtimeManager {
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: filters?.event || '*',
           schema: 'public',
           table,
           filter: filters?.filter
-        },
+        } as any,
         throttledCallback
       )
       .subscribe((status) => {
