@@ -1,13 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DragDropContext, Droppable, DropResult } from 'react-beautiful-dnd';
 import { KanbanColumn } from './KanbanColumn';
 import { useTask } from './TaskContext';
+import { CreateTaskModal } from './CreateTaskModal';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 export function KanbanBoard() {
   const { columns, moveTask } = useTask();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -38,6 +40,7 @@ export function KanbanBoard() {
             variant="outline"
             size="sm"
             className="bg-[#1a1a1a] border-gray-700 text-gray-300 hover:bg-[#2a2a2a]"
+            onClick={() => setIsCreateModalOpen(true)}
           >
             <Plus size={16} className="mr-2" />
             Adicionar Tarefa
@@ -68,6 +71,11 @@ export function KanbanBoard() {
           ))}
         </div>
       </DragDropContext>
+
+      <CreateTaskModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 }
