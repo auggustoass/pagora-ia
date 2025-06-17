@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -46,7 +45,8 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
         attachments: [],
         activities: [],
         checklist: [],
-        position: 0
+        position: 0,
+        archived: false
       });
       
       // Reset form
