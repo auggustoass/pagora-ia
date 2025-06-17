@@ -36,6 +36,42 @@ export type Database = {
         }
         Relationships: []
       }
+      advanced_rate_limits: {
+        Row: {
+          action_type: string
+          attempts_count: number
+          blocked_until: string | null
+          created_at: string
+          id: string
+          identifier: string
+          ip_address: unknown | null
+          user_id: string | null
+          window_start: string
+        }
+        Insert: {
+          action_type: string
+          attempts_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          identifier: string
+          ip_address?: unknown | null
+          user_id?: string | null
+          window_start?: string
+        }
+        Update: {
+          action_type?: string
+          attempts_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          identifier?: string
+          ip_address?: unknown | null
+          user_id?: string | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           cpf_cnpj: string
@@ -633,6 +669,17 @@ export type Database = {
         Args: { target_user_id: string; approver_user_id: string }
         Returns: undefined
       }
+      check_advanced_rate_limit: {
+        Args: {
+          p_identifier: string
+          p_action_type: string
+          p_user_id?: string
+          p_ip_address?: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: {
           identifier: string
@@ -640,6 +687,18 @@ export type Database = {
           window_minutes?: number
         }
         Returns: boolean
+      }
+      decrypt_credential: {
+        Args: { encrypted_text: string; encryption_key: string }
+        Returns: string
+      }
+      detect_suspicious_login_pattern: {
+        Args: { p_user_id: string; p_ip_address: string }
+        Returns: boolean
+      }
+      encrypt_credential: {
+        Args: { credential_text: string; encryption_key: string }
+        Returns: string
       }
       has_role: {
         Args: {
@@ -663,6 +722,18 @@ export type Database = {
           p_event_details?: Json
           p_ip_address?: string
           p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      log_security_event_enhanced: {
+        Args: {
+          p_user_id: string
+          p_event_type: string
+          p_event_details?: Json
+          p_ip_address?: string
+          p_user_agent?: string
+          p_session_id?: string
+          p_risk_level?: string
         }
         Returns: undefined
       }
