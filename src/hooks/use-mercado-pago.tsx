@@ -33,7 +33,7 @@ export function useMercadoPago() {
         return;
       }
       
-      // Check user's individual credentials first
+      // Check user's individual credentials
       const { data: userCredentials, error: userError } = await supabase
         .from('mercado_pago_credentials')
         .select('access_token')
@@ -46,18 +46,8 @@ export function useMercadoPago() {
       
       const hasUserCredentials = !!userCredentials?.access_token;
       
-      // Check if global admin credentials exist
-      const { data: globalCredentials, error: globalError } = await supabase
-        .from('admin_mercado_pago_credentials')
-        .select('access_token')
-        .limit(1)
-        .maybeSingle();
-        
-      if (globalError && globalError.code !== 'PGRST116') {
-        console.error('Error checking global Mercado Pago credentials:', globalError);
-      }
-      
-      const hasGlobalCredentials = !!globalCredentials?.access_token;
+      // For now, we'll assume no global credentials since the admin table was removed
+      const hasGlobalCredentials = false;
       
       // Determine final status based on hierarchy
       const canGeneratePayments = hasUserCredentials || hasGlobalCredentials;

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Layout } from '@/components/layout/Layout';
-import { InvoiceTable } from '@/components/dashboard/InvoiceTable';
+import { OptimizedInvoiceTable } from '@/components/dashboard/OptimizedInvoiceTable';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InvoiceForm } from '@/components/forms/InvoiceForm';
@@ -69,7 +69,7 @@ const Faturas = () => {
                     </h1>
                     
                     <p className="text-sm font-mono text-gray-400 tracking-widest uppercase mt-2">
-                      // MANAGE_ALL_INVOICES_V2.0
+                      // OPTIMIZED_PERFORMANCE_V3.0
                     </p>
                   </div>
                 </div>
@@ -102,13 +102,13 @@ const Faturas = () => {
             <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-green-400/50 to-transparent"></div>
           </div>
           
-          {/* Table Section */}
+          {/* Optimized Table Section */}
           <div className="relative">
             {/* Background grid pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,65,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,65,0.02)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
             
             <div className="relative">
-              <InvoiceTable onEditInvoice={handleEditInvoice} />
+              <OptimizedInvoiceTable onEditInvoice={handleEditInvoice} />
             </div>
           </div>
         </div>
