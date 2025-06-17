@@ -2,11 +2,11 @@
 import React from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
-import { TaskProvider } from '@/components/kanban/TaskContext';
+import { SupabaseTaskProvider } from '@/components/kanban/SupabaseTaskProvider';
 
 const Tarefas = () => {
   return (
-    <TaskProvider>
+    <SupabaseTaskProvider>
       <Layout>
         <div className="min-h-screen bg-kanban-bg">
           <div className="p-6">
@@ -17,7 +17,7 @@ const Tarefas = () => {
           </div>
         </div>
       </Layout>
-    </TaskProvider>
+    </SupabaseTaskProvider>
   );
 };
 

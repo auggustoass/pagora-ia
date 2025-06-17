@@ -17,10 +17,49 @@ const initialColumns: Record<string, Column> = {
   'done': { id: 'done', title: 'Concluído', taskIds: [] }
 };
 
+// Função para migrar dados do localStorage para Supabase (executada uma única vez)
+const migrateLocalStorageData = async () => {
+  try {
+    const savedTasks = localStorage.getItem('kanban-tasks');
+    const savedColumns = localStorage.getItem('kanban-columns');
+    
+    if (savedTasks && savedColumns) {
+      const tasks = JSON.parse(savedTasks);
+      const columns = JSON.parse(savedColumns);
+      
+      console.log('Migrating localStorage data to Supabase...');
+      
+      // Migrar cada tarefa para o Supabase
+      for (const task of Object.values(tasks) as any[]) {
+        try {
+          await TaskService.createTask({
+            title: task.title,
+            description: task.description || '',
+            column_id: task.columnId as any,
+            cover_image_url: task.coverImage,
+            position: task.position || 0
+          });
+        } catch (error) {
+          console.error('Error migrating task:', task.title, error);
+        }
+      }
+      
+      // Limpar localStorage após migração bem-sucedida
+      localStorage.removeItem('kanban-tasks');
+      localStorage.removeItem('kanban-columns');
+      
+      console.log('Migration completed successfully');
+    }
+  } catch (error) {
+    console.error('Error during migration:', error);
+  }
+};
+
 export function useSupabaseTasks() {
   const [tasks, setTasks] = useState<Record<string, TaskWithRelations>>({});
   const [columns, setColumns] = useState<Record<string, Column>>(initialColumns);
   const [loading, setLoading] = useState(true);
+  const [migrationDone, setMigrationDone] = useState(false);
   const { toast } = useToast();
 
   const loadTasks = async () => {
@@ -67,7 +106,18 @@ export function useSupabaseTasks() {
   };
 
   useEffect(() => {
-    loadTasks();
+    const initializeData = async () => {
+      // Primeiro, tentar migrar dados do localStorage se existirem
+      if (!migrationDone) {
+        await migrateLocalStorageData();
+        setMigrationDone(true);
+      }
+      
+      // Depois carregar dados do Supabase
+      await loadTasks();
+    };
+
+    initializeData();
 
     // Configurar real-time subscriptions
     const tasksSubscription = supabase
