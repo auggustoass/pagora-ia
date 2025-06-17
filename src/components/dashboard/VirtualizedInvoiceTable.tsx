@@ -9,13 +9,20 @@ import { ErrorBoundaryWithRecovery } from '@/components/ui/ErrorBoundaryWithReco
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Filter, SortAsc, SortDesc } from 'lucide-react';
+import { PaymentService } from '@/services/PaymentService';
+import { NotificationsService } from '@/services/NotificationsService';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { formatCurrency } from '@/utils/currency';
+import { useState } from 'react';
 
 interface VirtualizedInvoiceTableProps {
   onEditInvoice?: (invoiceId: string) => void;
 }
 
 export function VirtualizedInvoiceTable({ onEditInvoice }: VirtualizedInvoiceTableProps) {
-  const { invoices, isLoading } = useOptimizedInvoices();
+  const { invoices, isLoading, refetch } = useOptimizedInvoices();
+  const { user } = useAuth();
+  const [processingPayment, setProcessingPayment] = useState<string | null>(null);
   
   const {
     searchTerm,
@@ -37,11 +44,29 @@ export function VirtualizedInvoiceTable({ onEditInvoice }: VirtualizedInvoiceTab
     ]
   });
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+  const handleGeneratePaymentLink = async (invoiceId: string) => {
+    if (!user) return;
+
+    try {
+      setProcessingPayment(invoiceId);
+      const result = await PaymentService.generatePaymentLink(invoiceId);
+      
+      if (result.success) {
+        const invoice = invoices.find(inv => inv.id === invoiceId);
+        if (invoice) {
+          await NotificationsService.createNotification({
+            userId: user.id,
+            type: 'payment_update',
+            title: 'Link de pagamento gerado',
+            content: `O link de pagamento para a fatura de ${formatCurrency(invoice.valor)} do cliente ${invoice.nome} foi gerado com sucesso.`,
+            relatedId: invoiceId
+          });
+        }
+        refetch();
+      }
+    } finally {
+      setProcessingPayment(null);
+    }
   };
 
   const renderInvoiceRow = useMemo(() => (invoice: any, index: number) => (
@@ -66,12 +91,15 @@ export function VirtualizedInvoiceTable({ onEditInvoice }: VirtualizedInvoiceTab
       </div>
       <div className="ml-4">
         <InvoiceActions 
-          invoice={invoice} 
-          onEdit={onEditInvoice}
+          invoiceId={invoice.id}
+          paymentUrl={invoice.payment_url}
+          onEdit={onEditInvoice || (() => {})}
+          onGeneratePayment={handleGeneratePaymentLink}
+          isGeneratingPayment={processingPayment === invoice.id}
         />
       </div>
     </div>
-  ), [onEditInvoice]);
+  ), [onEditInvoice, processingPayment, handleGeneratePaymentLink]);
 
   if (isLoading) {
     return (
