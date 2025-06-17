@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +21,10 @@ const Relatorios = () => {
   const { isAdmin } = useAuth();
   
   const { statusCounts, clientStats, invoiceStats, loading, refetch } = useReports({
-    dateRange,
+    dateRange: dateRange && dateRange.from && dateRange.to ? {
+      from: dateRange.from,
+      to: dateRange.to
+    } : undefined,
     userFilter: userFilter !== 'all' ? userFilter : undefined
   });
 

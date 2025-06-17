@@ -1,5 +1,5 @@
 
-export interface DateRange {
+export interface CustomDateRange {
   from: Date;
   to: Date;
 }

@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { StatusCount, ClientStatistics, InvoiceStatistics } from '@/types/reports';
 import { ReportsService } from '@/services/ReportsService';
-import { DateRange } from '@/types/common';
+import { CustomDateRange } from '@/types/common';
 
 interface UseReportsProps {
-  dateRange?: DateRange;
+  dateRange?: CustomDateRange;
   userFilter?: string;
 }
 

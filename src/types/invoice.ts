@@ -1,4 +1,6 @@
 
+import { CustomDateRange } from './common';
+
 export interface Invoice {
   id: string;
   nome: string;
@@ -30,10 +32,7 @@ export interface InvoiceFormData {
 export interface InvoiceFilters {
   status?: 'all' | 'pendente' | 'aprovado' | 'rejeitado';
   searchTerm?: string;
-  dateRange?: {
-    from: Date;
-    to: Date;
-  };
+  dateRange?: CustomDateRange;
 }
 
 export interface InvoiceStats {

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -10,6 +11,7 @@ import { InvoiceTableHeader } from './InvoiceTableHeader';
 import { InvoiceStatusBadge } from './InvoiceStatusBadge';
 import { InvoiceActions } from './InvoiceActions';
 import { Invoice } from '@/types/invoice';
+import { cn } from '@/lib/utils';
 import {
   Pagination,
   PaginationContent,
@@ -17,6 +19,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
+  PaginationEllipsis,
 } from "@/components/ui/pagination";
 
 interface InvoiceTableProps {
