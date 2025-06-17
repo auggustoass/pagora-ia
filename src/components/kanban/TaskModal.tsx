@@ -85,6 +85,14 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
     }
   };
 
+  const handleFocusChecklistInput = () => {
+    setNewChecklistItem('');
+    setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>('input[placeholder="Adicionar item à checklist..."]');
+      input?.focus();
+    }, 100);
+  };
+
   const completedChecklist = task.checklist.filter(item => item.completed).length;
   const totalChecklist = task.checklist.length;
   const progressPercentage = totalChecklist > 0 ? (completedChecklist / totalChecklist) * 100 : 0;
@@ -459,7 +467,7 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
                     variant="outline" 
                     size="sm" 
                     className="w-full justify-start bg-[#2a2a2a] border-gray-700"
-                    onClick={() => setNewChecklistItem('') || document.querySelector<HTMLInputElement>('input[placeholder="Adicionar item à checklist..."]')?.focus()}
+                    onClick={handleFocusChecklistInput}
                   >
                     <CheckSquare size={14} className="mr-2" />
                     Adicionar Checklist
