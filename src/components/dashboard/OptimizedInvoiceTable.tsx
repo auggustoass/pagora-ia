@@ -130,7 +130,7 @@ export function OptimizedInvoiceTable({ onEditInvoice }: OptimizedInvoiceTablePr
                       {formatDate(invoice.vencimento)}
                     </td>
                     <td className="px-6 py-4">
-                      <InvoiceStatusBadge status={invoice.status} />
+                      <InvoiceStatusBadge status={invoice.status as 'pendente' | 'aprovado' | 'rejeitado'} />
                     </td>
                     <td className="px-6 py-4">
                       <InvoiceActions
