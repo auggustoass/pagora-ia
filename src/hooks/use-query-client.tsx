@@ -1,4 +1,3 @@
-
 import { QueryClient } from '@tanstack/react-query';
 
 // Create a more robust query client with better error handling
@@ -22,16 +21,9 @@ export const queryClient = new QueryClient({
       },
       // Don't refetch on window focus for performance
       refetchOnWindowFocus: false,
-      // Add error handling
-      onError: (error) => {
-        console.error('Query error:', error);
-      },
     },
     mutations: {
       retry: 1,
-      onError: (error) => {
-        console.error('Mutation error:', error);
-      },
     },
   },
 });
