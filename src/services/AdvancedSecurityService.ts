@@ -72,7 +72,6 @@ export class AdvancedSecurityService {
         return { allowed: false, blocked: true, reason: 'Rate limit check failed' };
       }
 
-      // Fix: Cast the data to the correct type since Supabase RPC returns Json type
       const result = data as {
         allowed: boolean;
         blocked: boolean;
@@ -118,12 +117,10 @@ export class AdvancedSecurityService {
    */
   private static async getUserIP(): Promise<string | null> {
     try {
-      // Try to get real IP from multiple sources
       const response = await fetch('https://api.ipify.org?format=json');
       const data = await response.json();
       return data.ip || null;
     } catch (error) {
-      // Fallback: try to extract from headers or use local detection
       try {
         const response = await fetch('https://httpbin.org/ip');
         const data = await response.json();
@@ -156,7 +153,7 @@ export class AdvancedSecurityService {
   }
 
   /**
-   * Encrypt sensitive data (for Mercado Pago credentials)
+   * Encrypt sensitive data
    */
   static async encryptCredential(credential: string): Promise<string> {
     try {
@@ -203,12 +200,10 @@ export class AdvancedSecurityService {
    * Validate and sanitize file uploads
    */
   static validateFileUpload(file: File): { isValid: boolean; error?: string } {
-    // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       return { isValid: false, error: 'Arquivo muito grande (máximo 10MB)' };
     }
 
-    // Check file type
     const allowedTypes = [
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
       'application/pdf', 'text/plain', 'application/msword',
@@ -219,7 +214,6 @@ export class AdvancedSecurityService {
       return { isValid: false, error: 'Tipo de arquivo não permitido' };
     }
 
-    // Check filename for malicious patterns
     const maliciousPatterns = [
       /../, /\.exe$/, /\.bat$/, /\.cmd$/, /\.scr$/, /\.vbs$/, /\.js$/,
       /<script/, /javascript:/, /data:/
@@ -242,15 +236,12 @@ export class AdvancedSecurityService {
       const key = `activity_monitor_${userId}_${action}`;
       const now = Date.now();
       
-      // Get existing activity
       const activityData = JSON.parse(localStorage.getItem(key) || '[]');
       activityData.push({ timestamp: now, metadata });
       
-      // Keep only last hour
       const hourAgo = now - 60 * 60 * 1000;
       const recentActivity = activityData.filter((item: any) => item.timestamp > hourAgo);
       
-      // Check for suspicious patterns
       if (recentActivity.length > 50) {
         this.logSecurityEventEnhanced('ANOMALOUS_ACTIVITY_DETECTED', {
           userId,
@@ -260,7 +251,6 @@ export class AdvancedSecurityService {
         }, userId, 'high');
       }
       
-      // Store cleaned activity
       localStorage.setItem(key, JSON.stringify(recentActivity.slice(-100)));
       
     } catch (error) {
@@ -273,10 +263,8 @@ export class AdvancedSecurityService {
    */
   static cleanupSecurityArtifacts(): void {
     try {
-      // Remove session data
       sessionStorage.removeItem('security_session_id');
       
-      // Clean up monitoring data
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('activity_monitor_') || 
             key.startsWith('rate_limit_') || 
