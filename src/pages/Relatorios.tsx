@@ -28,7 +28,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ClientStatistics, InvoiceStatistics } from '@/components/chat/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Cores para os gráficos
@@ -37,6 +36,21 @@ const COLORS = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F5', '#33FFF5'
 interface StatusCount {
   status: string;
   count: number;
+}
+
+// Define the types locally since we removed the chat types
+interface ClientStatistics {
+  totalClients: number;
+  monthlyGrowth: Array<{ month: string; count: number }>;
+  topClients: Array<{ id: string; nome: string; total: number }>;
+}
+
+interface InvoiceStatistics {
+  totalInvoices: number;
+  totalValue: number;
+  avgPaymentDays: number;
+  monthlyValues: Array<{ month: string; value: number }>;
+  valueRanges: Array<{ range: string; count: number }>;
 }
 
 const Relatorios = () => {
