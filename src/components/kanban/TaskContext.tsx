@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface Task {
@@ -171,6 +170,25 @@ const sampleTasks: Record<string, Task> = {
   }
 };
 
+// Helper function to validate image URLs
+const isValidImageUrl = (url: string): boolean => {
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+  const lowerUrl = url.toLowerCase();
+  
+  // Check if it's a valid URL and has image extension or is from known image hosting services
+  return (
+    url.startsWith('http') && 
+    (
+      imageExtensions.some(ext => lowerUrl.includes(ext)) ||
+      lowerUrl.includes('unsplash.com') ||
+      lowerUrl.includes('images.') ||
+      lowerUrl.includes('imgur.com') ||
+      lowerUrl.includes('cloudinary.com') ||
+      lowerUrl.includes('amazonaws.com')
+    )
+  );
+};
+
 // Initialize columns with sample tasks
 initialColumns.todo.taskIds = ['task-2'];
 initialColumns.inProgress.taskIds = ['task-1'];
@@ -216,6 +234,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
+    // Validate cover image URL if being updated
+    if (updates.coverImage && !isValidImageUrl(updates.coverImage)) {
+      console.warn('Invalid image URL provided:', updates.coverImage);
+      return;
+    }
+
     setTasks(prev => ({
       ...prev,
       [taskId]: {

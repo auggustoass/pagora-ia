@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Task, useTask } from './TaskContext';
 import {
@@ -13,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CoverImageUpload } from './CoverImageUpload';
 import {
   X,
   Calendar,
@@ -24,7 +24,9 @@ import {
   Plus,
   Send,
   Download,
-  Trash2
+  Trash2,
+  Image,
+  Edit3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,11 +42,22 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
   const [newComment, setNewComment] = useState('');
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [editingDescription, setEditingDescription] = useState(false);
+  const [editingCover, setEditingCover] = useState(false);
   const [description, setDescription] = useState(task.description);
 
   const handleSaveDescription = () => {
     updateTask(task.id, { description });
     setEditingDescription(false);
+  };
+
+  const handleCoverImageSelect = (imageUrl: string) => {
+    updateTask(task.id, { coverImage: imageUrl });
+    setEditingCover(false);
+  };
+
+  const handleCoverImageRemove = () => {
+    updateTask(task.id, { coverImage: undefined });
+    setEditingCover(false);
   };
 
   const handleAddComment = () => {
@@ -78,15 +91,58 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#1a1a1a] border-gray-800">
         <DialogHeader className="pb-0">
           <div className="flex items-start gap-4">
-            {task.coverImage && (
-              <div className="w-full h-48 rounded-lg overflow-hidden mb-4">
-                <img
-                  src={task.coverImage}
-                  alt="Task cover"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+            {/* Cover Image Section with Edit */}
+            <div className="w-full mb-4">
+              {task.coverImage ? (
+                <div className="relative group">
+                  <img
+                    src={task.coverImage}
+                    alt="Task cover"
+                    className="w-full h-48 rounded-lg overflow-hidden object-cover transition-all group-hover:brightness-75"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 text-white hover:bg-black/70"
+                    onClick={() => setEditingCover(true)}
+                  >
+                    <Edit3 size={14} className="mr-1" />
+                    Editar
+                  </Button>
+                </div>
+              ) : (
+                <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-700 flex items-center justify-center hover:border-gray-600 transition-colors">
+                  <Button
+                    variant="ghost"
+                    className="text-gray-400 hover:text-gray-300"
+                    onClick={() => setEditingCover(true)}
+                  >
+                    <Image size={24} className="mr-2" />
+                    Adicionar Capa
+                  </Button>
+                </div>
+              )}
+
+              {/* Cover editing panel */}
+              {editingCover && (
+                <div className="mt-4 p-4 bg-[#2a2a2a] rounded-lg border border-gray-700">
+                  <CoverImageUpload
+                    currentImage={task.coverImage}
+                    onImageSelect={handleCoverImageSelect}
+                    onImageRemove={handleCoverImageRemove}
+                  />
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingCover(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
           <DialogTitle className="text-xl font-bold text-white text-left">
@@ -344,6 +400,15 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
             <div>
               <h3 className="text-sm font-semibold text-gray-300 mb-2">Ações</h3>
               <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start bg-[#2a2a2a] border-gray-700"
+                  onClick={() => setEditingCover(true)}
+                >
+                  <Image size={14} className="mr-2" />
+                  {task.coverImage ? 'Alterar Capa' : 'Adicionar Capa'}
+                </Button>
                 <Button variant="outline" size="sm" className="w-full justify-start bg-[#2a2a2a] border-gray-700">
                   <User size={14} className="mr-2" />
                   Adicionar Membros

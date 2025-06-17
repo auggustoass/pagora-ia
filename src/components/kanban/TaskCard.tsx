@@ -5,7 +5,7 @@ import { Task } from './TaskContext';
 import { TaskModal } from './TaskModal';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, MessageSquare, Paperclip, CheckSquare } from 'lucide-react';
+import { Calendar, MessageSquare, Paperclip, CheckSquare, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -16,9 +16,19 @@ interface TaskCardProps {
 
 export function TaskCard({ task, index }: TaskCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const completedChecklist = task.checklist.filter(item => item.completed).length;
   const totalChecklist = task.checklist.length;
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
 
   return (
     <>
@@ -33,13 +43,36 @@ export function TaskCard({ task, index }: TaskCardProps) {
             }`}
             onClick={() => setIsModalOpen(true)}
           >
+            {/* Cover Image with improved loading states */}
             {task.coverImage && (
-              <div className="w-full h-32 overflow-hidden rounded-t-lg">
-                <img
-                  src={task.coverImage}
-                  alt="Task cover"
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-full h-32 overflow-hidden rounded-t-lg relative bg-gray-800">
+                {!imageLoaded && !imageError && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="animate-pulse flex items-center justify-center w-full h-full bg-gray-700">
+                      <ImageIcon size={24} className="text-gray-500" />
+                    </div>
+                  </div>
+                )}
+                
+                {imageError ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
+                    <div className="text-center text-gray-500">
+                      <ImageIcon size={20} className="mx-auto mb-1" />
+                      <p className="text-xs">Erro ao carregar</p>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src={task.coverImage}
+                    alt="Task cover"
+                    className={`w-full h-full object-cover transition-opacity duration-300 ${
+                      imageLoaded ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    onLoad={handleImageLoad}
+                    onError={handleImageError}
+                    loading="lazy"
+                  />
+                )}
               </div>
             )}
 
