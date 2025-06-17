@@ -27,9 +27,7 @@ export function ThemeProvider({
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
-  // Inicializar com tema padrão para evitar problemas de hidratação
   const [theme, setTheme] = useState<Theme>(() => {
-    // Verificar se estamos no browser antes de acessar localStorage
     if (typeof window === "undefined") {
       return defaultTheme;
     }
@@ -47,18 +45,7 @@ export function ThemeProvider({
     
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
-
-      root.classList.add(systemTheme);
-      return;
-    }
-
-    root.classList.add("dark");
+    root.classList.add("dark"); // Sempre usar tema escuro
   }, [theme]);
 
   const handleSetTheme = (newTheme: Theme) => {

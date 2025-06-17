@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Session } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { EnhancedSecurityService } from '@/services/EnhancedSecurityService';
 import { AuthSecurityService } from '@/services/AuthSecurityService';
 
@@ -31,10 +31,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userStatus, setUserStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
 
   useEffect(() => {
-    // Set up authentication state listener
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        if (mounted) {
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
+          
+          if (initialSession?.user) {
+            await checkUserStatus(initialSession.user.id);
+          }
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, newSession) => {
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!mounted) return;
+
       setSession(newSession);
       setUser(newSession?.user ?? null);
       
@@ -47,7 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check for admin role and approval status when session changes
       if (newSession?.user) {
         setTimeout(() => {
-          checkUserStatus(newSession.user.id);
+          if (mounted) {
+            checkUserStatus(newSession.user.id);
+          }
         }, 0);
       } else {
         setIsAdmin(false);
@@ -56,52 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Check for existing session
-    const getInitialSession = async () => {
-      setIsLoading(true);
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
-        
-        if (initialSession?.user) {
-          // Check for first login to identify new users
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('first_login, approved, status')
-            .eq('id', initialSession.user.id)
-            .maybeSingle();
-            
-          // If first_login is true, this is a new user
-          if (profileData && profileData.first_login === true) {
-            // Mark that the user has logged in
-            await supabase
-              .from('profiles')
-              .update({ first_login: false })
-              .eq('id', initialSession.user.id);
-              
-            // Show welcome toast only for approved users
-            if (profileData.approved) {
-              toast({
-                title: "Bem-vindo!",
-                description: "Recebeu 10 créditos gratuitos para começar a usar o sistema."
-              });
-            }
-          }
-          
-          await checkUserStatus(initialSession.user.id);
-        }
-      } catch (error) {
-        console.error('Error fetching initial session:', EnhancedSecurityService.cleanSensitiveData(error));
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    initializeAuth();
 
-    getInitialSession();
-
-    // Cleanup subscription
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -117,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check user profile for approval status
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('approved, status')
+        .select('approved, status, first_login')
         .eq('id', userId)
         .single();
 
@@ -130,6 +116,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setIsApproved(profileData.approved);
       setUserStatus(profileData.status);
+
+      // Show welcome toast for new users
+      if (profileData && profileData.first_login === true) {
+        await supabase
+          .from('profiles')
+          .update({ first_login: false })
+          .eq('id', userId);
+          
+        if (profileData.approved) {
+          toast.success("Bem-vindo!", {
+            description: "Recebeu 10 créditos gratuitos para começar a usar o sistema."
+          });
+        }
+      }
 
       // Check admin role
       const { data: roles, error: rolesError } = await supabase

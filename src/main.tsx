@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
+// Garantir que o React está disponível globalmente
+window.React = React;
+
 const container = document.getElementById("root");
 if (!container) {
   throw new Error("Root element not found");
