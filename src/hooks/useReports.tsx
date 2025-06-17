@@ -24,13 +24,17 @@ export const useReports = ({ dateRange, userFilter }: UseReportsProps = {}) => {
       const startDate = dateRange?.from?.toISOString().split('T')[0];
       const endDate = dateRange?.to?.toISOString().split('T')[0];
 
+      console.log('Fetching reports with params:', { startDate, endDate, userFilter });
+
       const [statusData, clientData, invoiceData] = await Promise.all([
         ReportsService.getInvoiceStatusCounts(startDate, endDate, userFilter),
         ReportsService.getClientStatistics(startDate, endDate, userFilter),
         ReportsService.getInvoiceStatistics(startDate, endDate, userFilter)
       ]);
 
-      setStatusCounts(statusData);
+      console.log('Reports data received:', { statusData, clientData, invoiceData });
+
+      setStatusCounts(statusData || []);
       setClientStats(clientData);
       setInvoiceStats(invoiceData);
     } catch (error) {
@@ -43,7 +47,7 @@ export const useReports = ({ dateRange, userFilter }: UseReportsProps = {}) => {
 
   useEffect(() => {
     fetchReports();
-  }, [dateRange, userFilter]);
+  }, [dateRange?.from, dateRange?.to, userFilter]);
 
   return {
     statusCounts,

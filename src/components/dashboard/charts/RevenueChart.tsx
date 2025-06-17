@@ -22,43 +22,49 @@ export function RevenueChart() {
 
   // Process the data to create daily revenue chart
   const processRevenueData = (): RevenueData[] => {
-    if (!invoiceStats || !invoiceStats.monthlyValues) {
+    // Add safety checks for the data structure
+    if (!invoiceStats?.monthlyValues || !Array.isArray(invoiceStats.monthlyValues)) {
+      console.log('No monthlyValues data available:', invoiceStats);
       return [];
     }
 
-    // Create array of last 30 days
-    const days = eachDayOfInterval({
-      start: dateRange.from,
-      end: dateRange.to
-    });
+    try {
+      // Create array of last 30 days
+      const days = eachDayOfInterval({
+        start: dateRange.from,
+        end: dateRange.to
+      });
 
-    // Map each day to revenue data
-    return days.map(day => {
-      const dayKey = format(day, 'yyyy-MM-dd');
-      
-      // For simplicity, we'll distribute monthly values across days
-      // In a real scenario, you'd want daily breakdown from the backend
-      const monthKey = format(day, 'yyyy-MM');
-      const monthData = invoiceStats.monthlyValues.find(m => m.month === monthKey);
-      
-      if (monthData) {
-        const daysInMonth = new Date(day.getFullYear(), day.getMonth() + 1, 0).getDate();
-        const dailyAverage = monthData.value / daysInMonth;
+      // Map each day to revenue data
+      return days.map(day => {
+        const dayKey = format(day, 'yyyy-MM-dd');
         
-        // Simulate some variation - 70% received, 30% pending
+        // For simplicity, we'll distribute monthly values across days
+        const monthKey = format(day, 'yyyy-MM');
+        const monthData = invoiceStats.monthlyValues.find(m => m.month === monthKey);
+        
+        if (monthData && monthData.value > 0) {
+          const daysInMonth = new Date(day.getFullYear(), day.getMonth() + 1, 0).getDate();
+          const dailyAverage = monthData.value / daysInMonth;
+          
+          // Simulate some variation - 70% received, 30% pending
+          return {
+            date: format(day, 'dd'),
+            received: Math.round(dailyAverage * 0.7),
+            pending: Math.round(dailyAverage * 0.3)
+          };
+        }
+        
         return {
           date: format(day, 'dd'),
-          received: Math.round(dailyAverage * 0.7),
-          pending: Math.round(dailyAverage * 0.3)
+          received: 0,
+          pending: 0
         };
-      }
-      
-      return {
-        date: format(day, 'dd'),
-        received: 0,
-        pending: 0
-      };
-    });
+      });
+    } catch (err) {
+      console.error('Error processing revenue data:', err);
+      return [];
+    }
   };
 
   const chartData = processRevenueData();
@@ -86,7 +92,8 @@ export function RevenueChart() {
     );
   }
 
-  if (error || chartData.length === 0) {
+  if (error) {
+    console.error('Revenue chart error:', error);
     return (
       <div className="relative bg-black border border-red-500/20 rounded-2xl overflow-hidden">
         <div className="relative p-6">
@@ -95,7 +102,28 @@ export function RevenueChart() {
               <div className="w-1 h-8 bg-gradient-to-b from-red-400 to-transparent"></div>
               <div>
                 <h3 className="text-xl font-mono font-bold text-white tracking-wider">FINANCIAL_ANALYTICS</h3>
-                <p className="text-red-400/70 text-sm font-mono tracking-widest">// NO_DATA_AVAILABLE</p>
+                <p className="text-red-400/70 text-sm font-mono tracking-widest">// ERROR_LOADING_DATA</p>
+              </div>
+            </div>
+          </div>
+          <div className="h-64 flex items-center justify-center">
+            <p className="text-red-400 font-mono">Erro ao carregar dados financeiros</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!chartData || chartData.length === 0) {
+    return (
+      <div className="relative bg-black border border-gray-500/20 rounded-2xl overflow-hidden">
+        <div className="relative p-6">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-1 h-8 bg-gradient-to-b from-gray-400 to-transparent"></div>
+              <div>
+                <h3 className="text-xl font-mono font-bold text-white tracking-wider">FINANCIAL_ANALYTICS</h3>
+                <p className="text-gray-400/70 text-sm font-mono tracking-widest">// NO_DATA_AVAILABLE</p>
               </div>
             </div>
           </div>
