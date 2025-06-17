@@ -63,17 +63,45 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
+				// Status colors using CSS variables
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
+				error: {
+					DEFAULT: 'hsl(var(--error))',
+					foreground: 'hsl(var(--error-foreground))'
+				},
+				info: {
+					DEFAULT: 'hsl(var(--info))',
+					foreground: 'hsl(var(--info-foreground))'
+				},
+				// Kanban specific colors
+				kanban: {
+					bg: 'hsl(var(--kanban-bg))',
+					card: 'hsl(var(--kanban-card))',
+					column: 'hsl(var(--kanban-column))',
+					todo: 'hsl(var(--kanban-todo))',
+					progress: 'hsl(var(--kanban-progress))',
+					review: 'hsl(var(--kanban-review))',
+					done: 'hsl(var(--kanban-done))'
+				},
+				// Legacy hblackpix colors (mapped to new system)
 				hblackpix: {
-					green: '#10b981',
-					darkGreen: '#047857',
-					dark: '#121212',
-					darker: '#0a0a0a',
-					light: '#f8f9fa',
-					lightGray: '#F1F1F1',
-					success: '#10b981',
-					warning: '#047857',
-					error: '#374151',
-					info: '#34d399'
+					green: 'hsl(var(--success))',
+					darkGreen: 'hsl(var(--success) / 0.8)',
+					dark: 'hsl(var(--background))',
+					darker: 'hsl(var(--kanban-bg))',
+					light: 'hsl(var(--card))',
+					lightGray: 'hsl(var(--muted))',
+					success: 'hsl(var(--success))',
+					warning: 'hsl(var(--warning))',
+					error: 'hsl(var(--error))',
+					info: 'hsl(var(--info))'
 				}
 			},
 			borderRadius: {

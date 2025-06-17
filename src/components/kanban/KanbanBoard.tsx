@@ -35,11 +35,11 @@ export function KanbanBoard() {
     <div className="h-full">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold text-white">Quadro Principal</h2>
+          <h2 className="text-xl font-semibold text-foreground">Quadro Principal</h2>
           <Button
             variant="outline"
             size="sm"
-            className="bg-[#1a1a1a] border-gray-700 text-gray-300 hover:bg-[#2a2a2a]"
+            className="bg-kanban-card border-border text-foreground hover:bg-muted"
             onClick={() => setIsCreateModalOpen(true)}
           >
             <Plus size={16} className="mr-2" />
@@ -57,7 +57,7 @@ export function KanbanBoard() {
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   className={`flex flex-col h-full ${
-                    snapshot.isDraggingOver ? 'bg-gray-800/50 rounded-lg' : ''
+                    snapshot.isDraggingOver ? 'bg-muted/50 rounded-lg' : ''
                   }`}
                 >
                   <KanbanColumn

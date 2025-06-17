@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -11,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTask } from './TaskContext';
 import { CoverImageUpload } from './CoverImageUpload';
-import { Plus, X } from 'lucide-react';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -82,49 +82,49 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl bg-[#1a1a1a] border-gray-800 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl bg-kanban-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">Criar Nova Tarefa</DialogTitle>
+          <DialogTitle className="text-foreground">Criar Nova Tarefa</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-gray-300 mb-2 block">
+            <label className="text-sm font-medium text-foreground mb-2 block">
               Título da Tarefa *
             </label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Digite o título da tarefa..."
-              className="bg-[#2a2a2a] border-gray-700 text-white"
+              className="bg-background border-border text-foreground"
               required
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-300 mb-2 block">
+            <label className="text-sm font-medium text-foreground mb-2 block">
               Descrição
             </label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descreva a tarefa (opcional)..."
-              className="bg-[#2a2a2a] border-gray-700 text-white"
+              className="bg-background border-border text-foreground"
               rows={3}
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-300 mb-2 block">
+            <label className="text-sm font-medium text-foreground mb-2 block">
               Coluna
             </label>
             <Select value={columnId} onValueChange={setColumnId}>
-              <SelectTrigger className="bg-[#2a2a2a] border-gray-700 text-white">
+              <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[#2a2a2a] border-gray-700">
+              <SelectContent className="bg-kanban-card border-border">
                 {Object.values(columns).map((column) => (
-                  <SelectItem key={column.id} value={column.id} className="text-white">
+                  <SelectItem key={column.id} value={column.id} className="text-foreground">
                     {column.title}
                   </SelectItem>
                 ))}
@@ -140,7 +140,7 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
             />
           </div>
 
-          <div className="flex gap-2 pt-4 border-t border-gray-700">
+          <div className="flex gap-2 pt-4 border-t border-border">
             <Button 
               type="submit" 
               disabled={!title.trim() || isSubmitting}
@@ -152,7 +152,7 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
               type="button" 
               variant="ghost" 
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-300"
+              className="text-muted-foreground hover:text-foreground"
             >
               Cancelar
             </Button>

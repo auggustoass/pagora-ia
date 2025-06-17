@@ -7,10 +7,10 @@ import { ProgressCircle } from '@/components/ui/progress-circle';
 const statusCardVariants = cva("glass-card p-5 flex transition-all duration-300 card-hover h-full", {
   variants: {
     variant: {
-      default: "border-white/5 bg-card/80",
-      pending: "border-l-4 border-l-pagora-pending border-white/5",
-      success: "border-l-4 border-l-pagora-success border-white/5",
-      error: "border-l-4 border-l-pagora-error border-white/5"
+      default: "border-border bg-card/80",
+      pending: "border-l-4 border-l-warning border-border",
+      success: "border-l-4 border-l-success border-border",
+      error: "border-l-4 border-l-error border-border"
     }
   },
   defaultVariants: {
@@ -47,9 +47,9 @@ export function StatusCard({
     if (progressColor) return progressColor;
     
     switch (variant) {
-      case "pending": return "stroke-pagora-pending";
-      case "success": return "stroke-pagora-success";
-      case "error": return "stroke-pagora-error";
+      case "pending": return "stroke-warning";
+      case "success": return "stroke-success";
+      case "error": return "stroke-error";
       default: return "stroke-primary";
     }
   };
@@ -71,9 +71,9 @@ export function StatusCard({
             >
               <div className={cn(
                 "flex flex-col items-center justify-center",
-                variant === "pending" && "text-pagora-pending",
-                variant === "success" && "text-pagora-success", 
-                variant === "error" && "text-pagora-error",
+                variant === "pending" && "text-warning",
+                variant === "success" && "text-success", 
+                variant === "error" && "text-error",
                 (!variant || variant === "default") && "text-primary"
               )}>
                 {icon}
@@ -83,9 +83,9 @@ export function StatusCard({
         ) : (
           <div className={cn(
             "icon-circle w-10 h-10 bg-secondary/50 mr-4", 
-            variant === "pending" && "bg-pagora-pending/10 text-pagora-pending", 
-            variant === "success" && "bg-pagora-success/10 text-pagora-success", 
-            variant === "error" && "bg-pagora-error/10 text-pagora-error",
+            variant === "pending" && "bg-warning/10 text-warning", 
+            variant === "success" && "bg-success/10 text-success", 
+            variant === "error" && "bg-error/10 text-error",
             (!variant || variant === "default") && "text-primary"
           )}>
             {icon}
