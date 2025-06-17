@@ -35,6 +35,12 @@ const Relatorios = () => {
     });
   };
 
+  // Generate monthly data for the chart from invoice statistics
+  const monthlyData = invoiceStats?.monthlyValues?.map(item => ({
+    month: item.month,
+    valor: item.value
+  })) || [];
+
   return (
     <Layout>
       <div className="min-h-screen bg-black relative overflow-hidden">
@@ -83,7 +89,10 @@ const Relatorios = () => {
             <TabsContent value="overview">
               <OverviewTab
                 loading={loading}
-                statusCounts={statusCounts}
+                clientStats={clientStats}
+                invoiceStats={invoiceStats}
+                statusData={statusCounts}
+                monthlyData={monthlyData}
                 onExpandPeriod={handleExpandPeriod}
               />
             </TabsContent>
