@@ -29,3 +29,28 @@ export const getDaysUntilDue = (dueDate: string): number => {
   const diffTime = due.getTime() - today.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
+
+// New functions to handle date-only values without timezone issues
+export const formatDateForDatabase = (date: Date): string => {
+  // Format date as YYYY-MM-DD without timezone conversion
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const parseDateFromDatabase = (dateString: string): Date => {
+  // Parse YYYY-MM-DD as local date without timezone conversion
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+export const createLocalDate = (dateString: string): Date => {
+  // Create a date object from YYYY-MM-DD string in local timezone
+  if (dateString.includes('T')) {
+    // If it's already an ISO string, parse it normally
+    return parseISO(dateString);
+  }
+  // If it's a date-only string, create local date
+  return parseDateFromDatabase(dateString);
+};

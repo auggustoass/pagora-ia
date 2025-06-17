@@ -12,6 +12,7 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { parseDateFromDatabase, formatDateForDatabase } from '@/utils/date';
 import {
   Form,
   FormControl,
@@ -115,7 +116,7 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
           form.reset({
             clientId: invoice.client_id || '',
             valor: invoice.valor.toString(),
-            vencimento: parseISO(invoice.vencimento),
+            vencimento: parseDateFromDatabase(invoice.vencimento),
             descricao: invoice.descricao,
             status: invoice.status as 'pendente' | 'aprovado' | 'rejeitado',
           });
@@ -149,7 +150,7 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
         throw new Error('Cliente não encontrado');
       }
       
-      // Atualizar fatura no Supabase
+      // Atualizar fatura no Supabase - usando formatDateForDatabase para evitar problemas de timezone
       const { error } = await supabase
         .from('faturas')
         .update({
@@ -158,7 +159,7 @@ export function InvoiceEditForm({ invoiceId, onSuccess }: InvoiceEditFormProps) 
           whatsapp: client.whatsapp,
           cpf_cnpj: client.cpf_cnpj,
           valor: parseFloat(values.valor),
-          vencimento: values.vencimento.toISOString().split('T')[0],
+          vencimento: formatDateForDatabase(values.vencimento),
           descricao: values.descricao,
           status: values.status,
           client_id: client.id,

@@ -13,6 +13,7 @@ import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { formatDateForDatabase, parseDateFromDatabase } from '@/utils/date';
 
 interface DatePickerModalProps {
   taskId: string;
@@ -25,14 +26,14 @@ export function DatePickerModal({ taskId, isOpen, onClose }: DatePickerModalProp
   const task = tasks[taskId];
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    task?.dueDate ? new Date(task.dueDate) : undefined
+    task?.dueDate ? parseDateFromDatabase(task.dueDate) : undefined
   );
 
   const handleSaveDate = () => {
-    if (!task) return;
+    if (!task || !selectedDate) return;
     
     updateTask(taskId, {
-      dueDate: selectedDate?.toISOString()
+      dueDate: formatDateForDatabase(selectedDate)
     });
     
     onClose();
@@ -64,7 +65,7 @@ export function DatePickerModal({ taskId, isOpen, onClose }: DatePickerModalProp
             <div className="p-3 bg-[#2a2a2a] rounded border border-gray-700">
               <p className="text-sm text-gray-300 mb-2">Data atual:</p>
               <p className="text-white font-medium">
-                {format(new Date(task.dueDate), 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR })}
+                {format(parseDateFromDatabase(task.dueDate), 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR })}
               </p>
             </div>
           )}

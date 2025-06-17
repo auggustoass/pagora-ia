@@ -4,6 +4,7 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { useSupabaseTasks } from '@/hooks/useSupabaseTasks';
 import { AgendaEvent } from '@/types/agenda';
 import { format, isAfter, isToday } from 'date-fns';
+import { createLocalDate } from '@/utils/date';
 
 export function useAgendaEvents(monthStart: Date, monthEnd: Date) {
   const { invoices, isLoading: invoicesLoading } = useInvoices();
@@ -16,7 +17,7 @@ export function useAgendaEvents(monthStart: Date, monthEnd: Date) {
     if (invoices) {
       invoices.forEach(invoice => {
         try {
-          const dueDate = new Date(invoice.vencimento);
+          const dueDate = createLocalDate(invoice.vencimento);
           if (isNaN(dueDate.getTime())) {
             console.warn('Invalid invoice due date:', invoice.vencimento);
             return;
@@ -51,7 +52,7 @@ export function useAgendaEvents(monthStart: Date, monthEnd: Date) {
         Object.values(tasks).forEach(task => {
           if (task.due_date) {
             try {
-              const dueDate = new Date(task.due_date);
+              const dueDate = createLocalDate(task.due_date);
               if (isNaN(dueDate.getTime())) {
                 console.warn('Invalid task due date:', task.due_date);
                 return;

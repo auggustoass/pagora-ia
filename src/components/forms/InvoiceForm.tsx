@@ -16,6 +16,7 @@ import { useCredits } from '@/hooks/use-credits';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 import { useMercadoPago } from '@/hooks/use-mercado-pago';
+import { formatDateForDatabase } from '@/utils/date';
 import {
   Form,
   FormControl,
@@ -176,7 +177,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       
       console.log('Creating invoice for user:', user.id);
       
-      // Inserir fatura no Supabase
+      // Inserir fatura no Supabase - usando formatDateForDatabase para evitar problemas de timezone
       const { data: invoice, error } = await supabase
         .from('faturas')
         .insert({
@@ -185,7 +186,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           whatsapp: client.whatsapp,
           cpf_cnpj: client.cpf_cnpj,
           valor: parseFloat(values.valor),
-          vencimento: values.vencimento.toISOString().split('T')[0],
+          vencimento: formatDateForDatabase(values.vencimento),
           descricao: values.descricao,
           status: 'pendente',
           payment_status: 'pending',
