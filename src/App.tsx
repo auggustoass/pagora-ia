@@ -15,6 +15,7 @@ import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
 import Admin from "./pages/Admin";
 import Tarefas from "./pages/Tarefas";
+import Agenda from "./pages/Agenda";
 import PendingApproval from "./pages/PendingApproval";
 import Docs from "./pages/Docs";
 import Ajuda from "./pages/Ajuda";
@@ -56,6 +57,14 @@ function App() {
                     element={
                       <RequireAuth>
                         <Clientes />
+                      </RequireAuth>
+                    } 
+                  />
+                  <Route 
+                    path="/agenda" 
+                    element={
+                      <RequireAuth>
+                        <Agenda />
                       </RequireAuth>
                     } 
                   />

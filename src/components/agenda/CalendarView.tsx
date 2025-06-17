@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { format, isSameMonth, isToday, isWeekend } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AgendaEvent, CalendarDay } from '@/types/agenda';
+import { AgendaEvent } from '@/types/agenda';
 import { EventCard } from './EventCard';
 import { cn } from '@/lib/utils';
 
