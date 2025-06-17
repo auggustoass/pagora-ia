@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -25,7 +26,7 @@ function App() {
   return (
     <QueryProvider>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <TooltipProvider>
+        <TooltipProvider delayDuration={0}>
           <Toaster />
           <BrowserRouter>
             <AuthProvider>
