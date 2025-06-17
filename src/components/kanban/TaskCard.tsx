@@ -43,9 +43,9 @@ export function TaskCard({ task, index }: TaskCardProps) {
             }`}
             onClick={() => setIsModalOpen(true)}
           >
-            {/* Cover Image with improved loading states */}
+            {/* Cover Image with fixed dimensions 370x112px */}
             {task.coverImage && (
-              <div className="w-full h-32 overflow-hidden rounded-t-lg relative bg-gray-800">
+              <div className="w-full h-[112px] max-w-[370px] mx-auto overflow-hidden rounded-t-lg relative bg-gray-800">
                 {!imageLoaded && !imageError && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="animate-pulse flex items-center justify-center w-full h-full bg-gray-700">

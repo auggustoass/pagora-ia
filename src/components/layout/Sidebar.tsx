@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Home, Users, FileText, PieChart, Settings, HelpCircle, MessageSquare, LogOut, Shield, ChevronRight } from 'lucide-react';
+import { Home, Users, FileText, PieChart, Settings, LogOut, Shield, ChevronRight } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -98,13 +99,9 @@ export function Sidebar({
 
           <NavItem icon={<PieChart size={18} />} label="Tarefas" to="/tarefas" isActive={location.pathname === '/tarefas'} collapsed={collapsed} />
           
-          <NavItem icon={<PieChart size={18} />} label="Relatórios" to="/relatorios" isActive={location.pathname === '/relatorios'} collapsed={collapsed} />
-          
           {isAdmin && <NavItem icon={<Shield size={18} />} label="Admin" to="/admin" isActive={location.pathname === '/admin'} collapsed={collapsed} />}
           
           <NavItem icon={<Settings size={18} />} label="Configurações" to="/configuracoes" isActive={location.pathname === '/configuracoes'} collapsed={collapsed} />
-          
-          <NavItem icon={<HelpCircle size={18} />} label="Ajuda" to="/ajuda" isActive={location.pathname === '/ajuda'} collapsed={collapsed} />
           
           {user && <NavItem icon={<LogOut size={18} />} label="Sair" to="#" onClick={handleSignOut} collapsed={collapsed} />}
         </ul>
@@ -115,7 +112,7 @@ export function Sidebar({
             <p className="text-sm text-muted-foreground mb-2">Precisa de ajuda?</p>
             <a href="https://wa.me/5511998115159" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-md w-full block hover:opacity-90 transition-all btn-hover-fx">
               <div className="flex items-center justify-center gap-2">
-                <MessageSquare size={16} />
+                <PieChart size={16} />
                 Fale com o Suporte
               </div>
             </a>

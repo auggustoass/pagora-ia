@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Task, useTask } from './TaskContext';
 import {
@@ -111,14 +110,14 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#1a1a1a] border-gray-800">
           <DialogHeader className="pb-0">
             <div className="flex items-start gap-4">
-              {/* Cover Image Section with Edit */}
+              {/* Cover Image Section with Edit - Fixed height 112px */}
               <div className="w-full mb-4">
                 {task.coverImage ? (
                   <div className="relative group">
                     <img
                       src={task.coverImage}
                       alt="Task cover"
-                      className="w-full h-48 rounded-lg overflow-hidden object-cover transition-all group-hover:brightness-75"
+                      className="w-full h-[112px] max-w-[370px] mx-auto rounded-lg overflow-hidden object-cover transition-all group-hover:brightness-75"
                     />
                     <Button
                       size="sm"
@@ -131,7 +130,7 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
                     </Button>
                   </div>
                 ) : (
-                  <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-700 flex items-center justify-center hover:border-gray-600 transition-colors">
+                  <div className="w-full h-[112px] max-w-[370px] mx-auto rounded-lg border-2 border-dashed border-gray-700 flex items-center justify-center hover:border-gray-600 transition-colors">
                     <Button
                       variant="ghost"
                       className="text-gray-400 hover:text-gray-300"
@@ -170,6 +169,7 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
             </DialogTitle>
           </DialogHeader>
 
+          {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
