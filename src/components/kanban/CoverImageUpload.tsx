@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
   Image, 
   Upload, 
   X, 
-  Check 
+  Check,
+  AlertCircle
 } from 'lucide-react';
 
 interface CoverImageUploadProps {
@@ -16,59 +16,55 @@ interface CoverImageUploadProps {
   onImageRemove: () => void;
 }
 
-const COVER_TEMPLATES = [
-  {
-    id: 'tech-1',
-    url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=200&fit=crop',
-    name: 'Tecnologia'
-  },
-  {
-    id: 'design-1',
-    url: 'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=400&h=200&fit=crop',
-    name: 'Design'
-  },
-  {
-    id: 'code-1',
-    url: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=200&fit=crop',
-    name: 'Programação'
-  },
-  {
-    id: 'meeting-1',
-    url: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=200&fit=crop',
-    name: 'Reunião'
-  },
-  {
-    id: 'analytics-1',
-    url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=200&fit=crop',
-    name: 'Analytics'
-  },
-  {
-    id: 'workspace-1',
-    url: 'https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=400&h=200&fit=crop',
-    name: 'Workspace'
-  }
-];
-
 export function CoverImageUpload({ currentImage, onImageSelect, onImageRemove }: CoverImageUploadProps) {
-  const [customUrl, setCustomUrl] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleTemplateSelect = (templateUrl: string, templateId: string) => {
-    setSelectedTemplate(templateId);
-    onImageSelect(templateUrl);
-  };
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const handleCustomUrlSubmit = () => {
-    if (customUrl.trim()) {
-      onImageSelect(customUrl.trim());
-      setCustomUrl('');
-      setSelectedTemplate(null);
+    setError(null);
+    setUploading(true);
+
+    try {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Tipo de arquivo não suportado. Use JPG, PNG, GIF ou WebP.');
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        throw new Error('Arquivo muito grande. Tamanho máximo: 5MB.');
+      }
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        onImageSelect(result);
+        setUploading(false);
+      };
+      reader.onerror = () => {
+        setError('Erro ao processar o arquivo.');
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer upload da imagem.');
+      setUploading(false);
     }
+
+    // Reset input
+    event.target.value = '';
   };
 
   const handleRemoveImage = () => {
     onImageRemove();
-    setSelectedTemplate(null);
+    setError(null);
   };
 
   return (
@@ -106,63 +102,65 @@ export function CoverImageUpload({ currentImage, onImageSelect, onImageRemove }:
         </div>
       )}
 
-      {/* Templates */}
-      <div>
-        <h5 className="text-xs font-medium text-gray-400 mb-2">Templates Sugeridos</h5>
-        <div className="grid grid-cols-2 gap-2">
-          {COVER_TEMPLATES.map((template) => (
-            <div
-              key={template.id}
-              className={`relative cursor-pointer rounded border-2 transition-all ${
-                selectedTemplate === template.id || currentImage === template.url
-                  ? 'border-blue-500 ring-1 ring-blue-500'
-                  : 'border-gray-700 hover:border-gray-600'
-              }`}
-              onClick={() => handleTemplateSelect(template.url, template.id)}
-            >
-              <img
-                src={template.url}
-                alt={template.name}
-                className="w-full h-16 object-cover rounded"
-              />
-              <div className="absolute bottom-1 left-1">
-                <Badge variant="secondary" className="text-xs bg-black/70 text-white">
-                  {template.name}
-                </Badge>
-              </div>
-              {(selectedTemplate === template.id || currentImage === template.url) && (
-                <div className="absolute top-1 right-1">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                    <Check size={10} className="text-white" />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+      {/* Error message */}
+      {error && (
+        <div className="flex items-center gap-2 p-2 bg-red-900/20 border border-red-700 rounded text-red-400 text-sm">
+          <AlertCircle size={16} />
+          <span>{error}</span>
         </div>
-      </div>
+      )}
 
-      {/* URL personalizada */}
+      {/* Upload section */}
       <div>
-        <h5 className="text-xs font-medium text-gray-400 mb-2">URL Personalizada</h5>
-        <div className="flex gap-2">
-          <Input
-            placeholder="Cole a URL da imagem..."
-            value={customUrl}
-            onChange={(e) => setCustomUrl(e.target.value)}
-            className="bg-[#2a2a2a] border-gray-700 text-white text-sm"
+        <h5 className="text-xs font-medium text-gray-400 mb-2">Upload de Arquivo</h5>
+        <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-gray-600 transition-colors">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+            id="cover-upload"
+            disabled={uploading}
           />
-          <Button
-            size="sm"
-            onClick={handleCustomUrlSubmit}
-            disabled={!customUrl.trim()}
+          <label
+            htmlFor="cover-upload"
+            className={`cursor-pointer ${uploading ? 'pointer-events-none' : ''}`}
           >
-            <Upload size={14} />
-          </Button>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center">
+                {uploading ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                ) : (
+                  <Upload size={24} className="text-gray-400" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-gray-300 font-medium">
+                  {uploading ? 'Processando...' : 'Clique para selecionar uma imagem'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  JPG, PNG, GIF, WebP até 5MB
+                </p>
+                <p className="text-xs text-gray-500">
+                  Recomendado: 370x112px (proporção 2:1)
+                </p>
+              </div>
+            </div>
+          </label>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          Recomendamos proporção 2:1 (ex: 400x200px)
-        </p>
+
+        {!currentImage && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-2 bg-[#2a2a2a] border-gray-700"
+            onClick={() => document.getElementById('cover-upload')?.click()}
+            disabled={uploading}
+          >
+            <Upload size={14} className="mr-2" />
+            {uploading ? 'Processando...' : 'Escolher Arquivo'}
+          </Button>
+        )}
       </div>
     </div>
   );
