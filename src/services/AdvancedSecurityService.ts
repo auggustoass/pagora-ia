@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -71,7 +72,17 @@ export class AdvancedSecurityService {
         return { allowed: false, blocked: true, reason: 'Rate limit check failed' };
       }
 
-      return data || { allowed: false, blocked: true, reason: 'Invalid response' };
+      // Fix: Cast the data to the correct type since Supabase RPC returns Json type
+      const result = data as {
+        allowed: boolean;
+        blocked: boolean;
+        attempts?: number;
+        maxAttempts?: number;
+        blockedUntil?: string;
+        reason?: string;
+      };
+
+      return result || { allowed: false, blocked: true, reason: 'Invalid response' };
     } catch (error) {
       console.error('Advanced rate limit check failed:', error);
       return { allowed: false, blocked: true, reason: 'System error' };

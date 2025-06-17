@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { toast } from 'sonner';
-import { NotificationsService } from '@/services/notificationsService';
+import { NotificationsService } from '@/services/NotificationsService';
 import {
   DropdownMenu,
   DropdownMenuContent,
