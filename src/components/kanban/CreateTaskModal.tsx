@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTask } from './TaskContext';
+import { CoverImageUpload } from './CoverImageUpload';
 import { Plus, X } from 'lucide-react';
 
 interface CreateTaskModalProps {
@@ -24,6 +25,7 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [columnId, setColumnId] = useState(defaultColumnId || 'todo');
+  const [coverImage, setCoverImage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,6 +40,7 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
         title: title.trim(),
         description: description.trim(),
         columnId,
+        coverImage: coverImage || undefined,
         labels: [],
         members: [],
         attachments: [],
@@ -49,6 +52,7 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
       // Reset form
       setTitle('');
       setDescription('');
+      setCoverImage('');
       setColumnId(defaultColumnId || 'todo');
       onClose();
     } catch (error) {
@@ -61,18 +65,29 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
   const handleClose = () => {
     setTitle('');
     setDescription('');
+    setCoverImage('');
     setColumnId(defaultColumnId || 'todo');
     onClose();
   };
 
+  const handleImageSelect = (imageUrl: string) => {
+    console.log('Image selected in CreateTaskModal:', imageUrl.substring(0, 50) + '...');
+    setCoverImage(imageUrl);
+  };
+
+  const handleImageRemove = () => {
+    console.log('Image removed in CreateTaskModal');
+    setCoverImage('');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md bg-[#1a1a1a] border-gray-800">
+      <DialogContent className="max-w-2xl bg-[#1a1a1a] border-gray-800 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white">Criar Nova Tarefa</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="text-sm font-medium text-gray-300 mb-2 block">
               Título da Tarefa *
@@ -117,7 +132,15 @@ export function CreateTaskModal({ isOpen, onClose, defaultColumnId }: CreateTask
             </Select>
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div>
+            <CoverImageUpload
+              currentImage={coverImage}
+              onImageSelect={handleImageSelect}
+              onImageRemove={handleImageRemove}
+            />
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t border-gray-700">
             <Button 
               type="submit" 
               disabled={!title.trim() || isSubmitting}
