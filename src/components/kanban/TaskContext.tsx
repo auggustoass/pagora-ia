@@ -13,6 +13,7 @@ export interface Task {
   checklist: ChecklistItem[];
   columnId: string;
   position: number;
+  archived: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,6 +69,8 @@ interface TaskContextType {
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   deleteTask: (taskId: string) => void;
   moveTask: (taskId: string, fromColumnId: string, toColumnId: string, position: number) => void;
+  archiveTask: (taskId: string) => void;
+  unarchiveTask: (taskId: string) => void;
   addComment: (taskId: string, content: string) => void;
   addAttachment: (taskId: string, attachment: Omit<Attachment, 'id' | 'uploadedAt'>) => void;
   toggleChecklistItem: (taskId: string, checklistItemId: string) => void;
@@ -124,6 +127,7 @@ const sampleTasks: Record<string, Task> = {
     ],
     columnId: 'inProgress',
     position: 0,
+    archived: false,
     createdAt: '2024-01-10T08:00:00Z',
     updatedAt: '2024-01-10T09:00:00Z'
   },
@@ -144,6 +148,7 @@ const sampleTasks: Record<string, Task> = {
     checklist: [],
     columnId: 'todo',
     position: 0,
+    archived: false,
     createdAt: '2024-01-09T10:00:00Z',
     updatedAt: '2024-01-09T10:00:00Z'
   },
@@ -165,6 +170,7 @@ const sampleTasks: Record<string, Task> = {
     checklist: [],
     columnId: 'review',
     position: 0,
+    archived: false,
     createdAt: '2024-01-08T14:00:00Z',
     updatedAt: '2024-01-08T14:00:00Z'
   }
@@ -228,6 +234,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const newTask: Task = {
       ...taskData,
       id,
+      archived: false,
       createdAt: now,
       updatedAt: now
     };
@@ -279,6 +286,40 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       [task.columnId]: {
         ...prev[task.columnId],
         taskIds: prev[task.columnId].taskIds.filter(id => id !== taskId)
+      }
+    }));
+  };
+
+  const archiveTask = (taskId: string) => {
+    const task = tasks[taskId];
+    if (!task) return;
+
+    // Remove from current column
+    setColumns(prev => ({
+      ...prev,
+      [task.columnId]: {
+        ...prev[task.columnId],
+        taskIds: prev[task.columnId].taskIds.filter(id => id !== taskId)
+      }
+    }));
+
+    // Mark as archived
+    updateTask(taskId, { archived: true });
+  };
+
+  const unarchiveTask = (taskId: string) => {
+    const task = tasks[taskId];
+    if (!task) return;
+
+    // Mark as not archived
+    updateTask(taskId, { archived: false });
+
+    // Add back to original column
+    setColumns(prev => ({
+      ...prev,
+      [task.columnId]: {
+        ...prev[task.columnId],
+        taskIds: [...prev[task.columnId].taskIds, taskId]
       }
     }));
   };
@@ -377,6 +418,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       updateTask,
       deleteTask,
       moveTask,
+      archiveTask,
+      unarchiveTask,
       addComment,
       addAttachment,
       toggleChecklistItem,

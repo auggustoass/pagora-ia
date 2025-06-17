@@ -30,7 +30,8 @@ import {
   Download,
   Trash2,
   Image,
-  Edit3
+  Edit3,
+  Archive
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -42,7 +43,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
-  const { updateTask, addComment, addChecklistItem, toggleChecklistItem } = useTask();
+  const { updateTask, addComment, addChecklistItem, toggleChecklistItem, archiveTask, unarchiveTask } = useTask();
   const [newComment, setNewComment] = useState('');
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [editingDescription, setEditingDescription] = useState(false);
@@ -102,6 +103,15 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const handleArchiveTask = () => {
+    if (task.archived) {
+      unarchiveTask(task.id);
+    } else {
+      archiveTask(task.id);
+      onClose();
+    }
   };
 
   return (
@@ -164,8 +174,14 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
               </div>
             </div>
             
-            <DialogTitle className="text-xl font-bold text-white text-left">
+            <DialogTitle className="text-xl font-bold text-white text-left flex items-center gap-2">
               {task.title}
+              {task.archived && (
+                <Badge variant="secondary" className="text-xs bg-gray-700 text-gray-300">
+                  <Archive size={12} className="mr-1" />
+                  Arquivada
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
 
@@ -472,6 +488,23 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
                     <CheckSquare size={14} className="mr-2" />
                     Adicionar Checklist
                   </Button>
+                  
+                  {/* Archive/Unarchive Button */}
+                  <div className="pt-2 border-t border-gray-700">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className={`w-full justify-start ${
+                        task.archived 
+                          ? 'bg-green-900/20 border-green-700 text-green-400 hover:bg-green-900/30' 
+                          : 'bg-orange-900/20 border-orange-700 text-orange-400 hover:bg-orange-900/30'
+                      }`}
+                      onClick={handleArchiveTask}
+                    >
+                      <Archive size={14} className="mr-2" />
+                      {task.archived ? 'Desarquivar Tarefa' : 'Arquivar Tarefa'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

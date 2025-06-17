@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Column, useTask } from './TaskContext';
 import { TaskCard } from './TaskCard';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +9,13 @@ interface KanbanColumnProps {
 }
 
 export function KanbanColumn({ column, isDraggingOver }: KanbanColumnProps) {
-  const { tasks } = useTask();
+  const { tasks, columns, moveTask } = useTask();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const columnTasks = column.taskIds.map(taskId => tasks[taskId]).filter(Boolean);
+  // Filter out archived tasks
+  const columnTasks = column.taskIds
+    .map(taskId => tasks[taskId])
+    .filter(task => task && !task.archived);
 
   const getColumnColor = (columnId: string) => {
     switch (columnId) {
