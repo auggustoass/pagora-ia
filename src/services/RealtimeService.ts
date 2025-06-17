@@ -43,7 +43,7 @@ class RealtimeManager {
           schema: 'public',
           table,
           filter: filters?.filter
-        },
+        } as any,
         throttledCallback
       )
       .subscribe((status) => {
