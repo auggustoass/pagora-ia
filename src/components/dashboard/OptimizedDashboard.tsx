@@ -1,20 +1,24 @@
 
 import React from 'react';
-import { useOptimizedDashboard } from '@/hooks/use-optimized-dashboard';
+import { useOptimizedStats } from '@/hooks/use-optimized-stats';
+import { useOptimizedClients } from '@/hooks/use-optimized-clients';
 import { CreditsDisplay } from './CreditsDisplay';
 import { RevenueChart } from './charts/RevenueChart';
 import { CyberHeaderSection } from './CyberHeaderSection';
-import { CyberStatsSection } from './CyberStatsSection';
-import { TabsSection } from './TabsSection';
+import { MemoizedCyberStatsSection } from './MemoizedCyberStatsSection';
+import { LazyTabsSection } from './LazyTabsSection';
 
 export function OptimizedDashboard() {
   const {
-    stats,
+    data: stats = { total: 0, pendentes: 0, aprovadas: 0, totalRecebido: 0 },
+    isLoading: statsLoading,
+    refetch: refetchStats
+  } = useOptimizedStats();
+
+  const {
     clients,
-    loading,
-    getFilteredClients,
-    refetchStats
-  } = useOptimizedDashboard();
+    isLoading: clientsLoading
+  } = useOptimizedClients();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -49,10 +53,10 @@ export function OptimizedDashboard() {
           <CreditsDisplay />
         </div>
         
-        {/* Stats Cards */}
-        <CyberStatsSection 
+        {/* Stats Cards - Now memoized for better performance */}
+        <MemoizedCyberStatsSection 
           stats={stats}
-          loading={loading}
+          loading={statsLoading}
           formatCurrency={formatCurrency}
         />
         
@@ -64,10 +68,10 @@ export function OptimizedDashboard() {
           </div>
         </div>
         
-        {/* Tabs Section with optimized clients */}
-        <TabsSection
+        {/* Tabs Section with lazy loading */}
+        <LazyTabsSection
           clients={clients}
-          loading={loading}
+          loading={clientsLoading}
           searchTerm=""
           currentPage={1}
           itemsPerPage={10}
