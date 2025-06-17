@@ -154,7 +154,7 @@ export function Dashboard() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
-  return <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+  return <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 bg-transparent">
       <div className="space-y-8 p-6 animate-fade-in bg-transparent">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
