@@ -1,4 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSupabaseTasks } from '@/hooks/useSupabaseTasks';
+import { TaskWithRelations } from '@/services/TaskService';
+import { TaskStorageService } from '@/services/TaskStorageService';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Task {
   id: string;
@@ -65,6 +70,7 @@ export interface Column {
 interface TaskContextType {
   tasks: Record<string, Task>;
   columns: Record<string, Column>;
+  loading: boolean;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   deleteTask: (taskId: string) => void;
@@ -414,6 +420,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     <TaskContext.Provider value={{
       tasks,
       columns,
+      loading: false,
       addTask,
       updateTask,
       deleteTask,

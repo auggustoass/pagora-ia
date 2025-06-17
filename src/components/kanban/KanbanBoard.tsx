@@ -5,10 +5,10 @@ import { KanbanColumn } from './KanbanColumn';
 import { useTask } from './TaskContext';
 import { CreateTaskModal } from './CreateTaskModal';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 
 export function KanbanBoard() {
-  const { columns, moveTask } = useTask();
+  const { columns, moveTask, loading } = useTask();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
@@ -30,6 +30,17 @@ export function KanbanBoard() {
       destination.index
     );
   };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 size={24} className="animate-spin" />
+          <span>Carregando tarefas...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full">

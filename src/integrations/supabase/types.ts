@@ -347,6 +347,232 @@ export type Database = {
         }
         Relationships: []
       }
+      task_activities: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          task_id: string
+          type: Database["public"]["Enums"]["activity_type"]
+          user_avatar_url: string | null
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          task_id: string
+          type: Database["public"]["Enums"]["activity_type"]
+          user_avatar_url?: string | null
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          type?: Database["public"]["Enums"]["activity_type"]
+          user_avatar_url?: string | null
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_activities_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_attachments: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          size_bytes: number | null
+          task_id: string
+          type: Database["public"]["Enums"]["attachment_type"]
+          uploaded_by: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          size_bytes?: number | null
+          task_id: string
+          type: Database["public"]["Enums"]["attachment_type"]
+          uploaded_by: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          size_bytes?: number | null
+          task_id?: string
+          type?: Database["public"]["Enums"]["attachment_type"]
+          uploaded_by?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_checklist: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          task_id: string
+          text: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          task_id: string
+          text: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          task_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          task_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          name: string
+          task_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_labels_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_members: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          task_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          task_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_members_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          archived: boolean
+          column_id: Database["public"]["Enums"]["task_status"]
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          position: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          column_id?: Database["public"]["Enums"]["task_status"]
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          position?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          column_id?: Database["public"]["Enums"]["task_status"]
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          position?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_invoice_credits: {
         Row: {
           created_at: string
@@ -446,7 +672,10 @@ export type Database = {
       }
     }
     Enums: {
+      activity_type: "comment" | "action"
       app_role: "admin" | "user"
+      attachment_type: "image" | "document" | "link"
+      task_status: "todo" | "inProgress" | "review" | "done"
       user_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -563,7 +792,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_type: ["comment", "action"],
       app_role: ["admin", "user"],
+      attachment_type: ["image", "document", "link"],
+      task_status: ["todo", "inProgress", "review", "done"],
       user_status: ["pending", "approved", "rejected"],
     },
   },
