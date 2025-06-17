@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 export interface Notification {
   id: string;
-  type: 'payment_update' | 'invoice_overdue' | 'low_credits' | 'subscription_update' | string;
+  type: 'payment_update' | 'invoice_overdue' | 'low_credits' | 'subscription_update' | 'invoice_created' | 'invoice_paid' | 'invoice_status_updated' | 'client_created' | 'client_updated' | 'credits_added' | 'credits_consumed' | 'task_created' | 'task_completed' | 'user_approved' | 'user_rejected' | 'payment_link_generated' | string;
   title: string;
   content: string;
   related_id?: string;
@@ -36,7 +36,8 @@ export const useNotifications = () => {
           .from('notifications')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50); // Limitar para melhor performance
 
         if (error) throw error;
 
@@ -63,15 +64,57 @@ export const useNotifications = () => {
             filter: `user_id=eq.${user.id}`
           }, 
           (payload) => {
+            console.log('Notification change detected:', payload);
             fetchNotifications(); // Refresh notifications when changes occur
             
             // Show toast for new notifications
             if (payload.eventType === 'INSERT') {
               const newNotification = payload.new as Notification;
-              toast.info(newNotification.title, {
-                description: newNotification.content,
-                duration: 5000,
-              });
+              
+              // Toast personalizado baseado no tipo
+              switch (newNotification.type) {
+                case 'invoice_created':
+                  toast.success('💼 ' + newNotification.title, {
+                    description: newNotification.content,
+                    duration: 6000,
+                  });
+                  break;
+                case 'invoice_paid':
+                  toast.success('💰 ' + newNotification.title, {
+                    description: newNotification.content,
+                    duration: 6000,
+                  });
+                  break;
+                case 'client_created':
+                  toast.info('👤 ' + newNotification.title, {
+                    description: newNotification.content,
+                    duration: 5000,
+                  });
+                  break;
+                case 'low_credits':
+                  toast.warning('⚡ ' + newNotification.title, {
+                    description: newNotification.content,
+                    duration: 8000,
+                  });
+                  break;
+                case 'payment_link_generated':
+                  toast.success('🔗 ' + newNotification.title, {
+                    description: newNotification.content,
+                    duration: 5000,
+                  });
+                  break;
+                case 'task_completed':
+                  toast.success('✅ ' + newNotification.title, {
+                    description: newNotification.content,
+                    duration: 4000,
+                  });
+                  break;
+                default:
+                  toast.info(newNotification.title, {
+                    description: newNotification.content,
+                    duration: 5000,
+                  });
+              }
             }
           }
         )
@@ -128,11 +171,38 @@ export const useNotifications = () => {
     }
   };
 
+  // Get notification stats
+  const getNotificationStats = () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    
+    const todayNotifications = notifications.filter(n => 
+      new Date(n.created_at).toDateString() === today.toDateString()
+    );
+    
+    const yesterdayNotifications = notifications.filter(n => 
+      new Date(n.created_at).toDateString() === yesterday.toDateString()
+    );
+
+    return {
+      total: notifications.length,
+      unread: unreadCount,
+      today: todayNotifications.length,
+      yesterday: yesterdayNotifications.length,
+      byType: notifications.reduce((acc, n) => {
+        acc[n.type] = (acc[n.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    };
+  };
+
   return {
     notifications,
     unreadCount,
     loading,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    getNotificationStats
   };
 };
