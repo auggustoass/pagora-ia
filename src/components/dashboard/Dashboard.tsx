@@ -17,6 +17,7 @@ import { RevenueChart } from './charts/RevenueChart';
 import { ActionButtons } from './ActionButtons';
 import { SearchBar } from './SearchBar';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+
 interface Client {
   id: string;
   nome: string;
@@ -24,6 +25,7 @@ interface Client {
   whatsapp: string;
   cpf_cnpj: string;
 }
+
 export function Dashboard() {
   const [stats, setStats] = useState({
     total: 0,
@@ -48,11 +50,13 @@ export function Dashboard() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
   useEffect(() => {
     if (user) {
       fetchStats();
     }
   }, [user, isAdmin]);
+
   const fetchStats = async () => {
     if (!user) return;
     try {
@@ -107,6 +111,7 @@ export function Dashboard() {
       setLoading(false);
     }
   };
+
   const fetchClients = async () => {
     if (!user) return;
     try {
@@ -124,36 +129,45 @@ export function Dashboard() {
       console.error('Error fetching clients:', error);
     }
   };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
   };
+
   const handleEditClient = (clientId: string) => {
     setSelectedClientId(clientId);
     setEditClientDialogOpen(true);
   };
+
   const handleEditClientSuccess = () => {
     setEditClientDialogOpen(false);
     setSelectedClientId(null);
     fetchClients();
   };
+
   const handleQuickInvoiceSuccess = () => {
     fetchStats();
   };
+
   const filteredClients = clients.filter(client => {
     if (!searchTerm) return true;
     return client.nome.toLowerCase().includes(searchTerm.toLowerCase()) || client.email.toLowerCase().includes(searchTerm.toLowerCase()) || client.cpf_cnpj.toLowerCase().includes(searchTerm.toLowerCase());
   });
+
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const currentClients = filteredClients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
+
   return <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 bg-transparent">
       <div className="">
         {/* Header Section */}
@@ -202,7 +216,7 @@ export function Dashboard() {
             <TabsTrigger value="faturas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
               Faturas
             </TabsTrigger>
-            <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
+            <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-600 data-[state=active]:to-gray-500 data-[state=active]:text-white rounded-lg transition-all duration-200">
               Clientes
             </TabsTrigger>
           </TabsList>
