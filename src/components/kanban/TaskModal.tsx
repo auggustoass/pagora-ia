@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Task, useTask } from './TaskContext';
 import {
@@ -35,6 +36,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { createLocalDate } from '@/utils/date';
 
 interface TaskModalProps {
   task: Task;
@@ -317,7 +319,7 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
                           <p className="text-sm text-white font-medium">{attachment.name}</p>
                           <p className="text-xs text-gray-400">
                             {attachment.size && formatFileSize(attachment.size)} • 
-                            {format(new Date(attachment.uploadedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                            {format(createLocalDate(attachment.uploadedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                           </p>
                         </div>
                         <div className="flex gap-1">
@@ -355,7 +357,7 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium text-white">{activity.user.name}</span>
                             <span className="text-xs text-gray-400">
-                              {format(new Date(activity.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                              {format(createLocalDate(activity.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </span>
                           </div>
                           <p className="text-sm text-gray-300">{activity.content}</p>
@@ -398,7 +400,7 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
                   </h3>
                   <div className="bg-[#2a2a2a] p-3 rounded border border-gray-700">
                     <p className="text-sm text-white">
-                      {format(new Date(task.dueDate), 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR })}
+                      {format(createLocalDate(task.dueDate), 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR })}
                     </p>
                   </div>
                 </div>

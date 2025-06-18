@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, MessageSquare, Paperclip, CheckSquare, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { createLocalDate } from '@/utils/date';
 
 interface TaskCardProps {
   task: Task;
@@ -100,7 +101,7 @@ export function TaskCard({ task, index }: TaskCardProps) {
                   {task.dueDate && (
                     <div className="flex items-center gap-1">
                       <Calendar size={12} />
-                      <span>{format(new Date(task.dueDate), 'dd MMM', { locale: ptBR })}</span>
+                      <span>{format(createLocalDate(task.dueDate), 'dd MMM', { locale: ptBR })}</span>
                     </div>
                   )}
 
