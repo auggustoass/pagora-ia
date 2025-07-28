@@ -19,15 +19,15 @@ export function ThemeToggle() {
   };
   
   return (
-    <div className="flex items-center space-x-2 bg-gray-900/80 border border-gray-700 p-1.5 rounded-full">
-      <Moon className="h-4 w-4 text-gray-400" />
+    <div className="flex items-center space-x-2 bg-card border border-border p-1.5 rounded-lg">
+      <Moon className="h-4 w-4 text-muted-foreground" />
       <Switch 
         checked={isSystemMode} 
         onCheckedChange={toggleTheme} 
         id="theme-toggle"
-        className="data-[state=checked]:bg-green-600"
+        className="data-[state=checked]:bg-primary"
       />
-      <Monitor className="h-4 w-4 text-gray-400" />
+      <Monitor className="h-4 w-4 text-muted-foreground" />
     </div>
   );
 }

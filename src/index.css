@@ -5,108 +5,104 @@
 
 @layer base {
   :root {
-    /* Cyber black, gray, and green theme */
+    /* Minimalist theme - Black, white, and light blue */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
-    --card: 0 0% 2%;
+    --card: 0 0% 4%;
     --card-foreground: 0 0% 100%;
-    --popover: 0 0% 2%;
+    --popover: 0 0% 4%;
     --popover-foreground: 0 0% 100%;
-    --primary: 123 100% 50%;
+    --primary: 213 94% 68%;
     --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 3%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 5%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 123 100% 50%;
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 220 13% 91%;
+    --muted-foreground: 215 25% 27%;
+    --accent: 213 94% 68%;
     --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 123 100% 50% / 0.2;
-    --input: 123 100% 50% / 0.2;
-    --ring: 123 100% 50%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 213 94% 68%;
     --radius: 0.5rem;
     
-    /* Status colors - Cyber scheme */
-    --success: 123 100% 50%;
-    --success-foreground: 0 0% 0%;
-    --warning: 45 93% 47%;
+    /* Status colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
     --error: 0 84% 60%;
     --error-foreground: 0 0% 100%;
-    --info: 123 100% 50%;
+    --info: 213 94% 68%;
     --info-foreground: 0 0% 0%;
     
-    /* Kanban specific colors - Cyber scheme */
+    /* Kanban colors */
     --kanban-bg: 0 0% 0%;
-    --kanban-card: 0 0% 2%;
-    --kanban-column: 0 0% 1%;
-    --kanban-todo: 0 0% 40%;
-    --kanban-progress: 0 0% 30%;
-    --kanban-review: 45 93% 47%;
-    --kanban-done: 123 100% 50%;
+    --kanban-card: 0 0% 4%;
+    --kanban-column: 0 0% 2%;
+    --kanban-todo: 220 13% 91%;
+    --kanban-progress: 38 92% 50%;
+    --kanban-review: 25 95% 53%;
+    --kanban-done: 142 71% 45%;
     
-    /* Sidebar specific colors */
-    --sidebar-background: 0 0% 0%;
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 2%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 123 100% 50%;
+    --sidebar-primary: 213 94% 68%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 3%;
+    --sidebar-accent: 0 0% 6%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 123 100% 50% / 0.2;
-    --sidebar-ring: 123 100% 50%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 213 94% 68%;
   }
 
   .dark {
-    /* Same values for dark mode - ensuring consistency */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
-    --card: 0 0% 2%;
+    --card: 0 0% 4%;
     --card-foreground: 0 0% 100%;
-    --popover: 0 0% 2%;
+    --popover: 0 0% 4%;
     --popover-foreground: 0 0% 100%;
-    --primary: 123 100% 50%;
+    --primary: 213 94% 68%;
     --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 3%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 5%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 123 100% 50%;
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 220 13% 91%;
+    --muted-foreground: 215 25% 27%;
+    --accent: 213 94% 68%;
     --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 123 100% 50% / 0.2;
-    --input: 123 100% 50% / 0.2;
-    --ring: 123 100% 50%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 213 94% 68%;
     
-    /* Status colors */
-    --success: 123 100% 50%;
-    --success-foreground: 0 0% 0%;
-    --warning: 45 93% 47%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
     --error: 0 84% 60%;
     --error-foreground: 0 0% 100%;
-    --info: 123 100% 50%;
+    --info: 213 94% 68%;
     --info-foreground: 0 0% 0%;
     
-    /* Kanban specific colors */
     --kanban-bg: 0 0% 0%;
-    --kanban-card: 0 0% 2%;
-    --kanban-column: 0 0% 1%;
-    --kanban-todo: 0 0% 40%;
-    --kanban-progress: 0 0% 30%;
-    --kanban-review: 45 93% 47%;
-    --kanban-done: 123 100% 50%;
+    --kanban-card: 0 0% 4%;
+    --kanban-column: 0 0% 2%;
+    --kanban-todo: 220 13% 91%;
+    --kanban-progress: 38 92% 50%;
+    --kanban-review: 25 95% 53%;
+    --kanban-done: 142 71% 45%;
     
-    /* Sidebar specific colors */
-    --sidebar-background: 0 0% 0%;
+    --sidebar-background: 0 0% 2%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 123 100% 50%;
+    --sidebar-primary: 213 94% 68%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 3%;
+    --sidebar-accent: 0 0% 6%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 123 100% 50% / 0.2;
-    --sidebar-ring: 123 100% 50%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 213 94% 68%;
   }
 
   * {
@@ -114,235 +110,40 @@
   }
 
   body {
-    @apply bg-black text-white antialiased overflow-x-hidden min-h-screen;
+    @apply bg-background text-foreground font-poppins antialiased;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
-    background: #000000;
   }
 
-  /* Cyber card styling */
-  .cyber-card {
-    position: relative;
-    background: #000000;
-    border: 1px solid rgba(0, 255, 65, 0.2);
-    border-radius: 8px;
-    overflow: hidden;
+  /* Clean card styling */
+  .minimal-card {
+    @apply bg-card border border-border rounded-lg shadow-sm transition-all duration-200;
   }
 
-  .cyber-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.5), transparent);
+  .minimal-card:hover {
+    @apply shadow-md;
   }
 
-  .cyber-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.3), transparent);
+  /* Clean button styling */
+  .minimal-button {
+    @apply bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium transition-all duration-200;
   }
 
-  .glass-card {
-    @apply backdrop-blur-sm border rounded-xl shadow-lg transition-all duration-300;
-    position: relative;
-    overflow: hidden;
-    background: rgba(0, 0, 0, 0.95);
-    border-color: rgba(0, 255, 65, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 255, 65, 0.1);
-  }
-  
-  .glass-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.3), transparent);
+  .minimal-button:hover {
+    @apply bg-primary/90;
   }
 
-  .hblackpix-gradient {
-    background: linear-gradient(135deg, #00ff41, rgba(0, 255, 65, 0.8));
+  /* Clean input styling */
+  .minimal-input {
+    @apply bg-background border border-input rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring;
   }
 
-  .hblackpix-btn {
-    @apply transition-all duration-300 hover:shadow-lg focus:ring-2 focus:outline-none;
-    --tw-ring-color: rgba(0, 255, 65, 0.5);
-  }
-  
-  .floating {
-    transform: translateY(0px);
-  }
-  
-  .hover-float:hover {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  @keyframes float {
-    0% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-    100% {
-      transform: translateY(0px);
-    }
+  /* Typography */
+  .title-blue {
+    @apply text-primary font-semibold;
   }
 
-  @keyframes cyber-pulse {
-    0%, 100% {
-      opacity: 0.8;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.02);
-    }
-  }
-
-  @keyframes scan-line {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-  }
-
-  @keyframes glow-pulse {
-    0%, 100% {
-      box-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
-    }
-  }
-
-  @keyframes matrix-rain {
-    0% {
-      transform: translateY(-100%);
-      opacity: 0;
-    }
-    10% {
-      opacity: 1;
-    }
-    90% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(100vh);
-      opacity: 0;
-    }
-  }
-
-  @keyframes neon-flicker {
-    0%, 100% {
-      text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 15px #00ff41;
-    }
-    50% {
-      text-shadow: 0 0 2px #00ff41, 0 0 5px #00ff41, 0 0 8px #00ff41;
-    }
-  }
-  
-  .btn-hover-fx {
-    @apply relative overflow-hidden;
-  }
-  
-  .btn-hover-fx::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: -100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.2), transparent);
-    transition: 0.5s;
-  }
-  
-  .btn-hover-fx:hover::after {
-    left: 100%;
-  }
-
-  /* Cyber form styling */
-  .cyber-form {
-    background: rgba(0, 0, 0, 0.95);
-    border: 1px solid rgba(0, 255, 65, 0.2);
-    backdrop-filter: blur(10px);
-  }
-
-  .cyber-input {
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid rgba(0, 255, 65, 0.3);
-    color: #ffffff;
-    font-family: 'Monaco', 'Menlo', monospace;
-  }
-
-  .cyber-input:focus {
-    border-color: rgba(0, 255, 65, 0.6);
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-  }
-
-  .cyber-button {
-    background: rgba(0, 0, 0, 0.9);
-    border: 1px solid rgba(0, 255, 65, 0.4);
-    color: #00ff41;
-    font-family: 'Monaco', 'Menlo', monospace;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    transition: all 0.3s ease;
-  }
-
-  .cyber-button:hover {
-    background: rgba(0, 255, 65, 0.1);
-    border-color: rgba(0, 255, 65, 0.6);
-    box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
-    color: #ffffff;
-  }
-
-  /* Progress circle */
-  .progress-circle {
-    @apply relative flex items-center justify-center;
-    transform: rotate(-90deg);
-  }
-
-  .progress-circle circle {
-    @apply transition-all duration-500 ease-in-out;
-  }
-
-  .progress-circle .progress-value {
-    @apply absolute transform rotate-90;
-  }
-
-  /* Cyber table styling */
-  .cyber-table {
-    background: rgba(0, 0, 0, 0.95);
-    border: 1px solid rgba(0, 255, 65, 0.2);
-  }
-
-  .cyber-table th {
-    background: rgba(0, 0, 0, 0.98);
-    border-bottom: 1px solid rgba(0, 255, 65, 0.3);
-    color: #00ff41;
-    font-family: 'Monaco', 'Menlo', monospace;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .cyber-table td {
-    border-bottom: 1px solid rgba(0, 255, 65, 0.1);
-    color: #ffffff;
-  }
-
-  .cyber-table tr:hover {
-    background: rgba(0, 255, 65, 0.05);
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+  .text-subtle {
+    @apply text-muted-foreground;
   }
 }
 
@@ -360,22 +161,20 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 65, 0.3);
-    border-radius: 9999px;
+    @apply bg-border rounded-full;
   }
-  
-  /* Hide scrollbar but keep functionality */
+
   .scrollbar-none {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
   
   .scrollbar-none::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: none;
     width: 0;
     height: 0;
   }
-  
+
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }
@@ -390,115 +189,12 @@
       transform: translateY(0);
     }
   }
-  
-  .text-glow {
-    text-shadow: 0 0 10px rgba(0, 255, 65, 0.7);
-  }
-  
-  .text-gradient {
-    background: linear-gradient(135deg, #00ff41, rgba(0, 255, 65, 0.8));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .border-gradient {
-    border-image: linear-gradient(to right, #00ff41, rgba(0, 255, 65, 0.8)) 1;
-  }
-  
-  .bg-grid {
-    background-image: linear-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 1px),
-                      linear-gradient(to right, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
 
   .card-hover {
-    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+    @apply transition-all duration-200 hover:shadow-md;
   }
 
-  .icon-circle {
-    @apply rounded-full p-2 flex items-center justify-center;
-  }
-
-  .status-card-value {
-    @apply text-xl font-bold;
-  }
-
-  .status-card-title {
-    @apply text-xs font-medium text-muted-foreground;
-  }
-  
-  .status-card-description {
-    @apply text-xs text-muted-foreground opacity-70;
-  }
-
-  .cyber-glow {
-    box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
-  }
-
-  .cyber-glow:hover {
-    box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
-  }
-
-  .animate-cyber-pulse {
-    animation: cyber-pulse 2s ease-in-out infinite;
-  }
-
-  .animate-scan-line {
-    animation: scan-line 2s linear infinite;
-  }
-
-  .animate-glow-pulse {
-    animation: glow-pulse 2s ease-in-out infinite;
-  }
-
-  .animate-matrix-rain {
-    animation: matrix-rain 3s linear infinite;
-  }
-
-  .animate-neon-flicker {
-    animation: neon-flicker 2s ease-in-out infinite;
-  }
-
-  /* Cyber hexagon shape */
-  .cyber-hexagon {
-    clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
-  }
-
-  /* Cyber corner cuts */
-  .cyber-corner-cut {
-    clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
-  }
-
-  /* Cyber scan line effect */
-  .cyber-scan-line::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.3), transparent);
-    animation: scan-line 2s linear infinite;
-  }
-
-  /* Cyber glow border */
-  .cyber-glow-border {
-    position: relative;
-  }
-
-  .cyber-glow-border::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    background: linear-gradient(45deg, transparent, rgba(0, 255, 65, 0.4), transparent);
-    border-radius: inherit;
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .cyber-glow-border:hover::before {
-    opacity: 1;
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
   }
 }

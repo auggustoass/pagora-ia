@@ -39,7 +39,6 @@ export function OptimizedDashboard() {
     toast.success('Fatura criada com sucesso!');
   };
 
-  // Show offline indicator
   React.useEffect(() => {
     if (!isOnline) {
       toast.warning('Modo offline ativo', {
@@ -52,30 +51,19 @@ export function OptimizedDashboard() {
 
   return (
     <ErrorBoundaryWithRecovery>
-      <div className="min-h-screen bg-black relative overflow-hidden">
-        {/* Cyber background elements */}
-        <div className="absolute inset-0 bg-black"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(0,255,65,0.05)_0%,transparent_25%),radial-gradient(circle_at_85%_30%,rgba(0,255,65,0.05)_0%,transparent_25%)]"></div>
-        
-        {/* Scan lines overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(transparent_98%,rgba(0,255,65,0.03)_100%)] bg-[length:100%_4px] animate-pulse pointer-events-none"></div>
-        
-        {/* Offline indicator */}
+      <div className="min-h-screen bg-background">
         {!isOnline && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-mono z-50">
-            OFFLINE_MODE - {pendingActions.length} pending actions
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-warning text-warning-foreground px-4 py-2 rounded-lg text-sm font-medium z-50">
+            Modo Offline - {pendingActions.length} ações pendentes
           </div>
         )}
         
-        <div className="relative z-10 space-y-12 p-6">
-          {/* Header Section */}
-          <CyberHeaderSection 
-            searchTerm=""
-            onSearchTermChange={() => {}}
-            onQuickInvoiceSuccess={handleQuickInvoiceSuccess}
-          />
+        <div className="space-y-8 p-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold title-blue">Dashboard Financeiro</h1>
+            <p className="text-subtle">Gerencie suas faturas e clientes</p>
+          </div>
           
-          {/* Top Row: Credits and Performance Monitor */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <CreditsDisplay />
@@ -85,22 +73,16 @@ export function OptimizedDashboard() {
             </div>
           </div>
           
-          {/* Stats Cards - Now memoized for better performance */}
           <MemoizedCyberStatsSection 
             stats={stats}
             loading={statsLoading}
             formatCurrency={formatCurrency}
           />
           
-          {/* Upcoming Events Section */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-400/5 to-transparent rounded-2xl blur-3xl"></div>
-            <div className="relative">
-              <UpcomingEvents />
-            </div>
+          <div className="minimal-card p-6">
+            <UpcomingEvents />
           </div>
           
-          {/* Tabs Section with lazy loading */}
           <LazyTabsSection
             clients={clients}
             loading={clientsLoading}
@@ -116,13 +98,6 @@ export function OptimizedDashboard() {
           />
         </div>
         
-        {/* Corner accents */}
-        <div className="fixed top-0 left-0 w-32 h-32 border-l-2 border-t-2 border-green-400/20 pointer-events-none"></div>
-        <div className="fixed top-0 right-0 w-32 h-32 border-r-2 border-t-2 border-green-400/20 pointer-events-none"></div>
-        <div className="fixed bottom-0 left-0 w-32 h-32 border-l-2 border-b-2 border-green-400/20 pointer-events-none"></div>
-        <div className="fixed bottom-0 right-0 w-32 h-32 border-r-2 border-b-2 border-green-400/20 pointer-events-none"></div>
-        
-        {/* PWA Install Prompt */}
         <PWAInstallPrompt />
       </div>
     </ErrorBoundaryWithRecovery>
